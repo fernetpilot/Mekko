@@ -554,17 +554,6 @@ html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
 .kalk-innhold { max-width: 30rem; margin: 0 auto; }
 .kalk-hode { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .kalk-hode .overline { margin: 0; }
-.kalk-lukk {
-  border: 1px solid var(--glass-kant);
-  background: var(--glass);
-  color: var(--tekst);
-  font: 600 14px var(--font);
-  padding: 8px 14px;
-  border-radius: 999px;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  cursor: pointer;
-}
 .kalk-panel h2 { margin: 6px 0 0; font-size: clamp(26px, 7vw, 34px); letter-spacing: -0.02em; line-height: 1.1; }
 .kalk-panel .ingress { margin: 8px 0 16px; font-size: 15px; }
 
@@ -832,18 +821,11 @@ details.hjelpetekst p { margin: 6px 0 0; }
 
 /* ---------- Nederst på forsiden: «Registrer bilen din» ---------- */
 .slutt-cta { display: grid; justify-items: center; gap: 12px; width: 100%; max-width: 30rem; align-self: center; }
-.slutt-knapp {
-  display: block;
-  width: 100%;
-  padding: 17px 20px;
-  border-radius: 18px;
-  background: var(--tekst);
-  color: var(--bg);
-  font-weight: 700;
-  font-size: 17px;
-  text-align: center;
-  text-decoration: none;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-}
 .slutt-lenke { color: var(--tekst-dempet); font-size: 14px; text-decoration: none; }
 .slutt-lenke span { color: var(--tekst); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Toppknappen: «Tilhengerkalkulator →» på forsiden, «‹ Tilbake» inne i kalkulatoren */
+.kalk-knapp-topp .til-forside { display: none; }
+html.kalkulator-modus .kalk-knapp-topp .til-kalk { display: none; }
+html.kalkulator-modus .kalk-knapp-topp .til-forside { display: inline; }
+.slutt-lenke { font-size: 15px; text-align: center; }

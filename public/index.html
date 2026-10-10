@@ -30,7 +30,7 @@
   <header class="topp" id="topp">
     <a class="logo" href="/">MEKKOO</a>
     <nav class="topp-meny">
-      <a class="topp-knapp" href="/kalkulator"><span class="tekst-lang">Tilhengerkalkulator</span><span class="tekst-kort">Kalkulator</span> <span aria-hidden="true">→</span></a>
+      <a class="topp-knapp kalk-knapp-topp" href="/kalkulator"><span class="til-kalk"><span class="tekst-lang">Tilhengerkalkulator</span><span class="tekst-kort">Kalkulator</span> <span aria-hidden="true">→</span></span><span class="til-forside"><span aria-hidden="true">‹</span> Tilbake</span></a>
       <a class="topp-knapp logg-inn-knapp" href="/min-side?neste=%2F" data-logg-inn>Logg inn</a>
       <div class="profil">
         <button class="topp-knapp ikon" id="varsel-knapp" type="button"
@@ -81,7 +81,6 @@
   <main>
     <section class="seksjon hero" data-theme="dark" data-del="hero">
       <div class="hero-tekst">
-        <p class="overline">Bilhold, vedlikehold og tilhenger</p>
         <h1>Alt om bilen din, på ett sted.</h1>
         <p class="ingress">Service, EU-kontroll og dekkskift med påminnelser i tide. Og trykk på hengeren for å se hvor mye du kan laste.</p>
         <a class="logg-inn-cta" href="/min-side?neste=%2F&amp;modus=ny-konto" data-logg-inn>Opprett gratis konto <span aria-hidden="true">→</span></a>
@@ -100,7 +99,7 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
-      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få påminnelse om oljeskift for din bil – logg inn <span aria-hidden="true">→</span></a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få påminnelse om oljeskift for din bil <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="seksjon" data-theme="light" data-del="bremser">
@@ -114,7 +113,7 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
-      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få beskjed før bremsene må sjekkes – logg inn <span aria-hidden="true">→</span></a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få beskjed før bremsene må sjekkes <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="seksjon" data-theme="light" data-del="dekk">
@@ -128,11 +127,10 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
-      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få varsel når det er tid for dekkskift – logg inn <span aria-hidden="true">→</span></a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få varsel når det er tid for dekkskift <span aria-hidden="true">→</span></a>
       <!-- Nederst på siden: neste steg er å legge inn sin egen bil -->
       <div class="slutt-cta" data-logg-inn>
-        <a class="slutt-knapp" href="/min-side?neste=%2F&amp;modus=ny-konto" data-logg-inn>Registrer bilen din</a>
-        <a class="slutt-lenke" href="/min-side?neste=%2F" data-logg-inn>Har du konto? <span>Logg inn</span></a>
+        <a class="slutt-lenke" href="/min-side?neste=%2F" data-logg-inn>Har du husket å registrere bilen din? <span>Logg inn</span></a>
       </div>
     </section>
   </main>
@@ -143,7 +141,6 @@
   <section class="kalk-panel" id="kalk-panel" aria-labelledby="kalk-tittel" hidden>
     <div class="kalk-innhold">
       <div class="kalk-hode">
-        <button class="kalk-lukk" id="kalk-lukk" type="button">‹ Tilbake</button>
         <p class="overline">Tilhengerkalkulator</p>
       </div>
       <h2 id="kalk-tittel">Hvor mye kan du laste hengeren?</h2>
@@ -202,7 +199,7 @@
           <p class="hjelpetekst" id="last-bil-tekst"></p>
         </div>
         <div class="glassfelt resultatkort" id="last-advarsler" hidden></div>
-        <a class="logg-inn-cta liten" href="/min-side?neste=%2F&amp;modus=ny-konto" data-logg-inn>Lagre bilen og få varsel før EU-kontrollen – opprett konto <span aria-hidden="true">→</span></a>
+        <a class="logg-inn-cta liten" href="/min-side?neste=%2F&amp;modus=ny-konto" data-logg-inn>Lagre bilen og få varsel før EU-kontrollen <span aria-hidden="true">→</span></a>
       </div>
 
       <details class="kalk-manuelt">

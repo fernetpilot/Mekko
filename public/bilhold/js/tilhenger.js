@@ -2,13 +2,24 @@
 
 import * as THREE from 'three';
 
+const LAKK = 0xbdb9ac;          // samme som bilen (scene.js)
+
 const HJULRADIUS = 0.33;
 const FRONT = -2.95;            // hengerkassens forkant
 const BAK = -6.05;
 const BREDDE = 1.76;
 const GULV = 0.7;               // oversiden av gulvet
 const VEGG_H = 1.15;
-const AKSEL_Z = (FRONT + BAK) / 2;
+// Boggi: to aksler litt bak på midten, slik de fleste store hengere har
+const BOGGI_Z = (FRONT + BAK) / 2 - 0.25;
+const AKSLER = [BOGGI_Z + 0.37, BOGGI_Z - 0.37];
+
+// Ujevnheter i veien (meter opp/ned) ved en gitt strekning. Bilen og hengeren kjører over de
+// samme humpene, hengeren litt etter, så de hopper i takt uten å være helt like.
+export function veiHump(s) {
+  return Math.sin(s * 1.3) * 0.006 + Math.sin(s * 0.37) * 0.008;
+}
+export const HENGER_ETTER = 4.4;        // meter fra bilens midte til hengerens aksler
 
 export function lagTilhenger() {
   const gruppe = new THREE.Group();
@@ -16,7 +27,7 @@ export function lagTilhenger() {
   gruppe.add(kasse);
 
   // Egne materialer, så bare hengeren lyser opp når man peker på den
-  const solv = new THREE.MeshStandardMaterial({ color: 0xbfc3c8, metalness: 0.85, roughness: 0.28 });
+  const solv = new THREE.MeshStandardMaterial({ color: LAKK, metalness: 0.75, roughness: 0.3 });   // samme lakk som bilen
   const plast = new THREE.MeshStandardMaterial({ color: 0x17181a, metalness: 0.1, roughness: 0.75 });
   const gulvMat = new THREE.MeshStandardMaterial({ color: 0x3b3d42, roughness: 0.9 });
   const dekkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9 });
@@ -53,9 +64,9 @@ export function lagTilhenger() {
   for (const z of [FRONT, BAK]) boks(BREDDE + 0.04, 0.05, 0.03, solv, 0, GULV + VEGG_H, z);
   // Skjermer over hjulene
   for (const s of [-1, 1]) {
-    boks(0.26, 0.04, 0.95, plast, s * (BREDDE / 2 + 0.13), GULV + 0.02, AKSEL_Z);
-    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, AKSEL_Z + 0.46);
-    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, AKSEL_Z - 0.46);
+    boks(0.26, 0.04, 1.7, plast, s * (BREDDE / 2 + 0.13), GULV + 0.02, BOGGI_Z);
+    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, BOGGI_Z + 0.83);
+    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, BOGGI_Z - 0.83);
     boks(0.05, 0.16, 0.08, baklykt, s * (BREDDE / 2 - 0.15), GULV + 0.12, BAK - 0.02);
   }
   // Drag (A-ramme) fram til kulen på bilen
@@ -71,9 +82,9 @@ export function lagTilhenger() {
 
   // Hjul
   const hjul = [];
-  for (const s of [-1, 1]) {
+  for (const s of [-1, 1]) for (const akselZ of AKSLER) {
     const spinn = new THREE.Group();
-    spinn.position.set(s * (BREDDE / 2 + 0.13), HJULRADIUS, AKSEL_Z);
+    spinn.position.set(s * (BREDDE / 2 + 0.13), HJULRADIUS, akselZ);
     const dekk = new THREE.Mesh(new THREE.CylinderGeometry(HJULRADIUS, HJULRADIUS, 0.2, 28), dekkMat);
     dekk.rotation.z = Math.PI / 2;
     dekk.castShadow = true;
@@ -110,10 +121,12 @@ export function lagTilhenger() {
     gruppe,
     skiltpunkt,
     sjiraffHode: sjiraff.hode,
-    oppdater({ strekning, tid, hover, blink = 0 }) {
-      for (const h of hjul) h.rotation.x = strekning / HJULRADIUS;
-      kasse.position.y = Math.sin(strekning * 1.1 + 1) * 0.008;
-      kasse.rotation.z = Math.sin(strekning * 0.45 + 0.6) * 0.005;
+    oppdater({ strekning, hjulvinkel, tid, hover, blink = 0 }) {
+      for (const h of hjul) h.rotation.x = hjulvinkel;
+      // Samme humper som bilen, litt senere og litt mykere, pluss en liten egen vugging
+      const s = strekning - HENGER_ETTER;
+      kasse.position.y = veiHump(s) * 0.85 + Math.sin(strekning * 2.1) * 0.0012;
+      kasse.rotation.z = Math.sin(s * 0.5) * 0.0045;
       sjiraff.oppdater(tid);
       const puls = 0.8 + 0.2 * Math.sin(tid * 3);
       solv.emissive.copy(glod).multiplyScalar(hover * 0.28 * puls);

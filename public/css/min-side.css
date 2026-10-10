@@ -444,3 +444,7 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
   color: var(--tekst);
 }
 .lest-hint.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+/* Skjemaet glir rolig inn over sjiraffen i stedet for å dukke opp brått */
+#innlogging:not([hidden]) { animation: inn-over-sjiraff 450ms ease-out both; }
+@keyframes inn-over-sjiraff { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { #innlogging:not([hidden]) { animation: none; } }
