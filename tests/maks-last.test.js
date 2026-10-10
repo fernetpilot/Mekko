@@ -192,6 +192,14 @@ test("BE: E 300de med AT1962 gir 1140 kg med brems og 490 kg uten", () => {
   assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 490);
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: ER98153 (ID. Buzz GTX) med AT1962, klasse BE.
+test("BE: ID. Buzz GTX med AT1962 gir 1140 kg med brems og 490 kg uten", () => {
+  const bil = { tillattTotalvekt: 3400, tillattTilhengervektMedBrems: 1600, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1400, egenvekt: 260 };
+  assert.equal(beregnMaksLast(bil, henger, "BE").maksLast, 1140);
+  assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 490);
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
