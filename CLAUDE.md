@@ -52,11 +52,13 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   regneark (Excel/CSV, lest i nettleseren med SheetJS fra CDN) og dokumenter → redigerbare forslag → «Importer».
   Tolkingen (kolonner, norske datoer/tall, type, dubletter) ligger i `public/js/import-historikk.js` (ren, testet).
   Overskrifter matches delvis («Arbeidsnotater», «Totalbeløp»), ukjente kolonner gjenkjennes på innhold,
-  og kolonner som ikke brukes legges i notatet. PDF-er med tekst leses med pdf.js fra CDN og tolkes av
+  og kolonner som ikke brukes legges i notatet. PDF-er med tekst leses med pdf.js (legacy-utgaven, med
+  reserve uten arbeider) fra CDN og tolkes av
   `tolkKvitteringstekst` (dato, km, «Å betale», verksted). Hendelser uten dato blir liggende til de fylles ut.
   Mal: `public/mal/servicehistorikk-mal.csv`. Neste steg: KI-tolking av skannede PDF-er og bilder (krever API-nøkkel og personvernavklaring).
 - `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
-  PDF lages i nettleseren med pdf-lib fra CDN: `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
+  Hendelser og enkeltvedlegg kan slettes der. PDF lages i nettleseren med pdf-lib fra CDN:
+  `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet

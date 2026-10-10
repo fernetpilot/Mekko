@@ -90,13 +90,41 @@ async function lesRegneark(fil) {
 
 // PDF-er med tekst (de fleste fakturaer fra verksted) leses med pdf.js fra CDN.
 // Skannede PDF-er og bilder har ingen tekst å lese – de må fylles ut for hånd inntil videre.
-const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build";
+// «legacy»-utgaven virker også i eldre Safari/iOS (den vanlige krever iOS 17.4 eller nyere).
+const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build";
 let pdfjs = null;
-async function lesPdfTekst(fil) {
-  if (!pdfjs) {
-    pdfjs = await import(`${PDFJS}/pdf.min.mjs`);
-    pdfjs.GlobalWorkerOptions.workerSrc = `${PDFJS}/pdf.worker.min.mjs`;
+let arbeiderVirker = true;
+async function lastPdfjs() {
+  pdfjs ??= await import(`${PDFJS}/pdf.min.mjs`);
+  const valg = pdfjs.GlobalWorkerOptions;
+  if (arbeiderVirker && !valg.workerPort) {
+    // Arbeideren lastes via en liten blob, siden nettlesere ikke starter arbeidere direkte fra et annet domene
+    const blob = new Blob([`import "${PDFJS}/pdf.worker.min.mjs";`], { type: "text/javascript" });
+    valg.workerPort = new Worker(URL.createObjectURL(blob), { type: "module" });
+  } else if (!arbeiderVirker) {
+    // Reserve: pdf.js kjører i selve siden (tregere, men virker overalt)
+    valg.workerPort = null;
+    valg.workerSrc = `${PDFJS}/pdf.worker.min.mjs`;
   }
+  return pdfjs;
+}
+
+const medTidsfrist = (lofte, ms) => Promise.race([lofte, new Promise((_, nei) => setTimeout(() => nei(new Error("tidsavbrudd")), ms))]);
+
+async function lesPdfTekst(fil) {
+  try {
+    return await medTidsfrist(lesPdfTekstEnGang(fil), 15000);
+  } catch (e) {
+    if (!arbeiderVirker) throw e;
+    // Prøv én gang til uten egen arbeider
+    console.warn("pdf.js med arbeider feilet, prøver uten", e);
+    arbeiderVirker = false;
+    return await medTidsfrist(lesPdfTekstEnGang(fil), 30000);
+  }
+}
+
+async function lesPdfTekstEnGang(fil) {
+  await lastPdfjs();
   const dok = await pdfjs.getDocument({ data: new Uint8Array(await fil.arrayBuffer()) }).promise;
   const linjer = [];
   for (let n = 1; n <= Math.min(dok.numPages, 5); n++) {
@@ -124,6 +152,7 @@ async function forslagFraDokument(fil) {
   }
   try {
     const tekst = await lesPdfTekst(fil);
+    f.pdfTekst = tekst;
     if (tekst.replace(/\s/g, "").length < 20) {
       f.lest = "skannet";
       return f;
@@ -131,8 +160,10 @@ async function forslagFraDokument(fil) {
     const funnet = tolkKvitteringstekst(tekst);
     Object.assign(f, funnet);
     f.lest = funnet.dato ? "pdf" : "pdf-uten-dato";
-  } catch {
+  } catch (e) {
+    console.error("Kunne ikke lese PDF", fil.name, e);
     f.lest = "feil";
+    f.lesefeil = e?.message || String(e);
   }
   return f;
 }
@@ -265,7 +296,13 @@ function tegnForslag() {
       bilde: "Bilder kan ikke leses automatisk ennå. Fyll inn dato og det du vil ha med.",
       feil: "Kunne ikke lese PDF-en. Fyll inn selv.",
     }[f.lest];
-    if (hint) li.append(lag("p", { className: `lest-hint ${f.lest === "pdf" ? "ok" : ""}`, textContent: hint }));
+    if (hint) li.append(lag("p", { className: `lest-hint ${f.lest === "pdf" ? "ok" : ""}`, textContent: hint + (f.lesefeil ? ` (${f.lesefeil})` : "") }));
+    // Teksten som ble lest, så brukeren kan se hva siden fant og skrive av resten
+    if (f.pdfTekst?.trim()) {
+      li.append(lag("details", { className: "pdf-tekst" },
+        lag("summary", { textContent: "Vis teksten fra PDF-en" }),
+        lag("pre", { textContent: f.pdfTekst.slice(0, 4000) })));
+    }
 
     // Felt
     const felt = (navn, el) => { el.name = navn; return lag("label", {}, FELTER[navn], el); };

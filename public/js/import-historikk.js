@@ -83,6 +83,8 @@ export function finnKobling(rader) {
  * Godtar Date-objekter, Excel-serienummer, 12.03.2023, 12.3.23, 12/03/2023 og 2023-03-12.
  * @returns {string|null} ÅÅÅÅ-MM-DD
  */
+const MANED = { jan: 1, feb: 2, mar: 3, apr: 4, mai: 5, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+
 export function tolkDato(v, idag = new Date()) {
   if (v == null || v === "") return null;
   const tilTekst = (a, m, d) => {
@@ -102,6 +104,13 @@ export function tolkDato(v, idag = new Date()) {
   const t = String(v).trim();
   let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (m) return tilTekst(+m[1], +m[2], +m[3]);
+  // «14. august 2023», «14 aug. 2023», «14.aug.23»
+  m = t.match(/^(\d{1,2})\.?\s*([a-zæøå]{3,})\.?\s*(\d{2}|\d{4})$/i);
+  if (m && MANED[m[2].toLowerCase().slice(0, 3)]) {
+    let a = +m[3];
+    if (m[3].length === 2) a += a <= idag.getFullYear() % 100 + 1 ? 2000 : 1900;
+    return tilTekst(a, MANED[m[2].toLowerCase().slice(0, 3)], +m[1]);
+  }
   m = t.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/);
   if (m) {
     let a = +m[3];
@@ -205,7 +214,7 @@ export function erDublett(forslag, eksisterende) {
 // Tekst fra kvitteringer og serviceordrer (PDF med tekst)
 // ---------------------------------------------------------------------------
 
-const DATO = String.raw`(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})`;
+const DATO = String.raw`(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2}|\d{1,2}\.?\s*(?:jan|feb|mar|apr|mai|jun|jul|aug|sep|okt|nov|des)[a-zæøå]*\.?\s*\d{2,4})`;
 const TALL = String.raw`(-?\d[\d . ]*(?:[,.]\d{1,2})?)`;
 
 /**
@@ -224,7 +233,7 @@ export function tolkKvitteringstekst(tekst, idag = new Date()) {
   finnDato: for (const etikett of datoEtiketter) {
     for (const l of linjer) {
       if (/forfall/i.test(l) || !etikett.test(l)) continue;
-      const m = l.match(new RegExp(DATO));
+      const m = l.match(new RegExp(DATO, "i"));
       const d = m && tolkDato(m[1], idag);
       if (d) { svar.dato = d; break finnDato; }
     }
@@ -232,7 +241,7 @@ export function tolkKvitteringstekst(tekst, idag = new Date()) {
   if (!svar.dato) {
     for (const l of linjer) {
       if (/forfall/i.test(l)) continue;
-      for (const m of l.matchAll(new RegExp(DATO, "g"))) {
+      for (const m of l.matchAll(new RegExp(DATO, "gi"))) {
         const d = tolkDato(m[1], idag);
         if (d) { svar.dato = d; break; }
       }

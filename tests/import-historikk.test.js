@@ -167,3 +167,14 @@ test("kvitteringstekst: uten etiketter brukes første dato og km etter tallet", 
 test("kvitteringstekst: tom tekst gir bare type", () => {
   assert.deepEqual(tolkKvitteringstekst(""), { komponent: "service" });
 });
+
+test("datoer med månedsnavn", () => {
+  const idag = new Date(2026, 9, 10);
+  assert.equal(tolkDato("14. august 2023", idag), "2023-08-14");
+  assert.equal(tolkDato("3 des. 2024", idag), "2024-12-03");
+  assert.equal(tolkDato("1.mai.25", idag), "2025-05-01");
+  assert.equal(tolkDato("14. smurf 2023", idag), null);
+  const r = tolkKvitteringstekst("Mekonomen Bilsenter AS\nDato: 14. august 2023\nKm: 152 340\nTotalt: 3 450,00", idag);
+  assert.equal(r.dato, "2023-08-14");
+  assert.equal(r.kostnad, 3450);
+});
