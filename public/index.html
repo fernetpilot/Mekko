@@ -36,6 +36,11 @@
   </svg>
   <a class="hotspot" id="hotspot" href="#" aria-label="Åpne detaljer"></a>
 
+  <!-- Skilt som dukker opp når man peker på eller trykker på tilhengeren -->
+  <button class="tilhenger-skilt" id="tilhenger-skilt" type="button" tabindex="-1">
+    Åpne tilhengerkalkulator <span aria-hidden="true">➔</span>
+  </button>
+
   <main>
     <section class="seksjon hero" data-theme="dark" data-del="hero">
       <div class="hero-tekst">
@@ -87,6 +92,57 @@
   </main>
 
   <p class="eksempeldata">Eksempeldata – ikke ekte målinger.</p>
+
+  <!-- Tilhengerkalkulatoren glir inn under det kjørende vogntoget -->
+  <section class="kalk-panel" id="kalk-panel" aria-labelledby="kalk-tittel" hidden>
+    <div class="kalk-innhold">
+      <div class="kalk-hode">
+        <button class="kalk-lukk" id="kalk-lukk" type="button">‹ Tilbake</button>
+        <p class="overline">Tilhengerkalkulator</p>
+      </div>
+      <h2 id="kalk-tittel">Hvilket førerkort trenger du?</h2>
+      <p class="ingress">Skriv inn tillatt totalvekt for bilen og hengeren. Begge står i vognkortet.</p>
+
+      <form class="kalk-felter" id="kalk-skjema" autocomplete="off">
+        <label class="glassfelt">
+          <span>Bilens tillatte totalvekt</span>
+          <span class="felt-rad"><input id="kalk-bil" type="number" inputmode="numeric" min="0" step="1" placeholder="f.eks. 3 050"><span class="enhet">kg</span></span>
+        </label>
+        <label class="glassfelt">
+          <span>Hengerens tillatte totalvekt</span>
+          <span class="felt-rad"><input id="kalk-henger" type="number" inputmode="numeric" min="0" step="1" placeholder="f.eks. 1 300"><span class="enhet">kg</span></span>
+        </label>
+      </form>
+
+      <ul class="kalk-resultat" id="kalk-resultat" aria-live="polite">
+        <li class="glasskort status-tom" data-klasse="B">
+          <span class="status-prikk"></span>
+          <span class="kort-innhold">
+            <span class="kort-status">Klasse B</span>
+            <span class="kort-tekst">Fyll inn vektene over.</span>
+          </span>
+        </li>
+        <li class="glasskort status-tom" data-klasse="B96">
+          <span class="status-prikk"></span>
+          <span class="kort-innhold">
+            <span class="kort-status">B med kode 96</span>
+            <span class="kort-tekst">Fyll inn vektene over.</span>
+          </span>
+        </li>
+        <li class="glasskort status-tom" data-klasse="BE">
+          <span class="status-prikk"></span>
+          <span class="kort-innhold">
+            <span class="kort-status">Klasse BE</span>
+            <span class="kort-tekst">Fyll inn vektene over.</span>
+          </span>
+        </li>
+      </ul>
+
+      <a class="kalk-full" href="/kalkulator">Hvor mye kan du laste? Slå opp på skiltnummer <span aria-hidden="true">→</span></a>
+
+      <p class="kalk-ansvar"><strong>Ansvarsfraskrivelse.</strong> Svaret er veiledende og bygger på førerkortforskriften. Sjekk alltid vognkortet for bilen og hengeren, og se vegvesen.no før du kjører. Ansvaret ligger hos føreren.</p>
+    </div>
+  </section>
 
   <script type="module" src="bilhold/js/main.js"></script>
 </body>

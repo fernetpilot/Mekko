@@ -24,7 +24,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
-  Viser foreløpig bare eksempeldata. Har en knapp øverst til kalkulatoren.
+  Viser foreløpig bare eksempeldata. Trykk på tilhengeren (eller knappen øverst) åpner en enkel
+  førerkort-sjekk på samme side, som bruker `sjekkForerkort` fra `public/js/beregning.js`.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.

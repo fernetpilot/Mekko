@@ -426,3 +426,167 @@ body.forlater #scene {
 
 /* Litt kontrast på seksjonstitlene når de ligger over bilen */
 .seksjon-tittel { text-shadow: 0 1px 8px var(--bg); }
+
+/* ---------- Tilhenger: skilt ved hover/berøring ---------- */
+.tilhenger-skilt {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0) 50%),
+    var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 30px rgba(0, 0, 0, 0.3),
+              0 0 24px rgba(156, 200, 255, 0.35);
+  color: var(--tekst);
+  font: 600 14px var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -100%) translateY(8px) scale(0.96);
+  transition: opacity 250ms, transform 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tilhenger-skilt.synlig {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -100%) scale(1);
+}
+#scene.peker { cursor: pointer; }
+
+/* ---------- Kalkulator-modus ---------- */
+html.kalkulator-modus { scroll-snap-type: none; overflow: hidden; }
+html.kalkulator-modus main,
+html.kalkulator-modus .styrelinjer,
+html.kalkulator-modus .hotspot,
+html.kalkulator-modus .eksempeldata {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms;
+}
+main { transition: opacity 400ms; }
+
+.kalk-panel {
+  --kalk-topp: 40vh;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--kalk-topp);
+  bottom: 0;
+  z-index: 8;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 8px 16px calc(env(safe-area-inset-bottom) + 32px);
+  transform: translateY(100vh);
+  transition: transform 750ms cubic-bezier(0.22, 1, 0.36, 1) 650ms;
+}
+.kalk-panel[hidden] { display: block; visibility: hidden; }
+html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
+.kalk-innhold { max-width: 30rem; margin: 0 auto; }
+.kalk-hode { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.kalk-hode .overline { margin: 0; }
+.kalk-lukk {
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst);
+  font: 600 14px var(--font);
+  padding: 8px 14px;
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+.kalk-panel h2 { margin: 6px 0 0; font-size: clamp(26px, 7vw, 34px); letter-spacing: -0.02em; line-height: 1.1; }
+.kalk-panel .ingress { margin: 8px 0 16px; font-size: 15px; }
+
+.kalk-felter { display: grid; gap: 10px; }
+.glassfelt {
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-kant);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%),
+    var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.glassfelt:focus-within {
+  border-color: rgba(156, 200, 255, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 3px rgba(156, 200, 255, 0.2);
+}
+.glassfelt > span:first-child {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+.felt-rad { display: flex; align-items: baseline; gap: 8px; }
+.glassfelt input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tekst);
+  font: 600 24px var(--font);
+  letter-spacing: -0.01em;
+  outline: none;
+  padding: 0;
+}
+.glassfelt input::placeholder { color: var(--tekst-dempet); opacity: 0.5; font-weight: 500; }
+.enhet { color: var(--tekst-dempet); font-size: 16px; }
+
+.kalk-resultat { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.kalk-resultat .glasskort {
+  opacity: 1;
+  transform: none;
+  margin: 0;
+  align-items: flex-start;
+  padding: 14px 16px;
+  transition: box-shadow 400ms, border-color 400ms;
+}
+.kalk-resultat .status-prikk { margin-top: 4px; }
+.kalk-resultat .kort-status { color: var(--tekst); font-size: 12px; }
+.kalk-resultat .kort-tekst { font-size: 14px; line-height: 1.4; }
+.kalk-resultat .kort-dom { font-weight: 700; color: var(--status); }
+.status-tom { --status: rgba(242, 243, 245, 0.35); }
+.status-tom .status-prikk { box-shadow: none; }
+.kalk-resultat .status-ok,
+.kalk-resultat .status-kritisk {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 1px color-mix(in srgb, var(--status) 55%, transparent),
+    0 0 30px color-mix(in srgb, var(--status) 18%, transparent);
+}
+
+.kalk-full {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--tekst);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  text-align: center;
+}
+.kalk-ansvar { margin: 16px 0 0; font-size: 12px; line-height: 1.5; color: var(--tekst-dempet); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kalk-panel { transition-duration: 1ms; transition-delay: 0ms; }
+}
+.kalk-resultat .glasskort { max-width: none; }
+.glassfelt input::-webkit-outer-spin-button,
+.glassfelt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.glassfelt input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
