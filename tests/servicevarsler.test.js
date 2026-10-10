@@ -35,19 +35,19 @@ test("snart gir sjekk-varsel med dato og km", () => {
   assert.match(v.tittel, /snart/);
 });
 
-test("forfalt gir kritisk varsel", () => {
+test("forfalt gir vennlig sjekk-varsel", () => {
   const [v] = serviceVarsler(bil, {
     punkter: [OLJE],
     sisteUtfort: { motorolje: { dato: "2025-01-01", km: 100000 } },
     kmNaa: 111000,
   }, idag);
-  assert.equal(v.niva, "kritisk");
-  assert.match(v.tekst, /skulle vært gjort/);
+  assert.equal(v.niva, "sjekk");
+  assert.match(v.tekst, /burde vært gjort/);
 });
 
 test("servicevarsler kommer med i lagVarsler, kritiske først", () => {
   const biler = [
-    { kjennemerke: "BR67285", merke: "LAND ROVER", modell: "DISCOVERY 3", eu_kontrollfrist: "2026-11-20" },
+    { kjennemerke: "BR67285", merke: "LAND ROVER", modell: "DISCOVERY 3", eu_kontrollfrist: "2026-09-01" },
   ];
   const service = {
     BR67285: {

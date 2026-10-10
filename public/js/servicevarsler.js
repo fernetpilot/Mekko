@@ -3,13 +3,18 @@
 
 import { beregnServicefrist, fmtDato, fmtKm } from "./service.js";
 
-function tekstFor(res, punkt) {
+function fristTekst(res) {
   const deler = [];
   if (res.neste?.dato) deler.push(fmtDato(res.neste.dato));
-  if (res.neste?.km != null) deler.push(`${fmtKm(res.neste.km)} km`);
-  const frist = deler.join(" eller ");
-  if (res.status === "forfalt") return `${punkt.navn} skulle vært gjort innen ${frist}.`;
-  return `${punkt.navn} må gjøres innen ${frist}.`;
+  if (res.neste?.km != null) deler.push(`innen ${fmtKm(res.neste.km)} km`);
+  return deler.join(" eller ");
+}
+
+function tekstFor(res, punkt) {
+  if (res.status === "forfalt") {
+    return `${punkt.navn} burde vært gjort ${fristTekst(res)}. Det er fint å ta det når du kan.`;
+  }
+  return `${punkt.navn} må gjøres ${fristTekst(res)}.`;
 }
 
 /**
@@ -28,7 +33,7 @@ export function serviceVarsler(bil, { punkter = [], sisteUtfort = {}, kmNaa = nu
     if (res.status !== "forfalt" && res.status !== "snart") continue;
     varsler.push({
       id: `service:${punkt.id}:${bil.kjennemerke}`,
-      niva: res.status === "forfalt" ? "kritisk" : "sjekk",
+      niva: "sjekk",
       tittel: res.status === "forfalt" ? `Service: ${punkt.navn.toLowerCase()} er forfalt` : `Service: ${punkt.navn.toLowerCase()} snart`,
       tekst: `${bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(" ") || bil.kjennemerke} (${bil.kjennemerke}): ${tekstFor(res, punkt)}`,
       lenke: "/min-side",

@@ -2,8 +2,8 @@
 // Ren funksjon: ingen DOM, ingen nettverkskall. Datoer er ISO-strenger (YYYY-MM-DD).
 // Regel: det som kommer først (km eller måned) gjelder.
 
-export const SNART_KM = 1000;
-export const SNART_DAGER = 30;
+export const SNART_KM = 5000;
+export const SNART_DAGER = 90;
 
 const dagMs = 24 * 60 * 60 * 1000;
 

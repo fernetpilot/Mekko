@@ -25,11 +25,11 @@ test("langt unna begge frister gir ok", () => {
     punkt: OLJE,
     sist: { dato: "2025-01-01", km: 100000 },
     idag: "2025-06-01",
-    kmNaa: 105000,
+    kmNaa: 104000,
   });
   assert.equal(res.status, "ok");
   assert.equal(res.neste.km, 110000);
-  assert.equal(res.gjenstaar.km, 5000);
+  assert.equal(res.gjenstaar.km, 6000);
   assert.equal(res.neste.dato, "2026-01-01");
 });
 
@@ -64,7 +64,7 @@ test("passert datofrist gir forfalt, selv om km er god", () => {
   assert.equal(res.status, "forfalt");
 });
 
-test("snart på dato når det er under 30 dager igjen", () => {
+test("snart på dato når det er under 90 dager igjen", () => {
   const res = beregnServicefrist({
     punkt: OLJE,
     sist: { dato: "2025-01-01", km: 100000 },
