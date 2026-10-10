@@ -105,6 +105,10 @@ export function beregnMaksLast(bil, henger, forerkort) {
 
   const maksLast = maksTotal - henger.egenvekt;
   if (maksLast < 0) {
+    if (begrensning === "bil" && maksTotal === 0) {
+      forklaring.push("Bilen er ikke godkjent for å trekke tilhenger.");
+      return { maksLast: null, begrensning, forklaring };
+    }
     forklaring.push(
       `Hengerens egenvekt (${henger.egenvekt} kg) er større enn ${maksTotal} kg, som er grensen for denne kombinasjonen.`
     );

@@ -27,6 +27,23 @@ test("Discovery + NZ7887 med klasse B: henger for tung, maks last null", () => {
   assert.equal(res.begrensning, "forerkort");
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: BU46006 (Mercedes-AMG SL 43) med tilhenger DV1249.
+const MERCEDES_SL43_BU46006 = {
+  tillattTotalvekt: 2185,
+  tillattTilhengervektMedBrems: 0,
+  tillattTilhengervektUtenBrems: 0,
+};
+const TILHENGER_DV1249 = { tillattTotalvekt: 2000, egenvekt: 345 };
+
+for (const forerkort of ["B", "B96", "BE"]) {
+  test(`Mercedes SL 43 kan ikke trekke tilhenger DV1249 med klasse ${forerkort}`, () => {
+    const res = beregnMaksLast(MERCEDES_SL43_BU46006, TILHENGER_DV1249, forerkort);
+    assert.equal(res.maksLast, null);
+    assert.equal(res.begrensning, "bil");
+    assert.ok(res.forklaring.some((linje) => linje.includes("ikke godkjent")));
+  });
+}
+
 test("bilen begrenser når hengerens grense er høyere", () => {
   const bil = { ...DISCOVERY, tillattTilhengervektMedBrems: 2000 };
   const henger = { tillattTotalvekt: 3500, egenvekt: 800 };
