@@ -21,8 +21,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
-- `src/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
+- `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
+- `public/js/kjoretoy.js` – henter vektene ut av API-svaret.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
 - `netlify/functions/` – proxy mot Vegvesenet
 - `docs/eksempeldata/` – ekte JSON-svar fra Vegvesenet (uten personopplysninger)
@@ -34,7 +35,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - Regelverket (førerkortgrenser m.m.) kommer fra gruppens regelverksdokument, kontrollert mot
   vegvesen.no. Ikke gjett på grenseverdier – spør hvis noe mangler.
 - Resultatsiden skal alltid ha en ansvarsfraskrivelse og henvise til vognkort og vegvesen.no.
-- Endringer i `src/beregning.js` skal ha tester, og testene skal passere før commit.
+- Endringer i `public/js/beregning.js` skal ha tester, og `npm test` skal passere før commit.
 - Skriv brukertekster på norsk bokmål.
 
 ## Vegvesenets API
