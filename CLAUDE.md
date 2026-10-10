@@ -17,6 +17,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - Ren HTML, CSS og JavaScript. Ingen rammeverk, ingen byggesteg.
 - Hosting: Netlify. Nettsiden ligger i `public/`.
 - Backend: kun én serverløs funksjon (`netlify/functions/kjoretoy.mjs`) som skjuler API-nøkkelen.
+- Innlogging og database: Supabase (supabase-js fra CDN). Skjema og tilgangsregler i `supabase/schema.sql`.
+  Endringer i skjemaet kjøres manuelt i Supabase SQL Editor – oppdater filen samtidig.
 - Mobil først, men skal fungere på PC. Skal kunne bli iOS-app senere.
 
 ## Struktur
@@ -26,7 +28,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
-- `public/js/kjoretoy.js` – henter vektene ut av API-svaret.
+- `public/js/kjoretoy.js` – henter vekter, EU-kontrollfrist m.m. ut av API-svaret.
+- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-postlenke), mine biler og vedlikehold.
+- `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
+- `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
 - `netlify/functions/` – proxy mot Vegvesenet
 - `docs/eksempeldata/` – ekte JSON-svar fra Vegvesenet (uten personopplysninger)
@@ -40,6 +45,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - Resultatsiden skal alltid ha en ansvarsfraskrivelse og henvise til vognkort og vegvesen.no.
 - Endringer i `public/js/beregning.js` skal ha tester, og `npm test` skal passere før commit.
 - Skriv brukertekster på norsk bokmål.
+
+- Supabase: bare **publishable key** i koden. Secret key / service_role skal ALDRI inn i repoet.
+  All tilgang styres av RLS i `supabase/schema.sql` – nye tabeller må ha RLS og policyer.
+- Personopplysninger (e-post, skilt koblet til person): lagre bare det som trengs, og la brukeren slette.
 
 ## Vegvesenets API
 - `GET https://akfell-datautlevering.atlas.vegvesen.no/enkeltoppslag/kjoretoydata?kjennemerke=XX12345`

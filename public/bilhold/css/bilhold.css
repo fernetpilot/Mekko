@@ -81,6 +81,17 @@ body {
   transition: background-color var(--overgang), color var(--overgang);
 }
 .topp-knapp:active { transform: scale(0.97); }
+.topp-meny { display: flex; align-items: center; gap: 8px; }
+.topp-knapp.ikon {
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  background: var(--glass);
+  color: var(--tekst);
+  border: 1px solid var(--glass-kant);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
 .topp-tag {
   font-size: 11px;
   letter-spacing: 0.2em;
