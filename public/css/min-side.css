@@ -539,3 +539,11 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 /* Avkrysning av deler: små bokser, og store, trykkvennlige merker på mobil */
 .punkt-valg input[type="checkbox"] { width: 18px; height: 18px; padding: 0; margin: 0; flex: none; }
 .punkt-valg .punkt-chip { min-height: 40px; padding: 8px 14px; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; width: auto; }
+
+/* Historikkrad: tekst og slett på én linje, deler under i full bredde */
+.historikk li { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; }
+.historikk li > div:first-child { flex: 1 1 0; min-width: 0; }
+.historikk li > .ikon-knapp { margin-left: auto; }
+.historikk .punkt-rad { flex: 1 1 100%; order: 3; }
+.punkt-rad .bekreft { width: auto; margin: 0; padding: 8px 12px; font-size: 0.95rem; justify-self: start; }
+.punkt-rad .punkt-knapp { font-size: 0.95rem; }
