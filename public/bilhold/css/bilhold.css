@@ -65,6 +65,22 @@ body {
   font-size: 15px;
   letter-spacing: 0.42em;
 }
+.topp-knapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--tekst);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: background-color var(--overgang), color var(--overgang);
+}
+.topp-knapp:active { transform: scale(0.97); }
 .topp-tag {
   font-size: 11px;
   letter-spacing: 0.2em;

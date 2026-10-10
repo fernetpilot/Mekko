@@ -1,3 +1,14 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+
+# Bilhold-siden var først på /bilhold/, nå er den forsiden
+[[redirects]]
+  from = "/bilhold/"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/bilhold"
+  to = "/"
+  status = 301
