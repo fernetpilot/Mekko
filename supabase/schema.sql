@@ -71,8 +71,58 @@ create policy "Eget vedlikehold: endre" on public.vedlikehold for update
 create policy "Eget vedlikehold: slett" on public.vedlikehold for delete using (eier_id = auth.uid());
 
 -- ---------------------------------------------------------------------------
+-- Dokumenter (kvitteringer m.m.) – samme innhold som 02-dokumenter.sql
+-- ---------------------------------------------------------------------------
+-- Lagringsplass (bucket): privat, maks 10 MB per fil, bare JPEG, PNG og PDF
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('dokumenter', 'dokumenter', false, 10485760,
+        array['image/jpeg', 'image/png', 'application/pdf'])
+on conflict (id) do nothing;
+
+create policy "Egne dokumentfiler: les"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'dokumenter' and (storage.foldername(name))[1] = (select auth.uid()::text));
+
+create policy "Egne dokumentfiler: last opp"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'dokumenter' and (storage.foldername(name))[1] = (select auth.uid()::text));
+
+create policy "Egne dokumentfiler: slett"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'dokumenter' and (storage.foldername(name))[1] = (select auth.uid()::text));
+
+-- ---------------------------------------------------------------------------
+-- Tabell med informasjon om hver fil
+-- ---------------------------------------------------------------------------
+create table public.dokumenter (
+  id             uuid primary key default gen_random_uuid(),
+  vedlikehold_id uuid not null references public.vedlikehold (id) on delete cascade,
+  eier_id        uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  filsti         text not null unique,
+  filnavn        text not null check (char_length(filnavn) <= 200),
+  mimetype       text not null check (mimetype in ('image/jpeg', 'image/png', 'application/pdf')),
+  storrelse      integer check (storrelse >= 0),
+  opprettet      timestamptz not null default now(),
+  -- Filen må ligge i eierens egen mappe
+  check (filsti like eier_id::text || '/%')
+);
+
+create index dokumenter_vedlikehold on public.dokumenter (vedlikehold_id);
+
+alter table public.dokumenter enable row level security;
+
+create policy "Egne dokumenter: les" on public.dokumenter for select using (eier_id = auth.uid());
+create policy "Egne dokumenter: legg til" on public.dokumenter for insert with check (
+  eier_id = auth.uid()
+  and exists (select 1 from public.vedlikehold v where v.id = vedlikehold_id and v.eier_id = auth.uid())
+);
+create policy "Egne dokumenter: slett" on public.dokumenter for delete using (eier_id = auth.uid());
+
+-- ---------------------------------------------------------------------------
 -- Brukeren kan slette sin egen konto (personvern: retten til sletting).
--- Biler og vedlikehold slettes automatisk via "on delete cascade".
+-- Biler, vedlikehold og dokumentrader slettes automatisk via "on delete cascade".
+-- Selve filene i lagringen slettes av nettsiden før denne funksjonen kalles.
 -- ---------------------------------------------------------------------------
 create function public.slett_min_konto()
 returns void

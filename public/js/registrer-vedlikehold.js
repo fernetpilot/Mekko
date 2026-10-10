@@ -1,6 +1,7 @@
 // Registrer vedlikehold: egen side, nås fra Min profil-menyen og fra hver bil under Mine biler.
 import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
+import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -17,6 +18,8 @@ function idagTekst() {
 }
 
 let biler = [];
+let brukerId = null;
+let valgteFiler = [];
 
 async function start() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -24,6 +27,7 @@ async function start() {
     location.replace(`/min-side?neste=${encodeURIComponent(location.pathname + location.search)}`);
     return;
   }
+  brukerId = session.user.id;
 
   const { data, error } = await supabase
     .from("biler")
@@ -63,6 +67,42 @@ function visKmHint() {
 }
 valg.addEventListener("change", visKmHint);
 
+// ---------------------------------------------------------------------------
+// Valgte filer: kan legges til i flere omganger og fjernes før lagring
+// ---------------------------------------------------------------------------
+function storrelse(bytes) {
+  return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} MB` : `${Math.ceil(bytes / 1024)} kB`;
+}
+
+function tegnValgteFiler() {
+  const ul = $("valgte-filer");
+  ul.replaceChildren(...valgteFiler.map((fil, i) => {
+    const li = document.createElement("li");
+    const navn = document.createElement("span");
+    navn.className = "navn";
+    navn.textContent = `${erPdf(fil) ? "📄" : "🖼️"} ${fil.name}`;
+    const info = document.createElement("span");
+    // Store bilder skaleres ned ved opplasting, så bare PDF-er stoppes på størrelse her
+    const forStor = erPdf(fil) && fil.size > MAKS_BYTES;
+    info.className = forStor ? "feil" : "liten";
+    info.textContent = forStor ? "For stor (maks 10 MB)" : storrelse(fil.size);
+    const fjern = document.createElement("button");
+    fjern.type = "button";
+    fjern.className = "ikon-knapp";
+    fjern.setAttribute("aria-label", `Fjern ${fil.name}`);
+    fjern.textContent = "✕";
+    fjern.addEventListener("click", () => { valgteFiler.splice(i, 1); tegnValgteFiler(); });
+    li.append(navn, info, fjern);
+    return li;
+  }));
+}
+
+$("filer").addEventListener("change", (e) => {
+  valgteFiler.push(...e.target.files);
+  e.target.value = ""; // samme fil kan velges igjen
+  tegnValgteFiler();
+});
+
 skjema.addEventListener("submit", async (e) => {
   e.preventDefault();
   const tall = (v) => (v === "" ? null : Number(v));
@@ -77,12 +117,28 @@ skjema.addEventListener("submit", async (e) => {
     notat: skjema.notat.value.trim() || null,
   };
 
+  if (valgteFiler.some((f) => erPdf(f) && f.size > MAKS_BYTES)) {
+    return melding("Fjern filer som er større enn 10 MB før du lagrer.", "feil");
+  }
+
   e.submitter.disabled = true;
   melding("Lagrer …");
-  const { error } = await supabase.from("vedlikehold").insert(rad);
+  const { data: lagret, error } = await supabase.from("vedlikehold").insert(rad).select("id").single();
   if (error) {
     e.submitter.disabled = false;
     return melding("Kunne ikke lagre. Sjekk feltene og prøv igjen.", "feil");
+  }
+
+  // Last opp dokumentasjon til registreringen
+  let opplastingsfeil = [];
+  if (valgteFiler.length) {
+    const resultat = await lastOppDokumenter(supabase, {
+      eierId: brukerId,
+      vedlikeholdId: lagret.id,
+      filer: valgteFiler,
+      framdrift: (tekst) => melding(tekst),
+    });
+    opplastingsfeil = resultat.feil;
   }
 
   // Oppdater bilens kilometerstand hvis denne er nyere
@@ -90,6 +146,10 @@ skjema.addEventListener("submit", async (e) => {
     await supabase.from("biler")
       .update({ kilometerstand: rad.kilometerstand, kilometerstand_dato: rad.dato })
       .eq("id", rad.bil_id);
+  }
+  if (opplastingsfeil.length) {
+    // Registreringen er lagret; vis hva som ikke ble lastet opp før vi går videre
+    alert(`Vedlikeholdet er lagret, men noen filer ble ikke lastet opp:\n\n${opplastingsfeil.join("\n")}`);
   }
   melding("Lagret!", "ok");
   location.assign(`/min-side#bil-${rad.bil_id}`);
