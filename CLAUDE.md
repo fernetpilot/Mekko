@@ -48,6 +48,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - Dokumenter (kvitteringer, serviceordrer): `public/js/dokumenter.js`. Privat Supabase-bucket `dokumenter`,
   filsti `<bruker-id>/<vedlikehold-id>/…`, tabell `dokumenter` (se `supabase/02-dokumenter.sql`).
   Bilder gjøres om til JPEG og skaleres ned før opplasting. Filer slettes av nettsiden før radene slettes.
+- `public/importer-historikk.html` + `public/js/importer-historikk.js` – import av mange hendelser på én gang:
+  regneark (Excel/CSV, lest i nettleseren med SheetJS fra CDN) og dokumenter → redigerbare forslag → «Importer».
+  Tolkingen (kolonner, norske datoer/tall, type, dubletter) ligger i `public/js/import-historikk.js` (ren, testet).
+  Mal: `public/mal/servicehistorikk-mal.csv`. Neste steg: KI-tolking av kvitteringer (krever API-nøkkel og personvernavklaring).
 - `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
   PDF lages i nettleseren med pdf-lib fra CDN: `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).

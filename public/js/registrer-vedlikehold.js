@@ -57,6 +57,7 @@ async function start() {
 
   skjema.dato.value = idagTekst();
   visKmHint();
+  oppdaterImportLenke();
   skjema.hidden = false;
 }
 
@@ -66,6 +67,12 @@ function visKmHint() {
   skjema.kilometerstand.placeholder = bil?.kilometerstand != null ? `Sist: ${formaterKm(bil.kilometerstand)}` : "";
 }
 valg.addEventListener("change", visKmHint);
+
+// Lenken til import følger valgt bil
+function oppdaterImportLenke() {
+  $("import-lenke").href = valg.value ? `/importer-historikk?bil=${encodeURIComponent(valg.value)}` : "/importer-historikk";
+}
+valg.addEventListener("change", oppdaterImportLenke);
 
 // ---------------------------------------------------------------------------
 // Valgte filer: kan legges til i flere omganger og fjernes før lagring
