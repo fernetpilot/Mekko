@@ -59,3 +59,21 @@ test("servicevarsler kommer med i lagVarsler, kritiske først", () => {
   const varsler = lagVarsler(biler, new Date(Date.UTC(2026, 9, 10)), service);
   assert.deepEqual(varsler.map((v) => v.niva), ["kritisk", "sjekk"]);
 });
+
+import { sisteUtfortPerPunkt } from "../public/js/servicevarsler.js";
+
+test("siste utførte per punkt velger nyeste dato", () => {
+  const siste = sisteUtfortPerPunkt([
+    { servicepunkt: "motorolje", dato: "2024-05-01", kilometerstand: 90000 },
+    { servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 },
+    { servicepunkt: "motorolje", dato: "2024-11-01", kilometerstand: 95000 },
+    { servicepunkt: "bremsevaeske", dato: "2023-03-03", kilometerstand: null },
+  ]);
+  assert.deepEqual(siste.motorolje, { dato: "2025-01-01", km: 100000 });
+  assert.deepEqual(siste.bremsevaeske, { dato: "2023-03-03", km: null });
+});
+
+test("rader uten servicepunkt hoppes over", () => {
+  assert.deepEqual(sisteUtfortPerPunkt([{ servicepunkt: null, dato: "2025-01-01", kilometerstand: 1 }]), {});
+  assert.deepEqual(sisteUtfortPerPunkt(null), {});
+});

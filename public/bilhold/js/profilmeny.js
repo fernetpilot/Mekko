@@ -1,5 +1,7 @@
 // Knappene øverst til høyre: Varsler (bjelle) og Min profil (person).
 import { lagVarsler } from "/js/varsler.js";
+import { sisteUtfortPerPunkt } from "/js/servicevarsler.js";
+import { LR3_2_7_TDV6 } from "/js/servicepunkter.js";
 
 const NOKKEL = "sb-pwihbhlnskaysbxzoqwu-auth-token"; // Supabase lagrer innloggingen her
 
@@ -110,9 +112,25 @@ async function hentVarsler() {
     const { supabase } = await import("/js/supabase.js");
     const { data: biler, error } = await supabase
       .from("biler")
-      .select("kjennemerke, kallenavn, merke, modell, eu_kontrollfrist");
+      .select("id, kjennemerke, kallenavn, merke, modell, eu_kontrollfrist, kilometerstand");
     if (error) throw error;
-    tegnVarsler(lagVarsler(biler));
+    const { data: rader, error: feil2 } = await supabase
+      .from("vedlikehold")
+      .select("bil_id, servicepunkt, dato, kilometerstand")
+      .not("servicepunkt", "is", null);
+    if (feil2) throw feil2;
+
+    // Servicedata per bil. Foreløpig bare for Discovery 3 (2.7 TDV6-punktene).
+    const service = {};
+    for (const bil of biler ?? []) {
+      if (!/DISCOVERY 3/i.test(bil.modell ?? "")) continue;
+      service[bil.kjennemerke] = {
+        punkter: LR3_2_7_TDV6,
+        sisteUtfort: sisteUtfortPerPunkt(rader.filter((r) => r.bil_id === bil.id)),
+        kmNaa: bil.kilometerstand ?? null,
+      };
+    }
+    tegnVarsler(lagVarsler(biler, new Date(), service));
   } catch {
     liste.replaceChildren();
     const li = document.createElement("li");
