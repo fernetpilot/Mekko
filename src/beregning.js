@@ -79,7 +79,7 @@ const UTEN_BREMS_GRENSE = 750;
  * @returns {{ maksLast: number|null, begrensning: "forerkort"|"bil"|"henger", forklaring: string[] }}
  *          maksLast er null hvis hengeren ikke kan trekkes med denne kombinasjonen.
  */
-export function beregnMaksLast(bil, henger, forerkort) {
+export function beregnMaksLast(bil, henger, forerkort, { medBrems = true } = {}) {
   if (!["B", "B96", "BE"].includes(forerkort)) {
     throw new Error(`Ukjent førerkort: ${forerkort}`);
   }
@@ -127,6 +127,19 @@ export function beregnMaksLast(bil, henger, forerkort) {
   if (maksTotal <= UTEN_BREMS_GRENSE && bil.tillattTilhengervektUtenBrems < maksTotal) {
     maksTotal = bil.tillattTilhengervektUtenBrems;
     begrensning = "bil";
+  }
+
+  // Hengeren uten brems kan veie høyst 750 kg totalt, og aldri mer enn bilens grense uten brems.
+  if (!medBrems) {
+    if (bil.tillattTilhengervektUtenBrems < UTEN_BREMS_GRENSE) {
+      if (bil.tillattTilhengervektUtenBrems < maksTotal) {
+        maksTotal = bil.tillattTilhengervektUtenBrems;
+        begrensning = "bil";
+      }
+    } else if (UTEN_BREMS_GRENSE < maksTotal) {
+      maksTotal = UTEN_BREMS_GRENSE;
+      begrensning = "henger";
+    }
   }
 
   const forklaring = [

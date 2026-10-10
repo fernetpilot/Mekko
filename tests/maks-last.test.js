@@ -87,6 +87,23 @@ test("klasse B: samlet vekt over 3 500 kg gir null, selv med lav last", () => {
   assert.equal(res.begrensning, "forerkort");
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: SE15280 (AMG G 63) med DV1249, klasse BE.
+// Med brems 1 655 kg, uten brems 405 kg.
+test("BE: tilhenger 2000 kg med brems gir 1 655 kg", () => {
+  const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "BE");
+  assert.equal(res.maksLast, 1655);
+  assert.equal(res.begrensning, "henger");
+});
+
+test("BE: tilhenger 2000 kg uten brems gir 405 kg", () => {
+  const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "BE", { medBrems: false });
+  assert.equal(res.maksLast, 405);
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
