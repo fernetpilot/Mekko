@@ -104,6 +104,16 @@ test("BE: tilhenger 2000 kg uten brems gir 405 kg", () => {
   assert.equal(res.maksLast, 405);
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: bil 3200 kg med tilhenger 2000 kg, klasse B96.
+test("klasse B96: samlet vekt over 4 250 kg gir null", () => {
+  const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "B96");
+  assert.equal(res.maksLast, null);
+  assert.equal(res.begrensning, "forerkort");
+  assert.ok(res.forklaring[0].includes("4250"));
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
