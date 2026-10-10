@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0d">
+  <title>Mekkoo – min side</title>
+  <link rel="stylesheet" href="css/min-side.css">
+  <script type="module" src="js/min-side.js"></script>
+</head>
+<body>
+  <header class="topp">
+    <a class="logo" href="/">MEKKOO</a>
+    <button class="topp-knapp" id="logg-ut" type="button" hidden>Logg ut</button>
+  </header>
+
+  <main>
+    <p class="laster" id="laster">Laster …</p>
+
+    <!-- Ikke innlogget -->
+    <section id="innlogging" hidden>
+      <p class="overline">Min side</p>
+      <h1>Logg inn</h1>
+      <p class="ingress">Vi sender deg en innloggingslenke på e-post. Du trenger ikke passord.</p>
+      <form id="innlogging-skjema" class="kort skjema">
+        <label for="epost">E-postadresse</label>
+        <input id="epost" type="email" autocomplete="email" inputmode="email" required placeholder="navn@eksempel.no">
+        <button class="knapp" type="submit">Send innloggingslenke</button>
+        <p class="melding" id="innlogging-melding" role="status"></p>
+      </form>
+      <p class="liten">Vi lagrer e-postadressen din, bilene du legger til og vedlikeholdet du registrerer.
+        Du kan slette kontoen og alle data når som helst fra Min side.</p>
+    </section>
+
+    <!-- Innlogget -->
+    <section id="konto" hidden>
+      <p class="overline" id="bruker-epost"></p>
+      <h1>Mine biler</h1>
+
+      <div id="biler"></div>
+
+      <form id="ny-bil-skjema" class="kort skjema">
+        <h2>Legg til bil</h2>
+        <label for="nytt-skilt">Skiltnummer</label>
+        <input id="nytt-skilt" autocomplete="off" autocapitalize="characters" required placeholder="AB 12345">
+        <button class="knapp" type="submit">Hent fra Statens vegvesen</button>
+        <p class="melding" id="ny-bil-melding" role="status"></p>
+      </form>
+
+      <details class="faresone">
+        <summary>Slett konto</summary>
+        <p>Kontoen, alle biler og all vedlikeholdshistorikk slettes permanent. Dette kan ikke angres.</p>
+        <button class="knapp fare" id="slett-konto" type="button">Slett kontoen min</button>
+      </details>
+    </section>
+  </main>
+
+  <!-- Mal for én bil -->
+  <template id="bil-mal">
+    <article class="kort bil">
+      <div class="bil-hode">
+        <div>
+          <p class="bil-skilt"></p>
+          <h2 class="bil-navn"></h2>
+        </div>
+        <button class="ikon-knapp slett-bil" type="button" aria-label="Fjern bil">✕</button>
+      </div>
+      <dl class="fakta">
+        <div><dt>EU-kontroll</dt><dd class="eu"></dd></div>
+        <div><dt>Kilometerstand</dt><dd class="km"></dd></div>
+      </dl>
+
+      <details class="vedlikehold">
+        <summary>Vedlikehold <span class="antall"></span></summary>
+        <ul class="historikk"></ul>
+        <form class="skjema nytt-vedlikehold">
+          <h3>Registrer vedlikehold</h3>
+          <label>Hva er gjort
+            <select name="komponent" required>
+              <option value="motor">Oljeskift / motor</option>
+              <option value="bremser">Bremser</option>
+              <option value="dekk">Dekk</option>
+              <option value="service">Service</option>
+              <option value="eu_kontroll">EU-kontroll</option>
+              <option value="annet">Annet</option>
+            </select>
+          </label>
+          <div class="to-kolonner">
+            <label>Dato <input name="dato" type="date" required></label>
+            <label>Kilometerstand <input name="kilometerstand" type="number" min="0" inputmode="numeric"></label>
+          </div>
+          <div class="to-kolonner">
+            <label>Kostnad (kr) <input name="kostnad" type="number" min="0" step="1" inputmode="numeric"></label>
+            <label>Utført av <input name="utfort_av" maxlength="100" placeholder="Verksted / selv"></label>
+          </div>
+          <label>Notat <textarea name="notat" maxlength="1000" rows="2"></textarea></label>
+          <button class="knapp" type="submit">Lagre</button>
+          <p class="melding" role="status"></p>
+        </form>
+      </details>
+    </article>
+  </template>
+</body>
+</html>
