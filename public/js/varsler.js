@@ -1,11 +1,12 @@
 // Varsler til brukeren. Ren logikk: data inn, liste med varsler ut.
 // Ingen DOM og ingen nettverk, slik at reglene kan testes og gjenbrukes i en app.
 //
-// Foreløpig: EU-kontroll (frist nær eller passert).
-// TODO (Anders): service etter km/tid og slitasje i % på deler kommer her.
-//   Legg til en ny funksjon per type (f.eks. serviceVarsler(bil, idag)) og kall den i lagVarsler().
+// Foreløpig: EU-kontroll og service (frist nær eller passert).
+// TODO (Anders): slitasje i % på deler kommer her.
+//   Legg til en ny funksjon per type og kall den i lagVarsler().
 
 import { euStatus } from "./bilstatus.js";
+import { serviceVarsler } from "./servicevarsler.js";
 
 /**
  * @typedef {object} Varsel
@@ -35,12 +36,17 @@ export function euVarsler(bil, idag = new Date()) {
   }];
 }
 
-/** Alle varsler for brukerens biler, viktigste først. */
-export function lagVarsler(biler, idag = new Date()) {
+/**
+ * Alle varsler for brukerens biler, viktigste først.
+ * @param {Array} biler
+ * @param {Date} idag
+ * @param {object} [service] Per kjennemerke: { punkter, sisteUtfort, kmNaa }
+ */
+export function lagVarsler(biler, idag = new Date(), service = {}) {
   return (biler ?? [])
     .flatMap((bil) => [
       ...euVarsler(bil, idag),
-      // ...serviceVarsler(bil, idag),   ← kommer
+      ...serviceVarsler(bil, service[bil.kjennemerke] ?? {}, idag),
       // ...slitasjeVarsler(bil, idag),  ← kommer
     ])
     .sort((a, b) => REKKEFOLGE[a.niva] - REKKEFOLGE[b.niva]);

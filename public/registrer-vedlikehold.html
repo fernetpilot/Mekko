@@ -44,7 +44,7 @@
         <select name="bil_id" id="bil-valg" required></select>
       </label>
       <label>Hva er gjort
-        <select name="komponent" required>
+        <select name="komponent" required id="komponent">
           <option value="service">Service</option>
           <option value="motor">Oljeskift / motor</option>
           <option value="bremser">Bremser</option>
@@ -52,6 +52,9 @@
           <option value="eu_kontroll">EU-kontroll</option>
           <option value="annet">Annet</option>
         </select>
+      </label>
+      <label id="servicepunkt-felt" hidden>Hva ble gjort?
+        <select name="servicepunkt" id="servicepunkt"></select>
       </label>
       <div class="to-kolonner">
         <label>Dato <input name="dato" type="date" required></label>

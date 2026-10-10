@@ -1,0 +1,20 @@
+{
+  "kilde": "LR Time – recommended fluids and change intervals, Land Rover Discovery 3 TDV6 276DT (versjon 12. okt 2023)",
+  "kilde_url": "https://www.lrtime.de",
+  "motor": "2.7 TDV6 276DT",
+  "intervallregel": "Det som kommer først (km eller måned)",
+  "merk": "Tredjepartskilde. Må kontrolleres mot servicebok og Land Rover-dokumentasjon før bruk.",
+  "punkter": [
+    { "id": "motorolje", "navn": "Motorolje (Castrol Magnatec 5W-40 DPF)", "kmIntervall": 10000, "manederIntervall": 12, "byttesMed": ["oljefilter"] },
+    { "id": "oljefilter", "navn": "Oljefilter (MANN HU934/1x)", "kmIntervall": 10000, "manederIntervall": 12, "byttesMed": ["motorolje"] },
+    { "id": "overforing", "navn": "Overføringskasse (Ravenol DTF-1)", "kmIntervall": 25000, "manederIntervall": 24 },
+    { "id": "manuelt-gir", "navn": "Manuelt gir (Liqui Moly SAE 75W-80)", "kmIntervall": 80000, "manederIntervall": 60, "gjelderFor": "manuell" },
+    { "id": "automatgir", "navn": "Automatgir (ZF Lifeguard 6)", "kmIntervall": 80000, "manederIntervall": 60, "gjelderFor": "automat", "byttesMed": ["automatgirfilter"] },
+    { "id": "automatgirfilter", "navn": "Automatgirfilter (ZF OEM)", "kmIntervall": 80000, "manederIntervall": 60, "gjelderFor": "automat", "byttesMed": ["automatgir"] },
+    { "id": "diff-foran", "navn": "Differensial foran (Liqui Moly SAE 75W-90)", "kmIntervall": 25000, "manederIntervall": 24 },
+    { "id": "diff-bak", "navn": "Differensial bak (Liqui Moly 75W-140 / 75W-90 / 75W-150)", "kmIntervall": 25000, "manederIntervall": 24 },
+    { "id": "servostyring", "navn": "Servostyring (Liqui Moly Top Tec ATF 1800)", "kmIntervall": 80000, "manederIntervall": 60 },
+    { "id": "kjolevaeske", "navn": "Kjølevæske (Mannol AF12+)", "kmIntervall": null, "manederIntervall": 60 },
+    { "id": "bremsevaeske", "navn": "Bremsevæske (Liqui Moly SL6 DOT 4)", "kmIntervall": null, "manederIntervall": 60 }
+  ]
+}
