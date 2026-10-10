@@ -164,6 +164,15 @@ test("B: GLA 180 med AT1962 gir 940 kg med brems og 455 kg uten", () => {
   assert.equal(beregnMaksLast(bil, henger, "B", { medBrems: false }).maksLast, 455);
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: bil 2970 kg med tilhenger 1400 kg, klasse B.
+test("klasse B: bil 2970 kg med tilhenger 1400 kg gir null", () => {
+  const bil = { tillattTotalvekt: 2970, tillattTilhengervektMedBrems: 2100, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1400, egenvekt: 260 };
+  const res = beregnMaksLast(bil, henger, "B");
+  assert.equal(res.maksLast, null);
+  assert.equal(res.begrensning, "forerkort");
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
