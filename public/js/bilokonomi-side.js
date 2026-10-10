@@ -22,6 +22,7 @@ const krKort = (n) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString("nb-NO",
 const farge = (k) => `var(--serie-${k})`;
 
 let biler = [];
+let manglerKjopsfelt = false;
 let bil = null;
 let hendelser = [];
 
@@ -34,11 +35,20 @@ async function start() {
     location.replace(`/min-side?neste=${encodeURIComponent(location.pathname + location.search)}`);
     return;
   }
-  const { data, error } = await supabase.from("biler")
+  let { data, error } = await supabase.from("biler")
     .select("id, kjennemerke, kallenavn, merke, modell, kilometerstand, forstegangsregistrert, kjopspris, kjopsdato, kjops_km")
     .order("opprettet");
+  // Mangler kjøpsfeltene i databasen (06-bilokonomi.sql er ikke kjørt)? Vis kostnadene likevel.
+  if (error && /kjopspris|kjopsdato|kjops_km|column/i.test(error.message ?? "")) {
+    console.error("Biløkonomi: kjøpsfeltene mangler i databasen", error);
+    manglerKjopsfelt = true;
+    ({ data, error } = await supabase.from("biler")
+      .select("id, kjennemerke, kallenavn, merke, modell, kilometerstand, forstegangsregistrert")
+      .order("opprettet"));
+  }
   $("laster").hidden = true;
   if (error) {
+    console.error("Biløkonomi: kunne ikke hente biler", error);
     $("laster").hidden = false;
     $("laster").textContent = "Kunne ikke hente bilene dine. Last siden på nytt.";
     return;
@@ -75,6 +85,15 @@ function fyllKjopsskjema() {
   f.kjopspris.value = bil.kjopspris ?? "";
   f.kjopsdato.value = bil.kjopsdato ?? "";
   f.kjops_km.value = bil.kjops_km ?? "";
+  if (manglerKjopsfelt) {
+    $("kjop").open = true;
+    $("kjop-sammendrag").textContent = "Ikke tilgjengelig";
+    const m = $("kjop-melding");
+    m.textContent = "Kjøpsopplysninger kan ikke lagres ennå: databasen mangler feltene. Kjør supabase/06-bilokonomi.sql i Supabase.";
+    m.className = "melding feil";
+    f.querySelector("button").disabled = true;
+    return;
+  }
   const harKjop = bil.kjopspris && bil.kjopsdato;
   $("kjop").open = !harKjop;
   $("kjop-sammendrag").textContent = harKjop ? `${kr(bil.kjopspris)} · ${formaterDato(bil.kjopsdato)}` : "Ikke fylt ut";
