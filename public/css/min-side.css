@@ -503,3 +503,8 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .dekk-skjema label { display: grid; gap: 4px; font-size: 0.9rem; }
 .dekk-skjema select, .dekk-skjema input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--glass-kant); background: transparent; color: inherit; }
 .dekk-skjema .knapp { justify-self: start; }
+
+/* Hva gjelder registreringen? */
+.servicepunkt-valg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.servicepunkt-valg select { font: inherit; font-size: 0.85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--glass-kant); background: transparent; color: inherit; }
+.servicepunkt-valg .bekreft { width: auto; margin: 0; padding: 4px 10px; font-size: 0.85rem; }

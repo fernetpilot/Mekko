@@ -2,6 +2,7 @@
 // Alt vises som redigerbare forslag; ingenting lagres før brukeren trykker «Importer».
 import { supabase } from "./supabase.js";
 import { KOMPONENT_NAVN, formaterDato } from "./bilstatus.js";
+import { gjettServicepunkt } from "./servicepunkt-gjetting.js";
 import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst, tolkHendelsesliste } from "./import-historikk.js";
 import { lastOppDokumenter, erPdf, MAKS_BYTES } from "./dokumenter.js";
 
@@ -435,6 +436,7 @@ $("importer").addEventListener("click", async () => {
     const { data, error } = await supabase.from("vedlikehold").insert({
       bil_id: bilId,
       komponent: f.komponent,
+      servicepunkt: gjettServicepunkt(f.komponent, f.notat),
       dato: f.dato,
       kilometerstand: f.kilometerstand == null ? null : Math.round(f.kilometerstand),
       kostnad: f.kostnad,
