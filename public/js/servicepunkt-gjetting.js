@@ -27,6 +27,18 @@ const REGLER = [
 ];
 
 /**
+ * Motorolje og oljefilter byttes nesten alltid samtidig, så de følger hverandre.
+ * @param {string[]} deler
+ * @returns {string[]}
+ */
+export function utvidDeler(deler) {
+  const s = new Set(deler ?? []);
+  if (s.has("motorolje")) s.add("oljefilter");
+  if (s.has("oljefilter")) s.add("motorolje");
+  return [...s];
+}
+
+/**
  * @param {string} komponent  Kategori, f.eks. "bremser", "motor", "service"
  * @param {string} [tekst]    Fritekst fra notat eller type
  * @returns {string[]}        Id-er på servicepunkter, tom liste hvis ingen kunne avgjøres
@@ -42,5 +54,5 @@ export function gjettServicepunkter(komponent, tekst) {
   }
   if (/olje/.test(t) && (komponent === "motor" || komponent === "service")) funnet.push("motorolje");
   if (komponent === "motor" && funnet.length === 0) funnet.push("motorolje");
-  return [...new Set(funnet)];
+  return utvidDeler(funnet);
 }

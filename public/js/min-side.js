@@ -7,7 +7,7 @@ import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
-import { alleServicepunkter, gjettServicepunkter } from "./servicepunkt-gjetting.js";
+import { alleServicepunkter, gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { stilFor } from "./punktstil.js";
 
 const $ = (id) => document.getElementById(id);
@@ -578,7 +578,7 @@ function velgerMeny(h) {
 }
 
 async function lagreDeler(h, deler) {
-  const { error } = await supabase.from("vedlikehold").update({ servicepunkter: deler }).eq("id", h.id);
+  const { error } = await supabase.from("vedlikehold").update({ servicepunkter: utvidDeler(deler) }).eq("id", h.id);
   if (error) return alert("Kunne ikke lagre. Prøv igjen.");
   lastBiler();
 }

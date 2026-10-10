@@ -2,7 +2,7 @@
 import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
-import { gjettServicepunkter, alleServicepunkter } from "./servicepunkt-gjetting.js";
+import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { stilFor } from "./punktstil.js";
 
 const $ = (id) => document.getElementById(id);
@@ -80,6 +80,14 @@ for (const p of alleServicepunkter()) {
   cb.type = "checkbox";
   cb.name = "servicepunkt";
   cb.value = p.id;
+  // Motorolje og oljefilter følger hverandre
+  cb.addEventListener("change", () => {
+    if (!cb.checked) return;
+    for (const annen of utvidDeler([p.id])) {
+      const el = punktBeholder.querySelector(`input[value="${annen}"]`);
+      if (el) el.checked = true;
+    }
+  });
   lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
   punktBeholder.append(lab);
 }
@@ -150,7 +158,7 @@ skjema.addEventListener("submit", async (e) => {
     notat: skjema.notat.value.trim() || null,
     servicepunkter: $("servicepunkt-felt").hidden
       ? []
-      : (valgteDeler().length ? valgteDeler() : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
+      : (valgteDeler().length ? utvidDeler(valgteDeler()) : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
   };
 
   if (valgteFiler.some((f) => erPdf(f) && f.size > MAKS_BYTES)) {

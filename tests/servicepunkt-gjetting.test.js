@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gjettServicepunkter, alleServicepunkter } from "../public/js/servicepunkt-gjetting.js";
+import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "../public/js/servicepunkt-gjetting.js";
 
 const likt = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
 
@@ -10,13 +10,21 @@ test("bremseklosser fra fritekst, som i importen fra 2021", () => {
   likt(gjettServicepunkter("bremser", "Bremseklosser og -skriver, Calipere begge bak, v forran"), ["bremseklosser"]);
 });
 
-test("oljeskift og oljefilter", () => {
-  likt(gjettServicepunkter("motor", "Oljeskift og filter"), ["motorolje"]);
+test("oljeskift og oljefilter følger hverandre", () => {
+  likt(gjettServicepunkter("motor", "Oljeskift og filter"), ["motorolje", "oljefilter"]);
   likt(gjettServicepunkter("service", "Oljefilter og olje"), ["oljefilter", "motorolje"]);
+  likt(gjettServicepunkter("service", "Oljefilter"), ["oljefilter", "motorolje"]);
+});
+
+test("utvidDeler legger til det andre av motorolje og oljefilter", () => {
+  likt(utvidDeler(["motorolje"]), ["motorolje", "oljefilter"]);
+  likt(utvidDeler(["oljefilter"]), ["motorolje", "oljefilter"]);
+  likt(utvidDeler(["luftfilter"]), ["luftfilter"]);
+  likt(utvidDeler([]), []);
 });
 
 test("flere deler på samme besøk", () => {
-  likt(gjettServicepunkter("service", "Bytt klosser, luftfilter og olje"), ["bremseklosser", "luftfilter", "motorolje"]);
+  likt(gjettServicepunkter("service", "Bytt klosser, luftfilter og olje"), ["bremseklosser", "luftfilter", "motorolje", "oljefilter"]);
 });
 
 test("luftfilter og registerreim", () => {
@@ -30,8 +38,8 @@ test("væsker og gir skilles fra oljeskift", () => {
   likt(gjettServicepunkter("service", "Girolje automatgir"), ["automatgir"]);
 });
 
-test("motorkategori uten nærmere tekst gir motorolje", () => {
-  likt(gjettServicepunkter("motor", ""), ["motorolje"]);
+test("motorkategori uten nærmere tekst gir motorolje og oljefilter", () => {
+  likt(gjettServicepunkter("motor", ""), ["motorolje", "oljefilter"]);
 });
 
 test("ukjent gir tom liste", () => {
