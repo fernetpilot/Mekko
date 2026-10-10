@@ -101,3 +101,14 @@ test("punkterFor gir bare punkter for Discovery 3", () => {
   assert.deepEqual(punkterFor({ modell: "GLA 180" }), []);
   assert.deepEqual(punkterFor(null), []);
 });
+
+test("servicelinjer gir km igjen og intervall for stolpen", () => {
+  const [olje] = servicelinjer(
+    [OLJE],
+    [{ servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 }],
+    104000,
+    idag,
+  );
+  assert.equal(olje.kmIgjen, 6000);
+  assert.equal(olje.kmIntervall, 10000);
+});

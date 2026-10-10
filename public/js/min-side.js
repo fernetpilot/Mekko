@@ -285,6 +285,22 @@ function tegnBil(bil) {
       f.textContent = `Neste: ${l.frist}`;
       li.append(f);
     }
+    // Stolpe: hvor mye av km-intervallet som er igjen (bare når km er kjent)
+    if (l.kmIgjen != null && l.kmIntervall) {
+      const andel = Math.max(0, Math.min(1, l.kmIgjen / l.kmIntervall));
+      const stolpe = document.createElement("div");
+      stolpe.className = "stolpe";
+      stolpe.setAttribute("role", "img");
+      stolpe.setAttribute("aria-label", `${Math.round(andel * 100)} prosent igjen`);
+      const fyll = document.createElement("div");
+      fyll.className = "fyll";
+      fyll.style.width = `${Math.round(andel * 100)}%`;
+      stolpe.append(fyll);
+      const tekst = document.createElement("span");
+      tekst.className = "km-igjen";
+      tekst.textContent = l.kmIgjen > 0 ? `${formaterKm(l.kmIgjen)} igjen` : `${formaterKm(-l.kmIgjen)} over`;
+      li.append(stolpe, tekst);
+    }
     serviceUl.append(li);
   }
 
