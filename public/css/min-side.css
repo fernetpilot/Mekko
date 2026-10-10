@@ -509,29 +509,29 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .servicepunkt-valg select { font: inherit; font-size: 0.85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--glass-kant); background: transparent; color: inherit; }
 .servicepunkt-valg .bekreft { width: auto; margin: 0; padding: 4px 10px; font-size: 0.85rem; }
 
-/* Deler på besøk: merker og velger */
+/* Deler på besøk: merker og valg (mobilvennlig, full bredde) */
 .punkt-felt { border: none; padding: 0; margin: 12px 0 0; }
 .punkt-felt legend { font-weight: 600; margin-bottom: 6px; color: var(--tekst); }
 .punkt-valg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.punkt-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--glass-kant); background: var(--felt); font-size: 0.85rem; cursor: pointer; }
+.punkt-tom { font-size: 0.85rem; color: var(--tekst-dempet); }
+.punkt-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 10px; border-radius: 999px; border: 1px solid var(--glass-kant); background: var(--felt); font-size: 0.9rem; }
 .punkt-chip input { margin: 0; accent-color: #34c759; }
-.punkt-rad { display: grid; gap: 6px; margin-top: 6px; }
-.punkt-dropdown { position: relative; justify-self: start; }
-.punkt-knapp { font: inherit; font-size: 0.9rem; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--glass-kant); background: var(--felt); color: var(--tekst); cursor: pointer; }
-.punkt-panel { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: 240px; display: grid; gap: 4px; padding: 8px; border-radius: 14px; border: 1px solid var(--glass-kant); background: rgba(10, 11, 13, 0.92); backdrop-filter: blur(18px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
-.punkt-option { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; font-size: 0.9rem; cursor: pointer; }
-.punkt-option:hover { background: var(--felt); }
-.punkt-option input { margin: 0; accent-color: #34c759; }
-/* Grupper: farge på kanten, slik at det ser likt ut overalt */
+.punkt-fjern { font: inherit; font-size: 1.1rem; line-height: 1; width: 26px; height: 26px; border-radius: 999px; border: none; background: rgba(255, 255, 255, 0.12); color: var(--tekst); cursor: pointer; padding: 0; }
+.punkt-rad { display: grid; gap: 8px; margin-top: 8px; width: 100%; min-width: 0; }
+.punkt-dropdown { width: 100%; }
+.punkt-knapp { width: 100%; min-height: 44px; font: inherit; font-size: 1rem; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--glass-kant); background: var(--felt); color: var(--tekst); cursor: pointer; text-align: left; }
+.punkt-panel { display: grid; gap: 6px; margin-top: 8px; padding: 10px; border-radius: 14px; border: 1px solid var(--glass-kant); background: #17191f; }
+.punkt-option { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 10px; background: var(--felt); font-size: 1rem; cursor: pointer; border-left: 4px solid transparent; }
+.punkt-option input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: #34c759; }
+.punkt-option.gruppe-olje { border-left-color: #b26a00; }
+.punkt-option.gruppe-filter { border-left-color: #1a7f37; }
+.punkt-option.gruppe-bremse { border-left-color: #b42318; }
+.punkt-option.gruppe-vaeske { border-left-color: #1f6feb; }
+.punkt-option.gruppe-motor { border-left-color: #7c3aed; }
+/* Grupper: farge på merkene */
 .gruppe-olje { border-color: #b26a00; }
 .gruppe-filter { border-color: #1a7f37; }
 .gruppe-bremse { border-color: #b42318; }
 .gruppe-vaeske { border-color: #1f6feb; }
 .gruppe-motor { border-color: #7c3aed; }
 .gruppe-annet { border-color: var(--glass-kant); }
-.punkt-option.gruppe-olje, .punkt-option.gruppe-filter, .punkt-option.gruppe-bremse, .punkt-option.gruppe-vaeske, .punkt-option.gruppe-motor { border-color: transparent; border-left: 3px solid; border-radius: 10px; }
-.punkt-option.gruppe-olje { border-left-color: #b26a00; }
-.punkt-option.gruppe-filter { border-left-color: #1a7f37; }
-.punkt-option.gruppe-bremse { border-left-color: #b42318; }
-.punkt-option.gruppe-vaeske { border-left-color: #1f6feb; }
-.punkt-option.gruppe-motor { border-left-color: #7c3aed; }
