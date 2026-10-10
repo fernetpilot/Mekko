@@ -535,3 +535,7 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .punkt-option.gruppe-bremse { border-left-color: #b42318; }
 .punkt-option.gruppe-vaeske { border-left-color: #1f6feb; }
 .punkt-option.gruppe-motor { border-left-color: #7c3aed; }
+
+/* Avkrysning av deler: små bokser, og store, trykkvennlige merker på mobil */
+.punkt-valg input[type="checkbox"] { width: 18px; height: 18px; padding: 0; margin: 0; flex: none; }
+.punkt-valg .punkt-chip { min-height: 40px; padding: 8px 14px; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; width: auto; }
