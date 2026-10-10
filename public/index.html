@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b0d">
   <title>Mekkoo – full kontroll på bilen</title>
+  <!-- Innlogging kreves: uten lagret innlogging sendes brukeren rett til innloggingssiden.
+       Sjekken er synkron, så forsiden ikke blinker før omdirigeringen. -->
+  <script>
+    try {
+      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
+        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
+      }
+    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+  </script>
   <link rel="stylesheet" href="bilhold/css/bilhold.css">
   <!-- Three.js lastes fra CDN, så vi trenger ikke noe byggesteg -->
   <script type="importmap">

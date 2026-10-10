@@ -83,7 +83,8 @@ $("innlogging-skjema").addEventListener("submit", async (e) => {
       email,
       password,
       options: {
-        emailRedirectTo: `${location.origin}/min-side`,
+        // Etter bekreftelse: logg inn og gå til forsiden
+        emailRedirectTo: `${location.origin}/min-side?neste=%2F`,
         data: { forste_bil: skilt },
       },
     });
@@ -100,8 +101,16 @@ $("innlogging-skjema").addEventListener("submit", async (e) => {
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   knapp.disabled = false;
-  if (error) melding(m, feilTekst(error), "feil");
+  if (error) return melding(m, feilTekst(error), "feil");
+  // Videre til riktig side skjer i visInnlogget()
 });
+
+/** Trygg adresse å sende brukeren videre til etter innlogging, eller null. */
+function nesteSide() {
+  const neste = new URLSearchParams(location.search).get("neste");
+  // Bare stier på vår egen side («/…», ikke «//annen-side.no»)
+  return neste && /^\/(?!\/)/.test(neste) && !neste.startsWith("/min-side") ? neste : null;
+}
 
 function settModusBeholdMelding(ny) {
   const m = $("innlogging-melding");
@@ -152,9 +161,27 @@ $("slett-konto").addEventListener("click", async () => {
   alert("Kontoen din er slettet.");
 });
 
-let forsteBilPagar = false;
+// Første bil legges inn bare én gang, selv om flere hendelser ber om det samtidig.
+let forsteBilJobb = null;
+function sikreForsteBil(bruker) {
+  if (!bruker?.user_metadata?.forste_bil) return forsteBilJobb ?? Promise.resolve();
+  forsteBilJobb ??= leggInnForsteBil(bruker);
+  return forsteBilJobb;
+}
+
+let viderekobler = false;
 
 async function visInnlogget(bruker) {
+  // Kom brukeren fra en side som krever innlogging? Send dem tilbake dit
+  // (etter at en eventuell første bil er lagt inn).
+  if (bruker && nesteSide()) {
+    if (viderekobler) return;
+    viderekobler = true;
+    melding($("innlogging-melding"), "Logger inn …");
+    await sikreForsteBil(bruker);
+    location.replace(nesteSide());
+    return;
+  }
   $("laster").hidden = true;
   $("innlogging").hidden = !!bruker;
   $("konto").hidden = !bruker;
@@ -162,13 +189,9 @@ async function visInnlogget(bruker) {
   if (!bruker) return;
   $("bruker-epost").textContent = bruker.email;
 
-  if (bruker.user_metadata?.forste_bil && !forsteBilPagar) {
-    forsteBilPagar = true;
-    $("biler").textContent = "Legger inn bilen din …";
-    await leggInnForsteBil(bruker);
-    forsteBilPagar = false;
-  }
-  if (!forsteBilPagar) lastBiler();
+  if (bruker.user_metadata?.forste_bil) $("biler").textContent = "Legger inn bilen din …";
+  await sikreForsteBil(bruker);
+  lastBiler();
 }
 
 supabase.auth.onAuthStateChange((hendelse, okt) => {
