@@ -216,3 +216,4 @@ details summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
 
 .faresone { margin-top: 32px; color: var(--tekst-dempet); }
 .faresone p { font-size: 14px; }
+#ny-konto-felter { display: grid; gap: 10px; }

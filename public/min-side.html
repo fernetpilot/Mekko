@@ -33,6 +33,11 @@
         <label for="passord">Passord</label>
         <input id="passord" type="password" autocomplete="current-password" required minlength="8">
         <p class="liten" id="passord-hint" hidden>Minst 8 tegn.</p>
+        <div id="ny-konto-felter" hidden>
+          <label for="skilt-ny-konto">Skiltnummer på bilen din</label>
+          <input id="skilt-ny-konto" autocomplete="off" autocapitalize="characters" placeholder="AB 12345">
+          <p class="liten">Vi henter merke, modell og EU-kontrollfrist fra Statens vegvesen.</p>
+        </div>
         <button class="knapp" id="innlogging-knapp" type="submit">Logg inn</button>
         <button class="lenke-knapp" id="glemt-passord" type="button">Glemt passord?</button>
         <p class="melding" id="innlogging-melding" role="status"></p>

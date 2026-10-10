@@ -31,6 +31,8 @@ function settModus(ny) {
   $("innlogging-knapp").textContent = nyKonto ? "Opprett konto" : "Logg inn";
   $("passord").autocomplete = nyKonto ? "new-password" : "current-password";
   $("passord-hint").hidden = !nyKonto;
+  $("ny-konto-felter").hidden = !nyKonto;
+  $("skilt-ny-konto").required = nyKonto;
   $("glemt-passord").hidden = nyKonto;
   melding($("innlogging-melding"), "");
 }
@@ -59,17 +61,39 @@ $("innlogging-skjema").addEventListener("submit", async (e) => {
   melding(m, modus === "ny-konto" ? "Oppretter konto …" : "Logger inn …");
 
   if (modus === "ny-konto") {
+    // 1. Slå opp bilen først, så kontoen ikke opprettes med et ugyldig skilt
+    const skilt = normaliserSkilt($("skilt-ny-konto").value);
+    if (!skilt) {
+      knapp.disabled = false;
+      return melding(m, "Skriv et gyldig skiltnummer, f.eks. AB 12345.", "feil");
+    }
+    let bil;
+    try {
+      melding(m, "Henter bilen fra Statens vegvesen …");
+      bil = await slaOppBil(skilt);
+    } catch (feil) {
+      knapp.disabled = false;
+      return melding(m, feil.message, "feil");
+    }
+
+    // 2. Opprett kontoen. Skiltet lagres på brukeren, og bilen legges inn
+    //    automatisk første gang brukeren er logget inn (etter e-postbekreftelse).
+    melding(m, "Oppretter konto …");
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${location.origin}/min-side` },
+      options: {
+        emailRedirectTo: `${location.origin}/min-side`,
+        data: { forste_bil: skilt },
+      },
     });
     knapp.disabled = false;
     if (error) return melding(m, feilTekst(error), "feil");
     // Med e-postbekreftelse på i Supabase får vi ingen innlogging før lenken er trykket.
     if (!data.session) {
-      melding(m, "Nesten ferdig! Vi har sendt deg en e-post. Trykk på lenken for å bekrefte kontoen, og logg deretter inn.", "ok");
+      melding(m, `Fant ${bilNavn(bil)}. Nesten ferdig! Vi har sendt deg en e-post – trykk på lenken for å bekrefte kontoen, og logg deretter inn.`, "ok");
       settModusBeholdMelding("logg-inn");
+      $("skilt-ny-konto").value = "";
     }
     return;
   }
@@ -128,15 +152,23 @@ $("slett-konto").addEventListener("click", async () => {
   alert("Kontoen din er slettet.");
 });
 
-function visInnlogget(bruker) {
+let forsteBilPagar = false;
+
+async function visInnlogget(bruker) {
   $("laster").hidden = true;
   $("innlogging").hidden = !!bruker;
   $("konto").hidden = !bruker;
   $("logg-ut").hidden = !bruker;
-  if (bruker) {
-    $("bruker-epost").textContent = bruker.email;
-    lastBiler();
+  if (!bruker) return;
+  $("bruker-epost").textContent = bruker.email;
+
+  if (bruker.user_metadata?.forste_bil && !forsteBilPagar) {
+    forsteBilPagar = true;
+    $("biler").textContent = "Legger inn bilen din …";
+    await leggInnForsteBil(bruker);
+    forsteBilPagar = false;
   }
+  if (!forsteBilPagar) lastBiler();
 }
 
 supabase.auth.onAuthStateChange((hendelse, okt) => {
@@ -283,7 +315,60 @@ async function lagreVedlikehold(e, bil) {
   lastBiler();
 }
 
-// Legg til bil via skiltoppslag hos Statens vegvesen
+// ---------------------------------------------------------------------------
+// Skiltoppslag hos Statens vegvesen (via vår proxy)
+// ---------------------------------------------------------------------------
+
+/** Slår opp et skilt og returnerer bilen. Kaster feil med norsk tekst. */
+async function slaOppBil(skilt) {
+  let res, svar;
+  try {
+    res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
+    svar = await res.json();
+  } catch {
+    throw new Error("Fikk ikke kontakt med Statens vegvesen. Prøv igjen.");
+  }
+  if (!res.ok) throw new Error(svar.feil || "Fant ikke bilen.");
+  const k = hentKjoretoy(svar);
+  if (k.erTilhenger) throw new Error("Dette skiltet tilhører en tilhenger. Skriv skiltet på bilen din.");
+  return k;
+}
+
+const bilNavn = (k) => [k.merke, k.modell].filter(Boolean).join(" ") || "bilen";
+
+/** Lagrer en oppslått bil på innlogget bruker. */
+async function lagreBil(skilt, k) {
+  const { error } = await supabase.from("biler").insert({
+    kjennemerke: skilt,
+    merke: k.merke,
+    modell: k.modell,
+    forstegangsregistrert: k.forstegangsregistrert,
+    eu_kontrollfrist: k.euKontrollfrist,
+  });
+  if (error) {
+    throw new Error(error.code === "23505"
+      ? "Denne bilen ligger allerede under Mine biler."
+      : "Kunne ikke lagre bilen. Prøv igjen.");
+  }
+}
+
+/**
+ * Første innlogging: bilen fra registreringen ligger på brukeren (forste_bil).
+ * Legg den inn i databasen og fjern merket, så det bare skjer én gang.
+ */
+async function leggInnForsteBil(bruker) {
+  const skilt = normaliserSkilt(bruker?.user_metadata?.forste_bil);
+  if (!skilt) return;
+  try {
+    await lagreBil(skilt, await slaOppBil(skilt));
+  } catch (feil) {
+    // Finnes den allerede er alt i orden; andre feil vises, men stopper ikke siden
+    if (!/allerede/.test(feil.message)) melding($("ny-bil-melding"), `Kunne ikke legge inn ${skilt}: ${feil.message}`, "feil");
+  }
+  await supabase.auth.updateUser({ data: { forste_bil: null } });
+}
+
+// Legg til flere biler fra Min side
 $("ny-bil-skjema").addEventListener("submit", async (e) => {
   e.preventDefault();
   const m = $("ny-bil-melding");
@@ -293,27 +378,10 @@ $("ny-bil-skjema").addEventListener("submit", async (e) => {
   e.submitter.disabled = true;
   melding(m, "Henter bilen …");
   try {
-    const res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
-    const svar = await res.json();
-    if (!res.ok) throw new Error(svar.feil || "Fant ikke bilen.");
-
-    const k = hentKjoretoy(svar);
-    if (k.erTilhenger) throw new Error("Dette er en tilhenger. Legg til bilen din her.");
-
-    const { error } = await supabase.from("biler").insert({
-      kjennemerke: skilt,
-      merke: k.merke,
-      modell: k.modell,
-      forstegangsregistrert: k.forstegangsregistrert,
-      eu_kontrollfrist: k.euKontrollfrist,
-    });
-    if (error) {
-      throw new Error(error.code === "23505"
-        ? "Denne bilen ligger allerede under Mine biler."
-        : "Kunne ikke lagre bilen. Prøv igjen.");
-    }
+    const k = await slaOppBil(skilt);
+    await lagreBil(skilt, k);
     $("nytt-skilt").value = "";
-    melding(m, `${[k.merke, k.modell].filter(Boolean).join(" ")} er lagt til.`, "ok");
+    melding(m, `${bilNavn(k)} er lagt til.`, "ok");
     lastBiler();
   } catch (feil) {
     melding(m, feil.message, "feil");
