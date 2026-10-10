@@ -44,19 +44,21 @@ export function serviceVarsler(bil, { punkter = [], sisteUtfort = {}, kmNaa = nu
 
 /**
  * Siste utførte per servicepunkt, av en liste med vedlikeholdsrader.
- * Rader uten servicepunkt hoppes over. Ved samme dato vinner den som har høyest km.
- * @param {Array<{servicepunkt: string, dato: string, kilometerstand: number|null}>} rader
+ * Rader uten deler hoppes over. Ved samme dato vinner den som har høyest km.
+ * @param {Array<{servicepunkter: string[], dato: string, kilometerstand: number|null}>} rader
  * @returns {Object<string, {dato: string, km: number|null}>}
  */
 export function sisteUtfortPerPunkt(rader) {
   const siste = {};
   for (const r of rader ?? []) {
-    if (!r.servicepunkt || !r.dato) continue;
-    const eksisterende = siste[r.servicepunkt];
-    const nyere = !eksisterende
-      || r.dato > eksisterende.dato
-      || (r.dato === eksisterende.dato && (r.kilometerstand ?? -1) > (eksisterende.km ?? -1));
-    if (nyere) siste[r.servicepunkt] = { dato: r.dato, km: r.kilometerstand ?? null };
+    if (!r.dato) continue;
+    for (const punkt of r.servicepunkter ?? []) {
+      const eksisterende = siste[punkt];
+      const nyere = !eksisterende
+        || r.dato > eksisterende.dato
+        || (r.dato === eksisterende.dato && (r.kilometerstand ?? -1) > (eksisterende.km ?? -1));
+      if (nyere) siste[punkt] = { dato: r.dato, km: r.kilometerstand ?? null };
+    }
   }
   return siste;
 }

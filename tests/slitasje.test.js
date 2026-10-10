@@ -7,8 +7,8 @@ import { slitasjeLinjer, beregnDekk, utsettelseAktiv, utsettelseFor } from "../p
 const idag = new Date(Date.UTC(2026, 9, 10)); // 10. oktober 2026
 const bil = { kilometerstand: 130000 };
 const linje = (linjer, id) => linjer.find((l) => l.id === id);
-const bremseRad = (km) => ({ servicepunkt: "bremseklosser", dato: "2025-01-01", kilometerstand: km });
-const luftRad = (km, dato = "2025-01-01") => ({ servicepunkt: "luftfilter", dato, kilometerstand: km });
+const bremseRad = (km) => ({ servicepunkter: ["bremseklosser"], dato: "2025-01-01", kilometerstand: km });
+const luftRad = (km, dato = "2025-01-01") => ({ servicepunkter: ["luftfilter"], dato, kilometerstand: km });
 
 test("bremseklosser: ok når det er langt igjen", () => {
   const l = linje(slitasjeLinjer({ bil, rader: [bremseRad(105000)], kmNaa: 110000, idag }), "bremseklosser");
@@ -79,7 +79,7 @@ test("dekk: utsettelse til neste sesong gir utsatt", () => {
 });
 
 test("registerreim: byttes etter 120 000 km og utsettes ikke", () => {
-  const rader = [{ servicepunkt: "registerreim", dato: "2025-01-01", kilometerstand: 100000 }];
+  const rader = [{ servicepunkter: ["registerreim"], dato: "2025-01-01", kilometerstand: 100000 }];
   const l = linje(slitasjeLinjer({ bil, rader, kmNaa: 125000, idag }), "registerreim");
   assert.equal(l.kmIgjen, 95000);
   assert.equal(l.status, "ok");
@@ -93,7 +93,7 @@ test("registerreim: byttes etter 120 000 km og utsettes ikke", () => {
 });
 
 test("registerreim: forfalt etter 6 år selv om km er god", () => {
-  const rader = [{ servicepunkt: "registerreim", dato: "2019-01-01", kilometerstand: 100000 }];
+  const rader = [{ servicepunkter: ["registerreim"], dato: "2019-01-01", kilometerstand: 100000 }];
   const l = linje(slitasjeLinjer({ bil, rader, kmNaa: 110000, idag }), "registerreim");
   assert.equal(l.status, "forfalt");
 });

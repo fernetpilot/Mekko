@@ -51,7 +51,7 @@ function harAktivUtsettelse(utsettelser, punkt, ctx) {
 function sisteOljeskift(rader) {
   let siste = null;
   for (const r of rader) {
-    if (r.servicepunkt === "motorolje" && r.dato && (!siste || r.dato > siste)) siste = r.dato;
+    if (r.servicepunkter?.includes("motorolje") && r.dato && (!siste || r.dato > siste)) siste = r.dato;
   }
   return siste;
 }

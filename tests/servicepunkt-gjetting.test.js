@@ -1,37 +1,43 @@
-// Tester for gjetting av servicepunkt. Kjører med: npm test
+// Tester for gjetting av servicepunkter. Kjører med: npm test
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gjettServicepunkt, alleServicepunkter } from "../public/js/servicepunkt-gjetting.js";
+import { gjettServicepunkter, alleServicepunkter } from "../public/js/servicepunkt-gjetting.js";
+
+const likt = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
 
 test("bremseklosser fra fritekst, som i importen fra 2021", () => {
-  assert.equal(gjettServicepunkt("bremser", "Bremseklosser og -skriver, Calipere begge bak, v forran"), "bremseklosser");
+  likt(gjettServicepunkter("bremser", "Bremseklosser og -skriver, Calipere begge bak, v forran"), ["bremseklosser"]);
 });
 
 test("oljeskift og oljefilter", () => {
-  assert.equal(gjettServicepunkt("motor", "Oljeskift og filter"), "motorolje");
-  assert.equal(gjettServicepunkt("service", "Oljefilter og olje"), "oljefilter");
+  likt(gjettServicepunkter("motor", "Oljeskift og filter"), ["motorolje"]);
+  likt(gjettServicepunkter("service", "Oljefilter og olje"), ["oljefilter", "motorolje"]);
+});
+
+test("flere deler på samme besøk", () => {
+  likt(gjettServicepunkter("service", "Bytt klosser, luftfilter og olje"), ["bremseklosser", "luftfilter", "motorolje"]);
 });
 
 test("luftfilter og registerreim", () => {
-  assert.equal(gjettServicepunkt("service", "Luftfilter bytt"), "luftfilter");
-  assert.equal(gjettServicepunkt("service", "Registerreim og spennrulle"), "registerreim");
+  likt(gjettServicepunkter("service", "Luftfilter bytt"), ["luftfilter"]);
+  likt(gjettServicepunkter("service", "Registerreim og spennrulle"), ["registerreim"]);
 });
 
-test("væsker skilles fra oljeskift", () => {
-  assert.equal(gjettServicepunkt("bremser", "Bremsevæske"), "bremsevaeske");
-  assert.equal(gjettServicepunkt("service", "Kjølevæske byttet"), "kjolevaeske");
-  assert.equal(gjettServicepunkt("service", "Girolje automatgir"), "automatgir");
+test("væsker og gir skilles fra oljeskift", () => {
+  likt(gjettServicepunkter("bremser", "Bremsevæske"), ["bremsevaeske"]);
+  likt(gjettServicepunkter("service", "Kjølevæske byttet"), ["kjolevaeske"]);
+  likt(gjettServicepunkter("service", "Girolje automatgir"), ["automatgir"]);
 });
 
 test("motorkategori uten nærmere tekst gir motorolje", () => {
-  assert.equal(gjettServicepunkt("motor", ""), "motorolje");
+  likt(gjettServicepunkter("motor", ""), ["motorolje"]);
 });
 
-test("ukjent gir null", () => {
-  assert.equal(gjettServicepunkt("dekk", "Vinterdekk"), null);
-  assert.equal(gjettServicepunkt("service", "Årlig ettersyn"), null);
-  assert.equal(gjettServicepunkt("bremser", "Bremsene sjekket"), null);
+test("ukjent gir tom liste", () => {
+  likt(gjettServicepunkter("dekk", "Vinterdekk"), []);
+  likt(gjettServicepunkter("service", "Årlig ettersyn"), []);
+  likt(gjettServicepunkter("bremser", "Bremsene sjekket"), []);
 });
 
 test("alle servicepunkter har id og navn", () => {

@@ -64,17 +64,17 @@ import { sisteUtfortPerPunkt } from "../public/js/servicevarsler.js";
 
 test("siste utførte per punkt velger nyeste dato", () => {
   const siste = sisteUtfortPerPunkt([
-    { servicepunkt: "motorolje", dato: "2024-05-01", kilometerstand: 90000 },
-    { servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 },
-    { servicepunkt: "motorolje", dato: "2024-11-01", kilometerstand: 95000 },
-    { servicepunkt: "bremsevaeske", dato: "2023-03-03", kilometerstand: null },
+    { servicepunkter: ["motorolje"], dato: "2024-05-01", kilometerstand: 90000 },
+    { servicepunkter: ["motorolje"], dato: "2025-01-01", kilometerstand: 100000 },
+    { servicepunkter: ["motorolje"], dato: "2024-11-01", kilometerstand: 95000 },
+    { servicepunkter: ["bremsevaeske"], dato: "2023-03-03", kilometerstand: null },
   ]);
   assert.deepEqual(siste.motorolje, { dato: "2025-01-01", km: 100000 });
   assert.deepEqual(siste.bremsevaeske, { dato: "2023-03-03", km: null });
 });
 
-test("rader uten servicepunkt hoppes over", () => {
-  assert.deepEqual(sisteUtfortPerPunkt([{ servicepunkt: null, dato: "2025-01-01", kilometerstand: 1 }]), {});
+test("rader uten deler hoppes over", () => {
+  assert.deepEqual(sisteUtfortPerPunkt([{ servicepunkter: [], dato: "2025-01-01", kilometerstand: 1 }]), {});
   assert.deepEqual(sisteUtfortPerPunkt(null), {});
 });
 
@@ -84,7 +84,7 @@ import { punkterFor } from "../public/js/servicepunkter.js";
 test("servicelinjer viser status og frist per punkt", () => {
   const linjer = servicelinjer(
     [OLJE, { id: "bremsevaeske", navn: "Bremsevæske", kmIntervall: null, manederIntervall: 60 }],
-    [{ servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 }],
+    [{ servicepunkter: ["motorolje"], dato: "2025-01-01", kilometerstand: 100000 }],
     109500,
     idag,
   );
@@ -105,7 +105,7 @@ test("punkterFor gir bare punkter for Discovery 3", () => {
 test("servicelinjer gir km igjen og intervall for stolpen", () => {
   const [olje] = servicelinjer(
     [OLJE],
-    [{ servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 }],
+    [{ servicepunkter: ["motorolje"], dato: "2025-01-01", kilometerstand: 100000 }],
     104000,
     idag,
   );
