@@ -28,14 +28,18 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   førerkort-sjekk på samme side, som bruker `sjekkForerkort` fra `public/js/beregning.js`.
   Krever innlogging: uten lagret Supabase-økt sendes brukeren til `/min-side?neste=/` (skript øverst i `<head>`).
   Kalkulatoren er åpen uten innlogging.
-  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Mine kvitteringer (kommer), Logg ut.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   foreløpig bare EU-kontroll; service og slitasje i % skal legges til der.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
 - `public/js/kjoretoy.js` – henter vekter, EU-kontrollfrist m.m. ut av API-svaret.
-- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-post og passord), mine biler og vedlikehold.
+- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-post og passord) og Mine biler:
+  per bil vises vedlikeholdshistorikk og alle kjøretøydata fra Vegvesenet (hentes når seksjonen åpnes).
+- `public/registrer-vedlikehold.html` + `public/js/registrer-vedlikehold.js` – egen side for å registrere vedlikehold
+  (`?bil=<id>` forhåndsvelger bil). Krever innlogging.
+- `public/js/kjoretoydetaljer.js` – gjør API-svaret om til lesbare seksjoner. Feltoversikt: `docs/api-felter.md`.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet

@@ -2,6 +2,7 @@
 import { supabase } from "./supabase.js";
 import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
 import { euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
+import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,10 +11,6 @@ function melding(el, tekst, type = "") {
   el.className = `melding ${type}`;
 }
 
-function idagTekst() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 // ---------------------------------------------------------------------------
 // Innlogging
@@ -231,6 +228,8 @@ async function lastBiler() {
   }
 
   liste.replaceChildren(...biler.map(tegnBil));
+  // Kom brukeren fra «Registrer vedlikehold»? Vis riktig bil.
+  if (location.hash.startsWith("#bil-")) document.querySelector(location.hash)?.scrollIntoView({ block: "start" });
   if (!biler.length) {
     const p = document.createElement("p");
     p.className = "ingress";
@@ -269,13 +268,60 @@ function tegnBil(bil) {
     ul.append(li);
   }
   for (const h of hendelser) ul.append(tegnHendelse(h));
+  node.querySelector(".vedlikehold").open = hendelser.length > 0;
 
-  // Nytt vedlikehold
-  const skjema = node.querySelector(".nytt-vedlikehold");
-  skjema.dato.value = idagTekst();
-  skjema.addEventListener("submit", (e) => lagreVedlikehold(e, bil));
+  node.id = `bil-${bil.id}`;
+  node.querySelector(".registrer-lenke").href = `/registrer-vedlikehold?bil=${encodeURIComponent(bil.id)}`;
+
+  // Kjøretøydata hentes først når brukeren åpner seksjonen
+  const data = node.querySelector(".kjoretoydata");
+  data.addEventListener("toggle", () => {
+    if (data.open && !data.dataset.hentet) {
+      data.dataset.hentet = "1";
+      visKjoretoydata(bil.kjennemerke, data.querySelector(".detaljer-innhold"));
+    }
+  });
 
   return node;
+}
+
+async function visKjoretoydata(skilt, mal) {
+  try {
+    const res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
+    const svar = await res.json();
+    if (!res.ok) throw new Error(svar.feil);
+    const seksjoner = kjoretoyDetaljer(svar);
+    if (!seksjoner.length) throw new Error("Ingen data fra Statens vegvesen for denne bilen.");
+
+    mal.replaceChildren(...seksjoner.map((s) => {
+      const blokk = document.createElement("section");
+      blokk.className = "datablokk";
+      const h = document.createElement("h3");
+      h.textContent = s.tittel;
+      const dl = document.createElement("dl");
+      for (const [navn, verdi] of s.rader) {
+        const rad = document.createElement("div");
+        const dt = document.createElement("dt");
+        dt.textContent = navn;
+        const dd = document.createElement("dd");
+        dd.textContent = verdi;
+        rad.append(dt, dd);
+        dl.append(rad);
+      }
+      blokk.append(h, dl);
+      return blokk;
+    }));
+    const kilde = document.createElement("p");
+    kilde.className = "liten";
+    kilde.textContent = "Kilde: Statens vegvesen. Sjekk alltid vognkortet ved tvil.";
+    mal.append(kilde);
+  } catch (feil) {
+    const p = document.createElement("p");
+    p.className = "melding feil";
+    p.textContent = feil.message || "Kunne ikke hente kjøretøydata. Prøv igjen senere.";
+    mal.replaceChildren(p);
+    mal.closest("details").dataset.hentet = ""; // prøv igjen neste gang
+  }
 }
 
 function tegnHendelse(h) {
@@ -307,35 +353,6 @@ function tegnHendelse(h) {
 
   li.append(tekst, slett);
   return li;
-}
-
-async function lagreVedlikehold(e, bil) {
-  e.preventDefault();
-  const f = e.target;
-  const m = f.querySelector(".melding");
-  const tall = (v) => (v === "" ? null : Number(v));
-  const rad = {
-    bil_id: bil.id,
-    komponent: f.komponent.value,
-    dato: f.dato.value,
-    kilometerstand: tall(f.kilometerstand.value),
-    kostnad: tall(f.kostnad.value),
-    utfort_av: f.utfort_av.value.trim() || null,
-    notat: f.notat.value.trim() || null,
-  };
-
-  e.submitter.disabled = true;
-  const { error } = await supabase.from("vedlikehold").insert(rad);
-  e.submitter.disabled = false;
-  if (error) return melding(m, "Kunne ikke lagre. Sjekk feltene og prøv igjen.", "feil");
-
-  // Oppdater bilens kilometerstand hvis denne er nyere
-  if (rad.kilometerstand != null && rad.kilometerstand > (bil.kilometerstand ?? -1)) {
-    await supabase.from("biler")
-      .update({ kilometerstand: rad.kilometerstand, kilometerstand_dato: rad.dato })
-      .eq("id", bil.id);
-  }
-  lastBiler();
 }
 
 // ---------------------------------------------------------------------------

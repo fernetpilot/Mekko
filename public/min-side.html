@@ -97,33 +97,16 @@
         <div><dt>Kilometerstand</dt><dd class="km"></dd></div>
       </dl>
 
-      <details class="vedlikehold">
-        <summary>Vedlikehold <span class="antall"></span></summary>
+      <a class="knapp sekundaer registrer-lenke" href="/registrer-vedlikehold">+ Registrer vedlikehold</a>
+
+      <details class="seksjon-detaljer vedlikehold">
+        <summary>Vedlikeholdshistorikk <span class="antall"></span></summary>
         <ul class="historikk"></ul>
-        <form class="skjema nytt-vedlikehold">
-          <h3>Registrer vedlikehold</h3>
-          <label>Hva er gjort
-            <select name="komponent" required>
-              <option value="motor">Oljeskift / motor</option>
-              <option value="bremser">Bremser</option>
-              <option value="dekk">Dekk</option>
-              <option value="service">Service</option>
-              <option value="eu_kontroll">EU-kontroll</option>
-              <option value="annet">Annet</option>
-            </select>
-          </label>
-          <div class="to-kolonner">
-            <label>Dato <input name="dato" type="date" required></label>
-            <label>Kilometerstand <input name="kilometerstand" type="number" min="0" inputmode="numeric"></label>
-          </div>
-          <div class="to-kolonner">
-            <label>Kostnad (kr) <input name="kostnad" type="number" min="0" step="1" inputmode="numeric"></label>
-            <label>Utført av <input name="utfort_av" maxlength="100" placeholder="Verksted / selv"></label>
-          </div>
-          <label>Notat <textarea name="notat" maxlength="1000" rows="2"></textarea></label>
-          <button class="knapp" type="submit">Lagre</button>
-          <p class="melding" role="status"></p>
-        </form>
+      </details>
+
+      <details class="seksjon-detaljer kjoretoydata">
+        <summary>Kjøretøydata fra Statens vegvesen</summary>
+        <div class="detaljer-innhold"><p class="liten">Henter …</p></div>
       </details>
     </article>
   </template>

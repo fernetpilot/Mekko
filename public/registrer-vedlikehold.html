@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0d">
+  <title>Mekkoo – registrer vedlikehold</title>
+  <!-- Krever innlogging: send til innlogging og tilbake hit etterpå -->
+  <script>
+    try {
+      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
+        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
+      }
+    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+  </script>
+  <link rel="stylesheet" href="css/min-side.css">
+  <script type="module" src="js/registrer-vedlikehold.js"></script>
+</head>
+<body>
+  <header class="topp">
+    <a class="logo" href="/">MEKKOO</a>
+    <a class="topp-knapp" href="/min-side">Mine biler</a>
+  </header>
+
+  <main>
+    <p class="overline">Min profil</p>
+    <h1>Registrer vedlikehold</h1>
+
+    <p class="laster" id="laster">Laster …</p>
+
+    <section id="ingen-biler" class="kort" hidden>
+      <p>Du må legge til en bil før du kan registrere vedlikehold.</p>
+      <a class="knapp sekundaer" href="/min-side">Gå til Mine biler</a>
+    </section>
+
+    <form id="vedlikehold-skjema" class="kort skjema" hidden>
+      <label>Bil
+        <select name="bil_id" id="bil-valg" required></select>
+      </label>
+      <label>Hva er gjort
+        <select name="komponent" required>
+          <option value="service">Service</option>
+          <option value="motor">Oljeskift / motor</option>
+          <option value="bremser">Bremser</option>
+          <option value="dekk">Dekk</option>
+          <option value="eu_kontroll">EU-kontroll</option>
+          <option value="annet">Annet</option>
+        </select>
+      </label>
+      <div class="to-kolonner">
+        <label>Dato <input name="dato" type="date" required></label>
+        <label>Kilometerstand <input name="kilometerstand" type="number" min="0" inputmode="numeric"></label>
+      </div>
+      <div class="to-kolonner">
+        <label>Kostnad (kr) <input name="kostnad" type="number" min="0" step="1" inputmode="numeric"></label>
+        <label>Utført av <input name="utfort_av" maxlength="100" placeholder="Verksted / selv"></label>
+      </div>
+      <label>Notat <textarea name="notat" maxlength="1000" rows="3" placeholder="F.eks. skiftet olje og oljefilter, 5W-30"></textarea></label>
+      <button class="knapp" type="submit">Lagre</button>
+      <p class="melding" id="melding" role="status"></p>
+    </form>
+  </main>
+</body>
+</html>

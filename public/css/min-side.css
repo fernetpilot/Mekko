@@ -46,7 +46,8 @@ body {
   letter-spacing: 0.18em;
   font-size: 15px;
 }
-.topp-knapp {
+.topp-knapp, a.topp-knapp {
+  text-decoration: none;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -217,3 +218,40 @@ details summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
 .faresone { margin-top: 32px; color: var(--tekst-dempet); }
 .faresone p { font-size: 14px; }
 #ny-konto-felter { display: grid; gap: 10px; }
+
+/* Sekundærknapp (lenke som ser ut som knapp) */
+.knapp.sekundaer {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--tekst);
+  background: var(--felt);
+  border: 1px solid var(--glass-kant);
+}
+
+/* Utvidbare seksjoner i bilkortet */
+.seksjon-detaljer { border-top: 1px solid var(--glass-kant); margin-top: 12px; }
+.bil { scroll-margin-top: 80px; }
+
+/* Kjøretøydata fra Vegvesenet */
+.datablokk { margin: 4px 0 14px; }
+.datablokk h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+.datablokk dl { margin: 0; display: grid; }
+.datablokk dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--glass-kant) 60%, transparent);
+  font-size: 14px;
+}
+.datablokk dt { color: var(--tekst-dempet); }
+.datablokk dd { margin: 0; text-align: right; font-weight: 500; overflow-wrap: anywhere; }
