@@ -53,9 +53,11 @@
           <option value="annet">Annet</option>
         </select>
       </label>
-      <label id="servicepunkt-felt" hidden>Hva ble gjort?
-        <select name="servicepunkt" id="servicepunkt"></select>
-      </label>
+      <fieldset id="servicepunkt-felt" class="punkt-felt" hidden>
+        <legend>Hva ble byttet?</legend>
+        <div id="servicepunkt-valg" class="punkt-valg"></div>
+        <p class="liten">Velg alle deler som ble byttet ved dette besøket. Er ingenting valgt, prøver vi å gjette ut fra notatet.</p>
+      </fieldset>
       <div class="to-kolonner">
         <label>Dato <input name="dato" type="date" required></label>
         <label>Kilometerstand <input name="kilometerstand" type="number" min="0" inputmode="numeric"></label>

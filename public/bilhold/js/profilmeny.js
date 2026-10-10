@@ -116,8 +116,7 @@ async function hentVarsler() {
     if (error) throw error;
     const { data: rader, error: feil2 } = await supabase
       .from("vedlikehold")
-      .select("bil_id, servicepunkt, dato, kilometerstand")
-      .not("servicepunkt", "is", null);
+      .select("bil_id, servicepunkter, dato, kilometerstand");
     if (feil2) throw feil2;
 
     // Servicedata per bil. Foreløpig bare for Discovery 3 (2.7 TDV6-punktene).
@@ -126,7 +125,7 @@ async function hentVarsler() {
       if (!/DISCOVERY 3/i.test(bil.modell ?? "")) continue;
       service[bil.kjennemerke] = {
         punkter: LR3_2_7_TDV6,
-        sisteUtfort: sisteUtfortPerPunkt(rader.filter((r) => r.bil_id === bil.id)),
+        sisteUtfort: sisteUtfortPerPunkt(rader.filter((r) => r.bil_id === bil.id && r.servicepunkter?.length)),
         kmNaa: bil.kilometerstand ?? null,
       };
     }

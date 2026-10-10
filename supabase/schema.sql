@@ -37,6 +37,8 @@ create table public.vedlikehold (
                    ('motor', 'bremser', 'dekk', 'eu_kontroll', 'service', 'annet')),
   -- Hvilket servicepunkt (public/js/servicepunkter.js), f.eks. 'motorolje'. Null = ikke spesifisert.
   servicepunkt   text check (servicepunkt is null or char_length(servicepunkt) <= 40),
+  -- Alle deler som ble byttet ved dette besøket (se 05-flere-deler.sql)
+  servicepunkter text[] not null default '{}',
   dato           date not null,
   kilometerstand integer check (kilometerstand >= 0),
   kostnad        numeric(10, 2) check (kostnad >= 0),
