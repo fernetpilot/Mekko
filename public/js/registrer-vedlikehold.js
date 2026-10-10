@@ -3,6 +3,7 @@ import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
 import { LR3_2_7_TDV6 } from "./servicepunkter.js";
+import { SLITASJE_PUNKTER } from "./slitasje.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -71,10 +72,14 @@ valg.addEventListener("change", visKmHint);
 
 // Servicepunkt: vises for service og oljeskift. Foreløpig bare for LR3 2.7 TDV6.
 const servicepunktValg = $("servicepunkt");
-servicepunktValg.append(new Option("Ikke spesifisert", ""), ...LR3_2_7_TDV6.map((p) => new Option(p.navn, p.id)));
+servicepunktValg.append(
+  new Option("Ikke spesifisert", ""),
+  ...LR3_2_7_TDV6.map((p) => new Option(p.navn, p.id)),
+  ...SLITASJE_PUNKTER.map((p) => new Option(p.navn, p.id)),
+);
 function visServicepunkt() {
   const komp = skjema.komponent.value;
-  $("servicepunkt-felt").hidden = !(komp === "service" || komp === "motor");
+  $("servicepunkt-felt").hidden = !(komp === "service" || komp === "motor" || komp === "bremser");
 }
 skjema.komponent.addEventListener("change", visServicepunkt);
 visServicepunkt();
