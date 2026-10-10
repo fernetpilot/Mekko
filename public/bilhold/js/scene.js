@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { lagTilhenger } from './tilhenger.js';
+import { lagTilhenger, sjiraffKamera } from './tilhenger.js';
 
 const FARTKMT = 60;
 const FART = FARTKMT / 3.6;              // meter per sekund
@@ -69,6 +69,7 @@ export function lagScene(canvas) {
   sol.shadow.mapSize.set(2048, 2048);
   Object.assign(sol.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
   sol.shadow.bias = -0.0005;
+  sol.shadow.normalBias = 0.02;
   scene.add(sol);
 
   const omgivelser = lagOmgivelser(scene);
@@ -86,7 +87,12 @@ export function lagScene(canvas) {
   const onsketPos = new THREE.Vector3();
   const onsketMal = new THREE.Vector3();
   const aktivitet = { motor: 0, bremser: 0, dekk: 0 };
-  let modus = 'scroll';              // 'scroll' eller 'kalkulator'
+  let modus = 'scroll';              // 'scroll', 'kalkulator' eller 'sjiraff' (på vei til innlogging)
+  let sjiraffT = 0;                  // 0..1, hvor langt kameraet har zoomet inn på sjiraffen
+  const sjiraffPos = new THREE.Vector3();
+  const sjiraffMal = new THREE.Vector3();
+  const hodePos = new THREE.Vector3();
+  let vedSjiraff = null;             // kalles når kameraet er helt inne ved sjiraffen
   let kalkBlend = 0;                 // 0 = scroll-kamera, 1 = kalkulator-kamera
   let hoverMal = 0;
   let hover = 0;
@@ -96,6 +102,7 @@ export function lagScene(canvas) {
   let kalkSenterAndel = 0.2;         // hvor høyt på skjermen bilen står i kalkulator-modus
   let kalkBunnPx = 0;
   const redusertBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const beroring = window.matchMedia('(pointer: coarse)').matches;
 
   function tilpassStorrelse() {
     const b = window.innerWidth;
@@ -165,7 +172,17 @@ export function lagScene(canvas) {
     onsketPos.lerp(kalkPos, b);
     onsketPos.y += Math.sin(Math.PI * b) * 2.5;           // løftes litt på veien ut til siden
     onsketMal.lerp(kalkMal, b);
-    if (kalkBlend > 0 && kalkBlend < 1) {
+    // Innlogging: kameraet flyr inn til sjiraffhodet, som ser rett på deg
+    sjiraffT = THREE.MathUtils.clamp(sjiraffT + (modus === 'sjiraff' ? dt / 1.3 : -dt / 0.8), 0, 1);
+    const sj = kurve(sjiraffT);
+    if (sjiraffT === 1 && vedSjiraff) { vedSjiraff(); vedSjiraff = null; }
+    if (sjiraffT > 0) {
+      tilhenger.sjiraffHode.getWorldPosition(hodePos);
+      sjiraffKamera(hodePos, window.innerWidth / window.innerHeight, baseFov, sjiraffPos, sjiraffMal);
+      onsketPos.lerp(sjiraffPos, sj);
+      onsketMal.lerp(sjiraffMal, sj);
+    }
+    if ((kalkBlend > 0 && kalkBlend < 1) || sjiraffT > 0) {
       kamPos.copy(onsketPos);                             // følger kurven direkte under overgangen
       kamMal.copy(onsketMal);
     } else {
@@ -179,6 +196,9 @@ export function lagScene(canvas) {
     // Tåken trekkes bakover når kameraet står langt unna
     scene.fog.near = 18 + kalkBlend * 22;
     scene.fog.far = 60 + kalkBlend * 50;
+    // ... og trekkes helt inn rundt sjiraffen, så bare hodet står igjen mot mørk bakgrunn
+    scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1.2, sj);
+    scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, 6, sj);
 
     // Kjøring
     const fart = redusertBevegelse ? FART * 0.15 : FART;
@@ -186,7 +206,9 @@ export function lagScene(canvas) {
     omgivelser.oppdater(veistrekning);
     for (const hjul of bil.hjul) hjul.rotation.x = veistrekning / HJULRADIUS;
     hover = THREE.MathUtils.damp(hover, modus === 'scroll' ? hoverMal : 0, 10, dt);
-    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover });
+    // På mobil blinker en tynn kant rundt hengeren sakte, så man skjønner at den kan trykkes på
+    const blink = beroring && modus === 'scroll' ? THREE.MathUtils.clamp(1 - fremdrift * 2, 0, 1) : 0;
+    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover, blink });
     // Litt liv i karosseriet
     bil.karosseri.position.y = Math.sin(veistrekning * 1.3) * 0.006 + Math.sin(veistrekning * 0.37) * 0.008;
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
@@ -217,7 +239,12 @@ export function lagScene(canvas) {
   const peker = new THREE.Vector2();
   return {
     settFremdrift(p) { fremdrift = p; },
-    settModus(m) { modus = m === 'kalkulator' ? 'kalkulator' : 'scroll'; },
+    settModus(m) { modus = ['kalkulator', 'sjiraff'].includes(m) ? m : 'scroll'; },
+    // Zoomer inn på sjiraffhodet og svarer når kameraet er framme
+    zoomTilSjiraff() {
+      modus = 'sjiraff';
+      return new Promise((ferdig) => { vedSjiraff = ferdig; });
+    },
     settHover(on) { hoverMal = on ? 1 : 0; },
     // Treffer et punkt på skjermen (px) hengeren eller sjiraffen?
     treffTilhenger(x, y) {
@@ -392,8 +419,9 @@ function lagBil() {
   // Mørk innerskjerm i hjulbuene
   for (const s of [-1, 1]) {
     for (const [a, b] of [fremreBue, bakreBue]) {
-      boks(0.02, BUE_TOPP - 0.48, b - a, plast, s * (MIDT_B / 2 + 0.01), (BUE_TOPP + 0.48) / 2, (a + b) / 2);
-      boks(sideB, 0.02, b - a, plast, s * sideX, BUE_TOPP - 0.01, (a + b) / 2);
+      // Litt luft til karosseriflatene, ellers flimrer de mot hverandre (z-fighting)
+      boks(0.01, BUE_TOPP - 0.5, b - a - 0.01, plast, s * (MIDT_B / 2 + 0.012), (BUE_TOPP + 0.48) / 2, (a + b) / 2);
+      boks(sideB - 0.01, 0.01, b - a - 0.01, plast, s * sideX, BUE_TOPP - 0.012, (a + b) / 2);
     }
   }
   // Frontpanel med grill

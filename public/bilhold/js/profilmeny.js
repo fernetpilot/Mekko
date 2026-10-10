@@ -122,6 +122,10 @@ async function hentVarsler() {
   }
 }
 
-// Vent til siden er tegnet, så 3D-bilen ikke må vente på varslene
-if (document.readyState === "complete") hentVarsler();
-else addEventListener("load", hentVarsler, { once: true });
+// Vent til siden er tegnet, så 3D-bilen ikke må vente på varslene.
+// Utloggede brukere har ingen varsler å hente.
+const innlogget = document.documentElement.classList.contains("innlogget");
+if (innlogget) {
+  if (document.readyState === "complete") hentVarsler();
+  else addEventListener("load", hentVarsler, { once: true });
+}

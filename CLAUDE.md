@@ -24,14 +24,19 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
-  Viser foreløpig bare eksempeldata. Trykk på tilhengeren (eller knappen øverst) åpner en enkel
-  førerkort-sjekk på samme side, som bruker `sjekkForerkort` fra `public/js/beregning.js`.
-  Krever innlogging: uten lagret Supabase-økt sendes brukeren til `/min-side?neste=/` (skript øverst i `<head>`).
-  Kalkulatoren er åpen uten innlogging.
+  Viser foreløpig bare eksempeldata. Siden er åpen for alle; «Logg inn»-knapper (`data-logg-inn`) står
+  i headeren, på kortene og etter kalkulatorsvaret. De skjules når `<html>` har klassen `innlogget`
+  (settes av et skript øverst i `<head>` hvis det finnes en lagret Supabase-økt).
+  Trykk på en «Logg inn»-knapp: kameraet zoomer inn på sjiraffen, så åpnes `/min-side`, der det samme
+  sjiraffhodet er bakgrunn (`public/bilhold/js/sjiraff-bakgrunn.js`). `?modus=ny-konto` åpner «Opprett konto».
+  Trykk på tilhengeren (eller knappen øverst) åpner tilhengerkalkulatoren på samme side
+  (`public/bilhold/js/lastkalkulator.js`): skiltoppslag og maks last med `beregnMaksLast`, samme regler
+  som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   foreløpig bare EU-kontroll; service og slitasje i % skal legges til der.
-- `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
+- `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`. Lenkes ikke lenger fra forsiden,
+  men brukes hvis JavaScript/3D ikke virker.
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
 - `public/js/kjoretoy.js` – henter vekter, EU-kontrollfrist m.m. ut av API-svaret.

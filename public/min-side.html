@@ -6,9 +6,20 @@
   <meta name="theme-color" content="#0a0b0d">
   <title>Mekkoo – min side</title>
   <link rel="stylesheet" href="css/min-side.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
   <script type="module" src="js/min-side.js"></script>
+  <!-- Sjiraffhodet bak innloggingsskjemaet (samme som forsiden zoomer inn på) -->
+  <script type="module" src="/bilhold/js/sjiraff-bakgrunn.js"></script>
 </head>
 <body>
+  <canvas class="sjiraff-bakgrunn" id="sjiraff-bakgrunn" aria-hidden="true"></canvas>
   <header class="topp">
     <a class="logo" href="/">MEKKOO</a>
     <button class="topp-knapp" id="logg-ut" type="button" hidden>Logg ut</button>
