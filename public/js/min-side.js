@@ -437,3 +437,16 @@ $("ny-bil-skjema").addEventListener("submit", async (e) => {
     e.submitter.disabled = false;
   }
 });
+
+// «Tilbake»: gå til forrige side på Mekkoo hvis brukeren kom derfra, ellers til forsiden
+$("tilbake").addEventListener("click", (e) => {
+  let fraOss = false;
+  try {
+    const forrige = new URL(document.referrer);
+    fraOss = forrige.origin === location.origin && !forrige.pathname.startsWith("/min-side");
+  } catch { /* ingen forrige side */ }
+  if (fraOss && history.length > 1) {
+    e.preventDefault();
+    history.back();
+  }
+});

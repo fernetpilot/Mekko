@@ -332,3 +332,105 @@ main { position: relative; z-index: 1; }
 .pdf-ikon { display: grid; place-items: center; font-weight: 700; color: var(--kritisk); }
 .vedlegg-navn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tekst-dempet); }
 .vedlegg-antall { color: var(--tekst-dempet); }
+
+/* Tilbake-knapp øverst på Mine biler */
+.tilbake {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 12px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tilbake span { font-size: 22px; line-height: 0.8; }
+.tilbake:active { transform: scale(0.97); }
+
+/* ---------- Importer servicehistorikk ---------- */
+main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
+.slippsone.aktiv { border-color: var(--tekst); background: var(--glass); }
+.slippsone a, .skjema .liten a { color: var(--tekst); }
+
+.ark summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+.kobling-rad {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid color-mix(in srgb, var(--glass-kant) 60%, transparent);
+}
+.kobling-rad .kolonne { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.kobling-rad select { padding: 8px 10px; }
+
+.forslag-hode { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
+.forslag-liste { list-style: none; margin: 8px 0 0; padding: 0; }
+.forslag { display: grid; gap: 10px; }
+.forslag.av { opacity: 0.45; }
+.forslag.mangler { border-color: var(--kritisk); }
+.forslag.mangler input[type="date"] { border-color: var(--kritisk); }
+.forslag-topp { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ta-med { display: flex; align-items: center; gap: 8px; color: var(--tekst); font-weight: 600; }
+.ta-med input { width: 20px; height: 20px; accent-color: var(--ok); }
+.merke-dublett {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sjekk) 22%, transparent);
+  color: var(--sjekk);
+}
+.forslag-filer { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.forslag-filer li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--felt);
+}
+.forhandsvisning img, .forhandsvisning .pdf-ikon {
+  width: 64px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+.fil-info { display: grid; gap: 6px; min-width: 0; }
+.fil-info .navn { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fil-info select { padding: 8px 10px; font-size: 14px; }
+
+.importer-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.importer-bar .knapp { max-width: 528px; width: 100%; justify-self: center; }
+.importer-bar .melding { text-align: center; }
+
+.import-lenke {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--tekst);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.import-lenke .kort-pil { font-size: 26px; color: var(--tekst-dempet); }
