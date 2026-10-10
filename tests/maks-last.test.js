@@ -140,6 +140,14 @@ test("BE: GLA 180 med DV1249 gir 855 kg med brems og 370 kg uten", () => {
   assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 370);
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: BT98997 (GLA 180) med AT1962, klasse BE.
+test("BE: GLA 180 med AT1962 gir 940 kg med brems og 455 kg uten", () => {
+  const bil = { tillattTotalvekt: 1940, tillattTilhengervektMedBrems: 1200, tillattTilhengervektUtenBrems: 715 };
+  const henger = { tillattTotalvekt: 1400, egenvekt: 260 };
+  assert.equal(beregnMaksLast(bil, henger, "BE").maksLast, 940);
+  assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 455);
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
