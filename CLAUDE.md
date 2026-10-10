@@ -32,7 +32,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Trykk på tilhengeren (eller knappen øverst) åpner tilhengerkalkulatoren på samme side
   (`public/bilhold/js/lastkalkulator.js`): skiltoppslag og maks last med `beregnMaksLast`, samme regler
   som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
-  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Mine kvitteringer (kommer), Logg ut.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   foreløpig bare EU-kontroll; service og slitasje i % skal legges til der.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`. Lenkes ikke lenger fra forsiden,
@@ -61,6 +61,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
   Hendelser og enkeltvedlegg kan slettes der. PDF lages i nettleseren med pdf-lib fra CDN:
   `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
+- `public/bilokonomi.html` + `public/js/bilokonomi-side.js` – Biløkonomi: kjøpspris/-dato/-km (felt på `biler`,
+  se `supabase/06-bilokonomi.sql`), nøkkeltall, kakediagram per utgiftspost, stolper per år, akkumulert kurve
+  og grovt verdianslag. Beregningene ligger i `public/js/bilokonomi.js` (ren, testet); antakelsene for
+  verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der. Diagramfarger i `public/css/bilokonomi.css`.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
