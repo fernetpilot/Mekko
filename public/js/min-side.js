@@ -493,14 +493,14 @@ function tegnHendelse(h) {
   return li;
 }
 
-// Deler på besøket: fargede merker, og en velger som matcher resten av siden.
+// Deler på besøket: fargede merker (kan fjernes med ×), og en liste som åpnes under knappen.
 function punktRad(h) {
   const wrap = document.createElement("div");
   wrap.className = "punkt-rad";
   const merker = document.createElement("div");
   merker.className = "punkt-valg";
-  for (const id of h.servicepunkter ?? []) merker.append(punktMerke(id));
   wrap.append(merker);
+  tegnMerker(h, merker);
 
   const gjettet = h.servicepunkter?.length ? [] : gjettServicepunkter(h.komponent, h.notat);
   if (gjettet.length) {
@@ -508,10 +508,10 @@ function punktRad(h) {
     knapp.type = "button";
     knapp.className = "knapp sekundaer bekreft";
     knapp.textContent = `Bekreft: ${gjettet.map(navnPå).join(", ")}`;
-    knapp.addEventListener("click", () => lagreDeler(h, gjettet));
+    knapp.addEventListener("click", () => bekreftGjettet(h, gjettet));
     wrap.append(knapp);
   }
-  wrap.append(velgerMeny(h));
+  wrap.append(velgerMeny(h, merker));
   return wrap;
 }
 
@@ -519,29 +519,48 @@ function navnPå(id) {
   return alleServicepunkter().find((p) => p.id === id)?.navn ?? id;
 }
 
-function punktMerke(id) {
+function tegnMerker(h, merker) {
+  const deler = h.servicepunkter ?? [];
+  if (!deler.length) {
+    const tom = document.createElement("span");
+    tom.className = "punkt-tom";
+    tom.textContent = "Ingen deler valgt";
+    merker.replaceChildren(tom);
+    return;
+  }
+  merker.replaceChildren(...deler.map((id) => punktMerke(id, h, merker)));
+}
+
+function punktMerke(id, h, merker) {
   const stil = stilFor(id);
   const el = document.createElement("span");
   el.className = `punkt-chip gruppe-${stil.gruppe}`;
   el.textContent = `${stil.ikon} ${navnPå(id)}`;
+  const fjern = document.createElement("button");
+  fjern.type = "button";
+  fjern.className = "punkt-fjern";
+  fjern.setAttribute("aria-label", `Fjern ${navnPå(id)}`);
+  fjern.textContent = "×";
+  fjern.addEventListener("click", () => endreDeler(h, (h.servicepunkter ?? []).filter((d) => d !== id), merker));
+  el.append(fjern);
   return el;
 }
 
-// Velgeren lagrer når panelet lukkes, så listen ikke hopper mens man krysser av.
-function velgerMeny(h) {
+// Listen åpnes under knappen (full bredde, større knapper for mobil).
+// Hver avkryssing lagres med én gang, uten å tegne historikken på nytt.
+function velgerMeny(h, merker) {
   const dd = document.createElement("div");
   dd.className = "punkt-dropdown";
   const knapp = document.createElement("button");
   knapp.type = "button";
   knapp.className = "punkt-knapp";
   knapp.setAttribute("aria-expanded", "false");
-  knapp.textContent = "Hva ble byttet? ▾";
+  knapp.textContent = "+ Legg til del";
   const panel = document.createElement("div");
   panel.className = "punkt-panel";
   panel.hidden = true;
 
-  let endret = false;
-  const gjeldende = new Set(h.servicepunkter ?? []);
+  const avkryss = new Map();
   for (const p of alleServicepunkter()) {
     const stil = stilFor(p.id);
     const lab = document.createElement("label");
@@ -549,38 +568,43 @@ function velgerMeny(h) {
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.value = p.id;
-    cb.checked = gjeldende.has(p.id);
-    cb.addEventListener("change", () => { endret = true; });
+    cb.addEventListener("change", () => {
+      const gjeldende = h.servicepunkter ?? [];
+      const deler = cb.checked
+        ? utvidDeler([...gjeldende, p.id])
+        : gjeldende.filter((d) => d !== p.id);
+      endreDeler(h, deler, merker, synkroniser);
+    });
+    avkryss.set(p.id, cb);
     lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
     panel.append(lab);
   }
-
-  const klikkUtenfor = (e) => { if (!dd.contains(e.target)) lukk(); };
-  const lukk = () => {
-    panel.hidden = true;
-    knapp.setAttribute("aria-expanded", "false");
-    document.removeEventListener("click", klikkUtenfor);
-    if (endret) {
-      endret = false;
-      const valgte = [...panel.querySelectorAll("input:checked")].map((i) => i.value);
-      lagreDeler(h, valgte);
-    }
+  const synkroniser = () => {
+    for (const [id, cb] of avkryss) cb.checked = (h.servicepunkter ?? []).includes(id);
   };
+  synkroniser();
+
   knapp.addEventListener("click", () => {
-    if (!panel.hidden) return lukk();
-    panel.hidden = false;
-    knapp.setAttribute("aria-expanded", "true");
-    // Venter til dette klikket er ferdig, så det ikke lukker panelet med en gang
-    setTimeout(() => document.addEventListener("click", klikkUtenfor), 0);
+    panel.hidden = !panel.hidden;
+    knapp.setAttribute("aria-expanded", String(!panel.hidden));
   });
   dd.append(knapp, panel);
   return dd;
 }
 
-async function lagreDeler(h, deler) {
+async function bekreftGjettet(h, deler) {
   const { error } = await supabase.from("vedlikehold").update({ servicepunkter: utvidDeler(deler) }).eq("id", h.id);
   if (error) return alert("Kunne ikke lagre. Prøv igjen.");
   lastBiler();
+}
+
+// Lagrer nye deler og oppdaterer merkene der, uten å tegne historikken på nytt.
+async function endreDeler(h, deler, merker, etterpaa) {
+  const { error } = await supabase.from("vedlikehold").update({ servicepunkter: deler }).eq("id", h.id);
+  if (error) return alert("Kunne ikke lagre. Prøv igjen.");
+  h.servicepunkter = deler;
+  if (merker) tegnMerker(h, merker);
+  etterpaa?.();
 }
 
 // ---------------------------------------------------------------------------

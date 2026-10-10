@@ -173,3 +173,9 @@ create policy "Egne utsettelser: legg til" on public.utsettelser
   );
 create policy "Egne utsettelser: slett" on public.utsettelser
   for delete using (eier_id = auth.uid());
+
+-- Biløkonomi (samme som 06-bilokonomi.sql)
+alter table public.biler
+  add column if not exists kjopspris numeric(12, 2) check (kjopspris >= 0),
+  add column if not exists kjopsdato date,
+  add column if not exists kjops_km  integer check (kjops_km >= 0);
