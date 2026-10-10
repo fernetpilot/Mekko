@@ -426,3 +426,66 @@ body.forlater #scene {
 
 /* Litt kontrast på seksjonstitlene når de ligger over bilen */
 .seksjon-tittel { text-shadow: 0 1px 8px var(--bg); }
+
+/* ---------- Min profil-meny ---------- */
+.profil { position: relative; }
+button.topp-knapp { font: inherit; font-size: 14px; border: 0; cursor: pointer; }
+button.topp-knapp.ikon { border: 1px solid var(--glass-kant); }
+.profil-meny {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 260px;
+  display: grid;
+  padding: 8px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  border: 1px solid var(--glass-kant);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+.profil-meny[hidden] { display: none; }
+.profil-tittel {
+  margin: 6px 10px 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+.profil-epost {
+  margin: 2px 10px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tekst);
+  overflow-wrap: anywhere;
+}
+.profil-meny [role="menuitem"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  color: var(--tekst);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--glass-kant);
+  cursor: pointer;
+}
+.profil-epost + [role="menuitem"] { border-top: 0; }
+.profil-meny [role="menuitem"]:hover,
+.profil-meny [role="menuitem"]:focus-visible { background: var(--glass); outline: none; }
+.profil-meny .kommer { color: var(--tekst-dempet); cursor: default; white-space: nowrap; }
+.profil-meny .merke {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  white-space: nowrap;
+}
+#profil-logg-ut { color: var(--kritisk); }

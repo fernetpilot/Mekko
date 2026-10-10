@@ -27,6 +27,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Viser foreløpig bare eksempeldata. Har en knapp øverst til kalkulatoren.
   Krever innlogging: uten lagret Supabase-økt sendes brukeren til `/min-side?neste=/` (skript øverst i `<head>`).
   Kalkulatoren er åpen uten innlogging.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Mine kvitteringer (kommer), Logg ut.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
