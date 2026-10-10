@@ -56,6 +56,15 @@
         <label>Utført av <input name="utfort_av" maxlength="100" placeholder="Verksted / selv"></label>
       </div>
       <label>Notat <textarea name="notat" maxlength="1000" rows="3" placeholder="F.eks. skiftet olje og oljefilter, 5W-30"></textarea></label>
+      <div class="opplasting">
+        <span class="felt-tittel">Dokumentasjon</span>
+        <label class="velg-filer" for="filer">
+          <span>📎 Legg ved kvittering, serviceordre eller bilde</span>
+          <span class="liten">PDF eller bilde, maks 10 MB per fil</span>
+        </label>
+        <input id="filer" name="filer" type="file" accept="image/*,application/pdf" multiple class="skjult-input">
+        <ul class="valgte-filer" id="valgte-filer"></ul>
+      </div>
       <button class="knapp" type="submit">Lagre</button>
       <p class="melding" id="melding" role="status"></p>
     </form>

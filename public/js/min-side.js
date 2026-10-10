@@ -3,6 +3,7 @@ import { supabase } from "./supabase.js";
 import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
 import { euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
+import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -154,6 +155,7 @@ $("logg-ut").addEventListener("click", async () => {
 
 $("slett-konto").addEventListener("click", async () => {
   if (!confirm("Slette kontoen og alle data permanent?")) return;
+  try { await slettAlleMineFiler(supabase); } catch { /* fortsett – kontoen skal slettes uansett */ }
   const { error } = await supabase.rpc("slett_min_konto");
   if (error) return alert("Kunne ikke slette kontoen. Prøv igjen senere.");
   await supabase.auth.signOut();
@@ -216,7 +218,7 @@ async function lastBiler() {
   const liste = $("biler");
   const { data: biler, error } = await supabase
     .from("biler")
-    .select("*, vedlikehold(*)")
+    .select("*, vedlikehold(*, dokumenter(id))")
     .order("opprettet")
     .order("dato", { referencedTable: "vedlikehold", ascending: false });
 
@@ -253,7 +255,8 @@ function tegnBil(bil) {
   node.querySelector(".km").textContent = formaterKm(bil.kilometerstand);
 
   node.querySelector(".slett-bil").addEventListener("click", async () => {
-    if (!confirm(`Fjerne ${bil.kjennemerke} og all vedlikeholdshistorikk for bilen?`)) return;
+    if (!confirm(`Fjerne ${bil.kjennemerke} med all vedlikeholdshistorikk og alle vedlegg?`)) return;
+    await slettFilerForVedlikehold(supabase, (bil.vedlikehold ?? []).map((v) => v.id));
     const { error } = await supabase.from("biler").delete().eq("id", bil.id);
     if (error) return alert("Kunne ikke fjerne bilen. Prøv igjen.");
     lastBiler();
@@ -274,6 +277,7 @@ function tegnBil(bil) {
 
   node.id = `bil-${bil.id}`;
   node.querySelector(".registrer-lenke").href = `/registrer-vedlikehold?bil=${encodeURIComponent(bil.id)}`;
+  node.querySelector(".servicehefte-lenke").href = `/servicehefte?bil=${encodeURIComponent(bil.id)}`;
 
   // Kjøretøydata hentes først når brukeren åpner seksjonen
   const data = node.querySelector(".kjoretoydata");
@@ -338,6 +342,7 @@ function tegnHendelse(h) {
     h.kostnad != null ? `${Number(h.kostnad).toLocaleString("nb-NO")} kr` : null,
     h.utfort_av,
     h.notat,
+    h.dokumenter?.length ? `📎 ${h.dokumenter.length} vedlegg` : null,
   ].filter(Boolean).join(" · ");
   tekst.append(tittel, detaljer);
 
@@ -347,7 +352,8 @@ function tegnHendelse(h) {
   slett.setAttribute("aria-label", "Slett");
   slett.textContent = "✕";
   slett.addEventListener("click", async () => {
-    if (!confirm("Slette denne registreringen?")) return;
+    if (!confirm(h.dokumenter?.length ? "Slette denne registreringen og vedleggene?" : "Slette denne registreringen?")) return;
+    await slettFilerForVedlikehold(supabase, [h.id]);
     const { error } = await supabase.from("vedlikehold").delete().eq("id", h.id);
     if (error) return alert("Kunne ikke slette. Prøv igjen.");
     lastBiler();

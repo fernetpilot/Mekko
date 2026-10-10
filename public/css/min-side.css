@@ -272,3 +272,62 @@ main { position: relative; z-index: 1; }
 /* Gi plass til hodet øverst, så skjemaet ligger under det */
 #innlogging { padding-top: 36vh; }
 #innlogging .kort { background: rgba(10, 11, 13, 0.55); }
+/* Opplasting av dokumenter */
+.opplasting { display: grid; gap: 8px; }
+.felt-tittel { font-size: 14px; color: var(--tekst-dempet); }
+.skjult-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.velg-filer {
+  display: grid;
+  gap: 2px;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  border: 1.5px dashed var(--glass-kant);
+  border-radius: 14px;
+  background: var(--felt);
+  color: var(--tekst);
+  cursor: pointer;
+}
+.opplasting:has(.skjult-input:focus-visible) .velg-filer { outline: 2px solid var(--tekst); }
+.valgte-filer { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.valgte-filer li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--felt);
+  font-size: 14px;
+}
+.valgte-filer .navn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.valgte-filer .feil { color: var(--kritisk); }
+
+/* Servicehefte */
+.handlinger { display: grid; gap: 10px; margin-bottom: 8px; }
+.handlinger .knapp.sekundaer { margin-top: 0; }
+.tidslinje { list-style: none; margin: 16px 0 0; padding: 0; }
+.tidslinje .tom { color: var(--tekst-dempet); }
+.hendelse .overline { margin-top: 0; }
+.hendelse h2 { margin-bottom: 6px; }
+.hendelse .detaljer { margin: 0; color: var(--tekst-dempet); font-size: 14px; }
+.hendelse .notat { margin: 10px 0 0; font-size: 15px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vedlegg { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 12px; }
+.vedlegg-kort {
+  display: grid;
+  gap: 4px;
+  color: var(--tekst);
+  text-decoration: none;
+  font-size: 12px;
+}
+.vedlegg-kort img, .pdf-ikon {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--glass-kant);
+  background: var(--felt);
+}
+.pdf-ikon { display: grid; place-items: center; font-weight: 700; color: var(--kritisk); }
+.vedlegg-navn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tekst-dempet); }
+.vedlegg-antall { color: var(--tekst-dempet); }

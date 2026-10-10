@@ -45,6 +45,11 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/registrer-vedlikehold.html` + `public/js/registrer-vedlikehold.js` – egen side for å registrere vedlikehold
   (`?bil=<id>` forhåndsvelger bil). Krever innlogging.
 - `public/js/kjoretoydetaljer.js` – gjør API-svaret om til lesbare seksjoner. Feltoversikt: `docs/api-felter.md`.
+- Dokumenter (kvitteringer, serviceordrer): `public/js/dokumenter.js`. Privat Supabase-bucket `dokumenter`,
+  filsti `<bruker-id>/<vedlikehold-id>/…`, tabell `dokumenter` (se `supabase/02-dokumenter.sql`).
+  Bilder gjøres om til JPEG og skaleres ned før opplasting. Filer slettes av nettsiden før radene slettes.
+- `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
+  PDF lages i nettleseren med pdf-lib fra CDN: `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet

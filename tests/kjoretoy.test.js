@@ -42,3 +42,19 @@ test("hentKjoretoy tåler at EU-kontroll mangler", () => {
   delete uten.kjoretoydataListe[0].periodiskKjoretoyKontroll;
   assert.equal(hentKjoretoy(uten).euKontrollfrist, null);
 });
+
+import { tryggFilnavn, erPdf } from "../public/js/dokumenter.js";
+
+test("tryggFilnavn lager trygge filnavn for lagring", () => {
+  assert.equal(tryggFilnavn("Kvittering Bilxtra (1).jpg"), "Kvittering_Bilxtra_1_.jpg");
+  assert.equal(tryggFilnavn("Ørsta bremser æå.pdf"), "Orsta_bremser_aea.pdf");
+  assert.equal(tryggFilnavn("../../hemmelig"), ".._.._hemmelig");
+  assert.equal(tryggFilnavn(""), "fil");
+  assert.equal(tryggFilnavn("a".repeat(200) + ".pdf").length, 80);
+});
+
+test("erPdf kjenner igjen PDF på type eller filendelse", () => {
+  assert.equal(erPdf({ type: "application/pdf", name: "x" }), true);
+  assert.equal(erPdf({ type: "", name: "ordre.PDF" }), true);
+  assert.equal(erPdf({ type: "image/jpeg", name: "bilde.jpg" }), false);
+});
