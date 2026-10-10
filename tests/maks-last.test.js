@@ -244,6 +244,16 @@ test("BE: Crafter med AT1962 gir 1140 kg med brems og 490 kg uten", () => {
   assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 490);
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: PW7393 (Norgeshengern F1336) med Crafter, klasse BE.
+test("BE: Crafter med tilhenger F1336 gir 720 kg med brems og 170 kg uten", () => {
+  const bil = { tillattTotalvekt: 3500, tillattTilhengervektMedBrems: 3000, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1300, egenvekt: 580 };
+  const med = beregnMaksLast(bil, henger, "BE");
+  assert.equal(med.maksLast, 720);
+  assert.equal(med.begrensning, "henger");
+  assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 170);
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
