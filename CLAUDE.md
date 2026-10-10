@@ -24,7 +24,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
-  Viser foreløpig bare eksempeldata. Har en knapp øverst til kalkulatoren.
+  Viser foreløpig bare eksempeldata. Trykk på tilhengeren (eller knappen øverst) åpner en enkel
+  førerkort-sjekk på samme side, som bruker `sjekkForerkort` fra `public/js/beregning.js`.
   Krever innlogging: uten lagret Supabase-økt sendes brukeren til `/min-side?neste=/` (skript øverst i `<head>`).
   Kalkulatoren er åpen uten innlogging.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Mine kvitteringer (kommer), Logg ut.

@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { lagTilhenger } from './tilhenger.js';
 
 const FARTKMT = 60;
 const FART = FARTKMT / 3.6;              // meter per sekund
@@ -11,6 +12,9 @@ const HJULRADIUS = 0.39;
 const FORAKSEL_Z = 1.32;
 const BAKAKSEL_Z = -1.22;
 const SPORVIDDE = 0.82;                  // avstand fra midten til hjulsenter
+
+// Bil + tilhenger + sjiraff, brukt til å ramme inn kalkulator-visningen
+const VOGNTOG = { midtZ: -1.8, lengde: 10.2, hoyde: 3.4, midtY: 1.5 };
 
 const STATUSFARGER = {
   motor: new THREE.Color('#34c759'),
@@ -29,7 +33,7 @@ function lagKamerapunkter(aspekt) {
   // Smal mobilskjerm trenger større avstand for å få med hele bilen
   const k = THREE.MathUtils.clamp(0.75 / aspekt, 1, 1.9);
   return [
-    { pos: new THREE.Vector3(5.2 * k, 2.4 + 0.5 * k, 5.2 * k), mal: new THREE.Vector3(0, 0.7 + 0.25 * k, 0) },
+    { pos: new THREE.Vector3(7.4 * k, 3.4 + 0.7 * k, 5.2 * k), mal: new THREE.Vector3(0, 0.9 + 0.3 * k, -2.0) },
     { pos: new THREE.Vector3(1.5, 3.6, 4.6), mal: new THREE.Vector3(0, 0.75, 1.35) },
     { pos: new THREE.Vector3(3.3, 0.95, 2.6), mal: new THREE.Vector3(SPORVIDDE, 0.2, FORAKSEL_Z) },
     { pos: new THREE.Vector3(1.75, 0.55, 2.85), mal: new THREE.Vector3(SPORVIDDE, 0.05, FORAKSEL_Z + 0.1) },
@@ -58,16 +62,20 @@ export function lagScene(canvas) {
   // Lys
   scene.add(new THREE.HemisphereLight(0xffffff, 0x3a4a3a, 0.6));
   const sol = new THREE.DirectionalLight(0xffffff, 2.2);
-  sol.position.set(6, 10, 4);
+  sol.position.set(6, 10, 2.2);
+  sol.target.position.set(0, 0, -1.8);
+  scene.add(sol.target);
   sol.castShadow = true;
-  sol.shadow.mapSize.set(1024, 1024);
-  Object.assign(sol.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 30 });
+  sol.shadow.mapSize.set(2048, 2048);
+  Object.assign(sol.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
   sol.shadow.bias = -0.0005;
   scene.add(sol);
 
   const omgivelser = lagOmgivelser(scene);
   const bil = lagBil();
   scene.add(bil.gruppe);
+  const tilhenger = lagTilhenger();
+  scene.add(tilhenger.gruppe);
 
   // ---------- Tilstand som styres fra scrolling ----------
   let kamerapunkter = lagKamerapunkter(1);
@@ -78,16 +86,41 @@ export function lagScene(canvas) {
   const onsketPos = new THREE.Vector3();
   const onsketMal = new THREE.Vector3();
   const aktivitet = { motor: 0, bremser: 0, dekk: 0 };
+  let modus = 'scroll';              // 'scroll' eller 'kalkulator'
+  let kalkBlend = 0;                 // 0 = scroll-kamera, 1 = kalkulator-kamera
+  let hoverMal = 0;
+  let hover = 0;
+  let baseFov = 40;
+  const kalkPos = new THREE.Vector3();
+  const kalkMal = new THREE.Vector3();
+  let kalkSenterAndel = 0.2;         // hvor høyt på skjermen bilen står i kalkulator-modus
+  let kalkBunnPx = 0;
   const redusertBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function tilpassStorrelse() {
     const b = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(b, h, false);
-    kamera.aspect = b / h;
-    kamera.fov = kamera.aspect < 1 ? 50 : 38;
-    kamera.updateProjectionMatrix();
-    kamerapunkter = lagKamerapunkter(kamera.aspect);
+    const aspekt = b / h;
+    baseFov = aspekt < 1 ? 50 : 38;
+    kamerapunkter = lagKamerapunkter(aspekt);
+    beregnKalkulatorKamera(b, h);
+  }
+
+  // Kalkulator-modus: kameraet står ute på siden, så bil og henger kjører fra høyre mot venstre,
+  // og hele vogntoget skal få plass som en stripe øverst på skjermen.
+  function beregnKalkulatorKamera(b, h) {
+    const tan = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2);
+    const forBredde = VOGNTOG.lengde / 2 / (tan * (b / h));
+    const forHoyde = VOGNTOG.hoyde / (2 * tan * 0.3);    // høyst ca. 30 % av skjermhøyden
+    const avstand = Math.max(forBredde, forHoyde);
+    kalkPos.set(avstand, VOGNTOG.midtY + avstand * 0.12, VOGNTOG.midtZ);
+    kalkMal.set(0, VOGNTOG.midtY, VOGNTOG.midtZ);
+    const synlig = 2 * avstand * tan;                     // meter som får plass i høyden
+    const halvPx = (VOGNTOG.hoyde / 2 / synlig) * h;
+    const topp = 64 + 12;                                 // under headeren
+    kalkSenterAndel = (topp + halvPx) / h;
+    kalkBunnPx = topp + halvPx * 2;
   }
   tilpassStorrelse();
   window.addEventListener('resize', tilpassStorrelse);
@@ -104,6 +137,19 @@ export function lagScene(canvas) {
     onsketMal.lerpVectors(kamerapunkter[i].mal, kamerapunkter[i + 1].mal, t);
   }
 
+  // Flytter bildet oppover i kalkulator-modus uten å endre størrelsen på det man ser.
+  // Kameraet rendrer et utsnitt av en dobbelt så høy ramme.
+  function oppdaterProjeksjon(t) {
+    const b = window.innerWidth;
+    const h = window.innerHeight;
+    const ekstra = h / 2;
+    const helH = h + 2 * ekstra;
+    kamera.aspect = b / helH;
+    kamera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(baseFov) / 2) * (helH / h)));
+    const y = ekstra + t * (h / 2 - kalkSenterAndel * h);
+    kamera.setViewOffset(b, helH, 0, y, b, h);
+  }
+
   const klokke = new THREE.Clock();
   let veistrekning = 0;
 
@@ -111,18 +157,36 @@ export function lagScene(canvas) {
     const dt = Math.min(klokke.getDelta(), 0.05);
     const demp = 1 - Math.exp(-dt * 7);
 
-    // Kamera
+    // Kamera: blander scroll-kameraet med kalkulator-kameraet
     beregnKameramal();
-    kamPos.lerp(onsketPos, demp);
-    kamMal.lerp(onsketMal, demp);
+    kalkBlend = THREE.MathUtils.damp(kalkBlend, modus === 'kalkulator' ? 1 : 0, 3.2, dt);
+    if (Math.abs(kalkBlend - (modus === 'kalkulator' ? 1 : 0)) < 0.001) kalkBlend = modus === 'kalkulator' ? 1 : 0;
+    const b = kurve(kalkBlend);
+    onsketPos.lerp(kalkPos, b);
+    onsketPos.y += Math.sin(Math.PI * b) * 2.5;           // løftes litt på veien ut til siden
+    onsketMal.lerp(kalkMal, b);
+    if (kalkBlend > 0 && kalkBlend < 1) {
+      kamPos.copy(onsketPos);                             // følger kurven direkte under overgangen
+      kamMal.copy(onsketMal);
+    } else {
+      kamPos.lerp(onsketPos, demp);
+      kamMal.lerp(onsketMal, demp);
+    }
     kamera.position.copy(kamPos);
     kamera.lookAt(kamMal);
+    oppdaterProjeksjon(THREE.MathUtils.smoothstep(kalkBlend, 0.35, 1));
+
+    // Tåken trekkes bakover når kameraet står langt unna
+    scene.fog.near = 18 + kalkBlend * 22;
+    scene.fog.far = 60 + kalkBlend * 50;
 
     // Kjøring
     const fart = redusertBevegelse ? FART * 0.15 : FART;
     veistrekning += fart * dt;
     omgivelser.oppdater(veistrekning);
     for (const hjul of bil.hjul) hjul.rotation.x = veistrekning / HJULRADIUS;
+    hover = THREE.MathUtils.damp(hover, modus === 'scroll' ? hoverMal : 0, 10, dt);
+    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover });
     // Litt liv i karosseriet
     bil.karosseri.position.y = Math.sin(veistrekning * 1.3) * 0.006 + Math.sin(veistrekning * 0.37) * 0.008;
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
@@ -149,12 +213,24 @@ export function lagScene(canvas) {
   requestAnimationFrame(tegn);
 
   const tmp = new THREE.Vector3();
+  const raycaster = new THREE.Raycaster();
+  const peker = new THREE.Vector2();
   return {
     settFremdrift(p) { fremdrift = p; },
+    settModus(m) { modus = m === 'kalkulator' ? 'kalkulator' : 'scroll'; },
+    settHover(on) { hoverMal = on ? 1 : 0; },
+    // Treffer et punkt på skjermen (px) hengeren eller sjiraffen?
+    treffTilhenger(x, y) {
+      peker.set((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1);
+      raycaster.setFromCamera(peker, kamera);
+      return raycaster.intersectObject(tilhenger.gruppe, true).some((t) => t.object.type === 'Mesh');
+    },
+    // Hvor på skjermen (px) vogntoget slutter i kalkulator-modus, så panelet kan starte under
+    kalkulatorBunn() { return kalkBunnPx; },
     settTema(t) { temaMal = t === 'light' ? 'light' : 'dark'; },
     // Skjermposisjon (px) for en bildel, brukt til hotspot og styrelinje
     skjermpunkt(navn) {
-      const objekt = bil.hotspots[navn];
+      const objekt = navn === 'tilhenger' ? tilhenger.skiltpunkt : bil.hotspots[navn];
       if (!objekt) return null;
       objekt.getWorldPosition(tmp);
       tmp.project(kamera);
@@ -235,8 +311,11 @@ function lagOmgivelser(scene) {
     krone.position.y = h * 0.35 + h * 0.4;
     krone.castShadow = true;
     tre.add(stamme, krone);
+    // Trærne på venstre side (+x) står langt ute, så de ikke sperrer utsikten
+    // når kameraet står på siden i kalkulator-modus
     const side = i % 2 ? 1 : -1;
-    tre.position.set(MIDTSTRIPE_X + side * (8 + tilfeldig() * 14), 0, -LENGDE / 2 + (i / 14) * LENGDE + tilfeldig() * 6);
+    const avstand = side > 0 ? 26 + tilfeldig() * 14 : 8 + tilfeldig() * 14;
+    tre.position.set(MIDTSTRIPE_X + side * avstand, 0, -LENGDE / 2 + (i / 14) * LENGDE + tilfeldig() * 6);
     flyttbare.push({ obj: tre, start: tre.position.z });
     scene.add(tre);
   }
@@ -291,12 +370,32 @@ function lagBil() {
   const BAK = -2.22;
   const BELTE = 1.12;      // høyden der panser og vinduer begynner
 
-  // Nedre del av karosseriet (bak motorrommet)
-  boks(BREDDE, BELTE - 0.48, 2.95, solv, 0, (BELTE + 0.48) / 2, (0.73 + BAK) / 2);
-  // Under motorrommet
-  boks(BREDDE, 0.32, FRONT - 0.73, solv, 0, 0.64, (FRONT + 0.73) / 2);
-  // Skjermer på hver side av motorrommet
-  for (const s of [-1, 1]) boks(0.14, BELTE - 0.8, FRONT - 0.73, solv, s * (BREDDE / 2 - 0.07), (BELTE + 0.8) / 2, (FRONT + 0.73) / 2);
+  // Nedre del av karosseriet. Midtpartiet er smalere enn sporvidden, og sidene har
+  // hjulbuer, så hjulene får fri plass og aldri går gjennom karosseriet når bilen rister.
+  const MIDT_B = 1.3;                     // innenfor hjulenes innerkant (0.685)
+  const BUE_TOPP = 0.9;                   // dekket rekker opp til ca. 0.8
+  const BUE_HALV = 0.52;                  // halv lengde på hjulbueåpningen
+  boks(MIDT_B, BELTE - 0.48, 0.73 - BAK, solv, 0, (BELTE + 0.48) / 2, (0.73 + BAK) / 2);
+  boks(MIDT_B, 0.32, FRONT - 0.73, solv, 0, 0.64, (FRONT + 0.73) / 2);   // under motorrommet
+  const sideX = (BREDDE + MIDT_B) / 4;    // midt i sidepanelet
+  const sideB = (BREDDE - MIDT_B) / 2;
+  const sidepanel = (zFra, zTil, yFra, yTil) => {
+    for (const s of [-1, 1]) boks(sideB, yTil - yFra, zTil - zFra, solv, s * sideX, (yFra + yTil) / 2, (zFra + zTil) / 2);
+  };
+  const fremreBue = [FORAKSEL_Z - BUE_HALV, FORAKSEL_Z + BUE_HALV];
+  const bakreBue = [BAKAKSEL_Z - BUE_HALV, BAKAKSEL_Z + BUE_HALV];
+  sidepanel(fremreBue[1], FRONT, 0.48, BELTE);
+  sidepanel(fremreBue[0], fremreBue[1], BUE_TOPP, BELTE);
+  sidepanel(bakreBue[1], fremreBue[0], 0.48, BELTE);
+  sidepanel(bakreBue[0], bakreBue[1], BUE_TOPP, BELTE);
+  sidepanel(BAK, bakreBue[0], 0.48, BELTE);
+  // Mørk innerskjerm i hjulbuene
+  for (const s of [-1, 1]) {
+    for (const [a, b] of [fremreBue, bakreBue]) {
+      boks(0.02, BUE_TOPP - 0.48, b - a, plast, s * (MIDT_B / 2 + 0.01), (BUE_TOPP + 0.48) / 2, (a + b) / 2);
+      boks(sideB, 0.02, b - a, plast, s * sideX, BUE_TOPP - 0.01, (a + b) / 2);
+    }
+  }
   // Frontpanel med grill
   boks(BREDDE - 0.28, BELTE - 0.8, 0.06, solv, 0, (BELTE + 0.8) / 2, FRONT - 0.03);
   boks(0.9, 0.2, 0.04, plast, 0, 0.94, FRONT + 0.01);
@@ -333,31 +432,58 @@ function lagBil() {
   boks(BREDDE - 0.02, 0.05, FRONT - 0.76, solv, 0, 0, (FRONT - 0.76) / 2, panser);
   boks(BREDDE - 0.5, 0.012, FRONT - 0.9, solv, 0, 0.03, (FRONT - 0.76) / 2, panser); // pregning
 
-  // Kupé med "stepped roof" som på Discovery
+  // Kupé med "stepped roof" som på Discovery. Sidene er hele plater formet etter
+  // frontruta, og vinduer og stolper ligger utenpå, så det ikke blir glipper.
   const KUPE_B = 1.76;
+  const TAK_UNDER = 1.89;
+  const RUTE_FOT = { z: 0.6, y: BELTE };   // frontruta møter panseret
+  const RUTE_TOPP = { z: 0.24, y: 1.92 };  // frontruta møter taket
+  const TRINN_Z = -1.25;                   // der det hevede taket bak begynner
+  const aStolpeZ = (y) => RUTE_FOT.z + (RUTE_TOPP.z - RUTE_FOT.z) * (y - RUTE_FOT.y) / (RUTE_TOPP.y - RUTE_FOT.y);
+
   boks(KUPE_B, 0.04, 2.75, solv, 0, BELTE + 0.02, -0.8);                              // overgang
-  boks(KUPE_B, 0.08, 2.15, solv, 0, 1.93, -0.55);                                     // tak foran
-  boks(KUPE_B - 0.02, 0.12, 0.95, solv, 0, 1.97, BAK + 0.5);                           // hevet tak bak
-  for (const s of [-1, 1]) boks(0.04, 0.04, 2.9, plast, s * 0.72, 2.06, -0.75);       // takrails
-  // Stolper
+  boks(KUPE_B, 0.08, RUTE_TOPP.z + 0.02 - TRINN_Z, solv, 0, TAK_UNDER + 0.04, (RUTE_TOPP.z + 0.02 + TRINN_Z) / 2); // tak foran
+  boks(KUPE_B, 0.16, TRINN_Z - BAK, solv, 0, TAK_UNDER + 0.08, (TRINN_Z + BAK) / 2);  // hevet tak bak
+  for (const s of [-1, 1]) boks(0.04, 0.04, RUTE_TOPP.z - 0.05 - BAK, plast, s * 0.72, 2.1, (RUTE_TOPP.z - 0.05 + BAK) / 2); // takrails
+
+  // Plate i sideprofil (z, y), lagt i planet x = posX
+  const sideplate = (punkter, tykkelse, mat, posX) => {
+    const form = new THREE.Shape(punkter.map(([z, y]) => new THREE.Vector2(z, y)));
+    const geo = new THREE.ExtrudeGeometry(form, { depth: tykkelse, bevelEnabled: false });
+    const m = new THREE.Mesh(geo, mat);
+    m.rotation.y = -Math.PI / 2;            // formens x blir bilens z
+    m.position.x = posX + tykkelse / 2;
+    m.castShadow = true;
+    karosseri.add(m);
+    return m;
+  };
+  const VINDU_FOT = 1.22;
+  const VINDU_TOPP = 1.84;
   for (const s of [-1, 1]) {
-    for (const z of [0.0, -1.0, BAK + 0.05]) boks(0.07, 0.78, 0.09, solv, s * (KUPE_B / 2 - 0.035), 1.52, z);
-  }
-  // Frontrute (skrå)
-  const rute = boks(KUPE_B - 0.06, 0.88, 0.02, glass, 0, 1.52, 0.42);
-  rute.rotation.x = -0.42;
-  for (const s of [-1, 1]) {
-    const a = boks(0.07, 0.9, 0.07, solv, s * (KUPE_B / 2 - 0.035), 1.52, 0.42);
-    a.rotation.x = -0.42;
-  }
-  // Sidevinduer
-  for (const s of [-1, 1]) {
-    boks(0.02, 0.62, 0.9, glass, s * (KUPE_B / 2 - 0.005), 1.5, -0.5);
-    boks(0.02, 0.62, 1.02, glass, s * (KUPE_B / 2 - 0.005), 1.5, -1.6);
-    boks(0.02, 0.1, 0.5, glass, s * (KUPE_B / 2 - 0.005), 1.96, BAK + 0.5);           // alpine-vinduer
-    boks(0.02, 0.5, 0.36, glass, s * (KUPE_B / 2 - 0.005), 1.55, 0.18);
+    const ytre = s * (KUPE_B / 2 - 0.01);
+    // Sidevegg fra beltelinjen helt opp til taket
+    sideplate([[BAK, BELTE], [RUTE_FOT.z, BELTE], [RUTE_TOPP.z, TAK_UNDER + 0.01], [BAK, TAK_UNDER + 0.01]], 0.03, solv, ytre);
+    // Hevet tak bak: veggen fortsetter opp
+    sideplate([[BAK, TAK_UNDER], [TRINN_Z, TAK_UNDER], [TRINN_Z, TAK_UNDER + 0.15], [BAK, TAK_UNDER + 0.15]], 0.03, solv, ytre);
+    const glassX = ytre + s * 0.02;
+    // Fordør (følger frontruta), bakdør og bakre sidevindu
+    sideplate([[0.0, VINDU_FOT], [aStolpeZ(VINDU_FOT) - 0.06, VINDU_FOT], [aStolpeZ(VINDU_TOPP) - 0.06, VINDU_TOPP], [0.0, VINDU_TOPP]], 0.01, glass, glassX);
+    sideplate([[-1.0, VINDU_FOT], [-0.1, VINDU_FOT], [-0.1, VINDU_TOPP], [-1.0, VINDU_TOPP]], 0.01, glass, glassX);
+    sideplate([[BAK + 0.12, VINDU_FOT], [-1.1, VINDU_FOT], [-1.1, VINDU_TOPP], [BAK + 0.12, VINDU_TOPP]], 0.01, glass, glassX);
+    // Alpine-vinduer i det hevede taket
+    sideplate([[BAK + 0.2, TAK_UNDER + 0.03], [TRINN_Z - 0.12, TAK_UNDER + 0.03], [TRINN_Z - 0.12, TAK_UNDER + 0.12], [BAK + 0.2, TAK_UNDER + 0.12]], 0.01, glass, glassX);
     // Speil
-    boks(0.2, 0.14, 0.08, plast, s * 1.02, 1.3, 0.4);
+    boks(0.2, 0.14, 0.08, plast, s * 1.02, 1.3, 0.45);
+  }
+  // Frontrute (skrå) med A-stolper
+  const ruteVinkel = Math.atan2(RUTE_FOT.z - RUTE_TOPP.z, RUTE_TOPP.y - RUTE_FOT.y);
+  const ruteLengde = Math.hypot(RUTE_FOT.z - RUTE_TOPP.z, RUTE_TOPP.y - RUTE_FOT.y);
+  const ruteMidt = [(RUTE_FOT.y + RUTE_TOPP.y) / 2, (RUTE_FOT.z + RUTE_TOPP.z) / 2];
+  const rute = boks(KUPE_B - 0.06, ruteLengde, 0.02, glass, 0, ruteMidt[0], ruteMidt[1]);
+  rute.rotation.x = -ruteVinkel;
+  for (const s of [-1, 1]) {
+    const a = boks(0.06, ruteLengde + 0.04, 0.07, solv, s * (KUPE_B / 2 - 0.02), ruteMidt[0], ruteMidt[1]);
+    a.rotation.x = -ruteVinkel;
   }
   // Bakrute og reservehjul på bakdøra
   boks(KUPE_B - 0.2, 0.58, 0.02, glass, 0, 1.55, BAK - 0.005);
@@ -366,11 +492,11 @@ function lagBil() {
   // Støtfangere og hjulbuer i sort plast
   boks(BREDDE + 0.06, 0.2, 0.2, plast, 0, 0.6, FRONT + 0.08);
   boks(BREDDE + 0.06, 0.2, 0.2, plast, 0, 0.6, BAK - 0.08);
-  boks(BREDDE + 0.02, 0.08, 4.0, plast, 0, 0.5, 0.03);                               // sidelist nede
   for (const s of [-1, 1]) {
+    boks(0.04, 0.08, fremreBue[0] - bakreBue[1], plast, s * (BREDDE / 2 + 0.01), 0.52, (fremreBue[0] + bakreBue[1]) / 2); // sidelist
     for (const z of [FORAKSEL_Z, BAKAKSEL_Z]) {
-      boks(0.1, 0.07, 1.0, plast, s * (BREDDE / 2 + 0.03), 0.93, z);
-      for (const zz of [-1, 1]) boks(0.1, 0.3, 0.07, plast, s * (BREDDE / 2 + 0.03), 0.78, z + zz * 0.49);
+      boks(0.1, 0.07, BUE_HALV * 2 + 0.14, plast, s * (BREDDE / 2 + 0.03), BUE_TOPP + 0.035, z);
+      for (const zz of [-1, 1]) boks(0.1, BUE_TOPP - 0.6, 0.07, plast, s * (BREDDE / 2 + 0.03), (BUE_TOPP + 0.6) / 2, z + zz * (BUE_HALV + 0.035));
     }
   }
 
