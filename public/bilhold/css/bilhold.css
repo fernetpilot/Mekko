@@ -1,0 +1,401 @@
+/* Mekkoo – landingsside for bilhold. Mobil først. */
+
+:root {
+  --bg: #0a0b0d;
+  --tekst: #f2f3f5;
+  --tekst-dempet: rgba(242, 243, 245, 0.62);
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-kant: rgba(255, 255, 255, 0.18);
+  --linje: rgba(255, 255, 255, 0.55);
+  --ok: #34c759;
+  --sjekk: #ffcc00;
+  --kritisk: #ff3b30;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", Arial, sans-serif;
+  --overgang: 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-theme="light"] {
+  --bg: #eef0f2;
+  --tekst: #111214;
+  --tekst-dempet: rgba(17, 18, 20, 0.6);
+  --glass: rgba(255, 255, 255, 0.5);
+  --glass-kant: rgba(255, 255, 255, 0.85);
+  --linje: rgba(17, 18, 20, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-snap-type: y mandatory;
+  background: var(--bg);
+  transition: background-color var(--overgang);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--tekst);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--overgang);
+}
+
+/* Sømløs overgang til undersider i nettlesere som støtter det */
+@view-transition { navigation: auto; }
+
+/* ---------- Header (Anduril-stil) ---------- */
+.topp {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 14px) 20px 14px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 85%, transparent), transparent);
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms;
+}
+.topp.skjult { transform: translateY(-110%); opacity: 0; }
+
+.logo {
+  color: var(--tekst);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.42em;
+}
+.topp-tag {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+  border: 1px solid var(--glass-kant);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+/* ---------- 3D-scene ---------- */
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  display: block;
+  z-index: 0;
+  touch-action: pan-y;
+}
+.ingen-webgl #scene { display: none; }
+
+/* ---------- Seksjoner ---------- */
+main { position: relative; z-index: 5; }
+
+.seksjon {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: calc(env(safe-area-inset-top) + 76px) 20px calc(env(safe-area-inset-bottom) + 28px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.seksjon a { pointer-events: auto; }
+
+.hero-tekst { max-width: 30rem; }
+.overline, .seksjon-tittel {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+h1 {
+  margin: 0;
+  font-size: clamp(34px, 10vw, 56px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.ingress {
+  margin: 14px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--tekst-dempet);
+  max-width: 22rem;
+}
+
+.scroll-hint {
+  align-self: center;
+  width: 22px;
+  height: 36px;
+  border: 1.5px solid var(--tekst-dempet);
+  border-radius: 12px;
+  position: relative;
+}
+.scroll-hint span {
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 3px;
+  height: 7px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--tekst);
+  animation: hint 1.6s ease-in-out infinite;
+}
+@keyframes hint {
+  0% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(12px); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Liquid Glass-kort ---------- */
+.glasskort {
+  --status: var(--ok);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding: 18px 18px 18px 16px;
+  border-radius: 24px;
+  color: var(--tekst);
+  text-decoration: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 45%),
+    var(--glass);
+  border: 1px solid var(--glass-kant);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 20px 50px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, var(--status) 0%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  transition: opacity 500ms, transform 600ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 600ms;
+}
+.seksjon.aktiv .glasskort {
+  opacity: 1;
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 20px 50px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, var(--status) 55%, transparent),
+    0 0 40px color-mix(in srgb, var(--status) 25%, transparent);
+}
+.glasskort:active { transform: scale(0.97); }
+
+.status-ok { --status: var(--ok); }
+.status-sjekk { --status: var(--sjekk); }
+.status-kritisk { --status: var(--kritisk); }
+
+.status-prikk {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--status);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--status) 22%, transparent),
+              0 0 18px var(--status);
+}
+.status-prikk.varsel {
+  width: auto;
+  height: auto;
+  background: none;
+  box-shadow: none;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.kort-innhold { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.kort-status {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--status);
+}
+html[data-theme="light"] .status-sjekk .kort-status { color: #b38f00; }
+.kort-tittel { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.kort-tekst { font-size: 14px; color: var(--tekst-dempet); }
+.kort-pil { font-size: 28px; font-weight: 300; color: var(--tekst-dempet); }
+
+/* ---------- Styrelinjer og hotspot ---------- */
+.styrelinjer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 4;
+  pointer-events: none;
+}
+.styrelinjer path {
+  fill: none;
+  stroke: var(--linje);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  transition: opacity 300ms;
+}
+
+.hotspot {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms;
+}
+.hotspot.synlig { opacity: 1; pointer-events: auto; }
+.hotspot::before, .hotspot::after {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  background: var(--status, #fff);
+  box-shadow: 0 0 12px var(--status, #fff);
+}
+.hotspot::after {
+  inset: 6px;
+  background: none;
+  border: 1.5px solid var(--status, #fff);
+  animation: puls 1.8s ease-out infinite;
+}
+@keyframes puls {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(1.4); opacity: 0; }
+}
+
+.eksempeldata {
+  position: fixed;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 6px);
+  z-index: 6;
+  margin: 0;
+  font-size: 10px;
+  color: var(--tekst-dempet);
+  pointer-events: none;
+}
+
+/* Overgang når man trykker på et kort (reserve for nettlesere uten view transitions) */
+body.forlater main,
+body.forlater .styrelinjer,
+body.forlater .hotspot,
+body.forlater .topp {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+body.forlater #scene {
+  transform: scale(1.08);
+  filter: blur(6px);
+  opacity: 0.4;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), filter 400ms, opacity 400ms;
+}
+
+/* Uten WebGL: en rolig bakgrunn i stedet for 3D */
+.ingen-webgl body {
+  background: radial-gradient(120% 70% at 50% 40%, #2a2e33, var(--bg));
+}
+
+/* ---------- Underside (komponent.html) ---------- */
+.underside { scroll-snap-type: none; }
+.underside body { min-height: 100vh; }
+.underside main {
+  padding: calc(env(safe-area-inset-top) + 84px) 20px calc(env(safe-area-inset-bottom) + 40px);
+  max-width: 34rem;
+  margin: 0 auto;
+}
+.tilbake {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tekst-dempet);
+  text-decoration: none;
+  font-size: 15px;
+  margin-bottom: 28px;
+}
+.underside .status-hode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.underside h1 { font-size: clamp(32px, 9vw, 48px); }
+.underside .ingress { margin-bottom: 28px; }
+.underside .glasskort {
+  opacity: 1;
+  transform: none;
+  margin: 0 0 14px;
+  display: block;
+  padding: 20px;
+}
+.underside .glasskort h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+  font-weight: 600;
+}
+.malerlinje {
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tekst) 10%, transparent);
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+.malerlinje span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--status);
+  transform-origin: left;
+  animation: fyll 900ms cubic-bezier(0.22, 1, 0.36, 1) both 200ms;
+}
+@keyframes fyll { from { transform: scaleX(0); } }
+.fakta { list-style: none; margin: 0; padding: 0; }
+.fakta li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--tekst) 10%, transparent);
+  font-size: 15px;
+}
+.fakta li:last-child { border-bottom: 0; }
+.fakta span:first-child { color: var(--tekst-dempet); }
+.handling {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--tekst);
+  color: var(--bg);
+  font: 600 16px var(--font);
+  text-align: center;
+}
+.underside .eksempeldata { position: static; text-align: center; margin-top: 24px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-snap-type: y proximity; }
+  *, *::before, *::after { animation: none !important; transition-duration: 1ms !important; }
+}
+
+/* PC: samme opplevelse, men innholdet holdes i en smal kolonne */
+@media (min-width: 900px) {
+  .seksjon { padding-left: 8vw; padding-right: 8vw; }
+  .glasskort { max-width: 420px; }
+}
+
+/* Litt kontrast på seksjonstitlene når de ligger over bilen */
+.seksjon-tittel { text-shadow: 0 1px 8px var(--bg); }
