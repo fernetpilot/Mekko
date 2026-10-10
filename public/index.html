@@ -78,6 +78,16 @@
     Åpne tilhengerkalkulator <span aria-hidden="true">➔</span>
   </button>
 
+  <!-- Innlogget: knapper som svever over bilen når man peker på den, og et skilt nederst på bilen -->
+  <nav class="bil-knapper" aria-label="Bilen din">
+    <a class="bil-svev" href="/min-side"><span class="bil-svev-ikon" aria-hidden="true">🚙</span>Mine biler</a>
+    <a class="bil-svev" href="/service-og-eu" data-bil-lenke><span class="bil-svev-ikon" aria-hidden="true">🗓️</span>Service og EU-kontroll</a>
+    <a class="bil-svev" href="/vedlikehold" data-bil-lenke><span class="bil-svev-ikon" aria-hidden="true">🔧</span>Vedlikehold</a>
+  </nav>
+  <button class="tilhenger-skilt bil-skilt" id="bil-skilt" type="button" tabindex="-1">
+    Åpne bilen din <span aria-hidden="true">➔</span>
+  </button>
+
   <main>
     <section class="seksjon hero" data-theme="dark" data-del="hero">
       <div class="hero-tekst">
@@ -241,6 +251,35 @@
       </details>
 
       <p class="kalk-ansvar"><strong>Ansvarsfraskrivelse.</strong> Tallene er veiledende og basert på opplysninger fra Statens vegvesen og førerkortforskriften. Sjekk alltid vognkortet for bilen og hengeren, og se vegvesen.no før du kjører. Ansvaret for lasten ligger hos føreren.</p>
+    </div>
+  </section>
+
+  <!-- «Bilen din» (innlogget): glir inn under bilen, på samme måte som kalkulatoren -->
+  <section class="kalk-panel" id="bil-panel" aria-labelledby="bil-navn" hidden>
+    <div class="kalk-innhold">
+      <div class="kalk-hode"><p class="overline">Bilen din</p></div>
+      <h2 id="bil-navn">Henter bilen …</h2>
+      <p class="ingress" id="bil-kjennemerke"></p>
+
+      <dl class="bil-fakta">
+        <div class="glassfelt"><dt>EU-kontroll</dt><dd class="fakta-verdi" id="bil-eu">–</dd></div>
+        <div class="glassfelt"><dt>Kilometerstand</dt><dd class="fakta-verdi" id="bil-km">–</dd></div>
+      </dl>
+
+      <div class="bil-valg">
+        <a class="glasskort bil-valg-kort" href="/min-side">
+          <span class="kort-innhold"><span class="kort-tittel">Mine biler</span><span class="kort-tekst">Alle bilene dine og kjøretøydata fra Statens vegvesen.</span></span>
+          <span class="kort-pil" aria-hidden="true">›</span>
+        </a>
+        <a class="glasskort bil-valg-kort" href="/service-og-eu" data-bil-lenke>
+          <span class="kort-innhold"><span class="kort-tittel">Service og EU-kontroll</span><span class="kort-tekst">Når er neste service, EU-kontroll og dekkskift?</span></span>
+          <span class="kort-pil" aria-hidden="true">›</span>
+        </a>
+        <a class="glasskort bil-valg-kort" href="/vedlikehold" data-bil-lenke>
+          <span class="kort-innhold"><span class="kort-tittel">Vedlikehold</span><span class="kort-tekst">Alt som er gjort på bilen, med kvitteringer.</span></span>
+          <span class="kort-pil" aria-hidden="true">›</span>
+        </a>
+      </div>
     </div>
   </section>
 
