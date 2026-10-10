@@ -29,7 +29,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
 - `public/js/kjoretoy.js` – henter vekter, EU-kontrollfrist m.m. ut av API-svaret.
-- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-postlenke), mine biler og vedlikehold.
+- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-post og passord), mine biler og vedlikehold.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet

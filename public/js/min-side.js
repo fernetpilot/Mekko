@@ -19,27 +19,101 @@ function idagTekst() {
 // Innlogging
 // ---------------------------------------------------------------------------
 
+// Modus: "logg-inn" eller "ny-konto"
+let modus = "logg-inn";
+
+function settModus(ny) {
+  modus = ny;
+  const nyKonto = ny === "ny-konto";
+  $("fane-logg-inn").setAttribute("aria-selected", String(!nyKonto));
+  $("fane-ny-konto").setAttribute("aria-selected", String(nyKonto));
+  $("innlogging-tittel").textContent = nyKonto ? "Opprett konto" : "Logg inn";
+  $("innlogging-knapp").textContent = nyKonto ? "Opprett konto" : "Logg inn";
+  $("passord").autocomplete = nyKonto ? "new-password" : "current-password";
+  $("passord-hint").hidden = !nyKonto;
+  $("glemt-passord").hidden = nyKonto;
+  melding($("innlogging-melding"), "");
+}
+$("fane-logg-inn").addEventListener("click", () => settModus("logg-inn"));
+$("fane-ny-konto").addEventListener("click", () => settModus("ny-konto"));
+
+/** Gjør Supabase-feil om til forståelig norsk. */
+function feilTekst(error) {
+  const kode = error?.code ?? "";
+  const tekst = error?.message ?? "";
+  if (error?.status === 429 || /rate limit/i.test(tekst)) return "For mange forsøk akkurat nå. Vent litt og prøv igjen.";
+  if (kode === "invalid_credentials" || /invalid login/i.test(tekst)) return "Feil e-post eller passord.";
+  if (kode === "email_not_confirmed" || /not confirmed/i.test(tekst)) return "Du må bekrefte e-postadressen først. Sjekk innboksen din.";
+  if (kode === "user_already_exists" || /already registered/i.test(tekst)) return "Det finnes allerede en konto med denne e-postadressen. Logg inn i stedet.";
+  if (kode === "weak_password" || /password/i.test(tekst)) return "Passordet er for svakt. Bruk minst 8 tegn.";
+  return "Noe gikk galt. Prøv igjen.";
+}
+
 $("innlogging-skjema").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const knapp = e.submitter;
+  const knapp = $("innlogging-knapp");
   const m = $("innlogging-melding");
+  const email = $("epost").value.trim();
+  const password = $("passord").value;
   knapp.disabled = true;
-  melding(m, "Sender …");
+  melding(m, modus === "ny-konto" ? "Oppretter konto …" : "Logger inn …");
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: $("epost").value.trim(),
-    options: { emailRedirectTo: `${location.origin}/min-side` },
-  });
-
-  knapp.disabled = false;
-  if (error) {
-    const forMange = error.status === 429 || /rate limit/i.test(error.message);
-    melding(m, forMange
-      ? "For mange forsøk akkurat nå. Vent litt og prøv igjen."
-      : "Kunne ikke sende lenken. Sjekk e-postadressen og prøv igjen.", "feil");
-  } else {
-    melding(m, "Sjekk e-posten din og trykk på lenken for å logge inn.", "ok");
+  if (modus === "ny-konto") {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${location.origin}/min-side` },
+    });
+    knapp.disabled = false;
+    if (error) return melding(m, feilTekst(error), "feil");
+    // Med e-postbekreftelse på i Supabase får vi ingen innlogging før lenken er trykket.
+    if (!data.session) {
+      melding(m, "Nesten ferdig! Vi har sendt deg en e-post. Trykk på lenken for å bekrefte kontoen, og logg deretter inn.", "ok");
+      settModusBeholdMelding("logg-inn");
+    }
+    return;
   }
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  knapp.disabled = false;
+  if (error) melding(m, feilTekst(error), "feil");
+});
+
+function settModusBeholdMelding(ny) {
+  const m = $("innlogging-melding");
+  const tekst = m.textContent, klasse = m.className;
+  settModus(ny);
+  m.textContent = tekst;
+  m.className = klasse;
+  $("passord").value = "";
+}
+
+$("glemt-passord").addEventListener("click", async () => {
+  const m = $("innlogging-melding");
+  const email = $("epost").value.trim();
+  if (!$("epost").checkValidity() || !email) {
+    $("epost").focus();
+    return melding(m, "Skriv e-postadressen din først, og trykk «Glemt passord?» igjen.", "feil");
+  }
+  melding(m, "Sender …");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}/min-side`,
+  });
+  if (error) return melding(m, feilTekst(error), "feil");
+  // Samme svar uansett om kontoen finnes, så siden ikke avslører hvem som er registrert.
+  melding(m, "Hvis det finnes en konto med denne adressen, har vi sendt en lenke for å velge nytt passord.", "ok");
+});
+
+// Nytt passord etter lenke fra «Glemt passord»
+$("nytt-passord-skjema").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const m = $("nytt-passord-melding");
+  e.submitter.disabled = true;
+  const { error } = await supabase.auth.updateUser({ password: $("nytt-passord-felt").value });
+  e.submitter.disabled = false;
+  if (error) return melding(m, feilTekst(error), "feil");
+  $("nytt-passord").hidden = true;
+  visInnlogget((await supabase.auth.getUser()).data.user);
 });
 
 $("logg-ut").addEventListener("click", async () => {
@@ -65,9 +139,19 @@ function visInnlogget(bruker) {
   }
 }
 
-supabase.auth.onAuthStateChange((_hendelse, okt) => {
+supabase.auth.onAuthStateChange((hendelse, okt) => {
   // setTimeout: Supabase anbefaler å ikke kalle databasen direkte i denne callbacken
-  setTimeout(() => visInnlogget(okt?.user ?? null), 0);
+  setTimeout(() => {
+    if (hendelse === "PASSWORD_RECOVERY") {
+      $("laster").hidden = true;
+      $("innlogging").hidden = true;
+      $("konto").hidden = true;
+      $("nytt-passord").hidden = false;
+      return;
+    }
+    if (!$("nytt-passord").hidden) return; // bli på «Velg nytt passord» til det er lagret
+    visInnlogget(okt?.user ?? null);
+  }, 0);
 });
 
 // ---------------------------------------------------------------------------

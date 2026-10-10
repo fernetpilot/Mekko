@@ -20,16 +20,38 @@
     <!-- Ikke innlogget -->
     <section id="innlogging" hidden>
       <p class="overline">Min side</p>
-      <h1>Logg inn</h1>
-      <p class="ingress">Vi sender deg en innloggingslenke på e-post. Du trenger ikke passord.</p>
+      <h1 id="innlogging-tittel">Logg inn</h1>
+
+      <div class="faner" role="tablist">
+        <button type="button" role="tab" class="fane" id="fane-logg-inn" aria-selected="true">Logg inn</button>
+        <button type="button" role="tab" class="fane" id="fane-ny-konto" aria-selected="false">Opprett konto</button>
+      </div>
+
       <form id="innlogging-skjema" class="kort skjema">
         <label for="epost">E-postadresse</label>
         <input id="epost" type="email" autocomplete="email" inputmode="email" required placeholder="navn@eksempel.no">
-        <button class="knapp" type="submit">Send innloggingslenke</button>
+        <label for="passord">Passord</label>
+        <input id="passord" type="password" autocomplete="current-password" required minlength="8">
+        <p class="liten" id="passord-hint" hidden>Minst 8 tegn.</p>
+        <button class="knapp" id="innlogging-knapp" type="submit">Logg inn</button>
+        <button class="lenke-knapp" id="glemt-passord" type="button">Glemt passord?</button>
         <p class="melding" id="innlogging-melding" role="status"></p>
       </form>
       <p class="liten">Vi lagrer e-postadressen din, bilene du legger til og vedlikeholdet du registrerer.
         Du kan slette kontoen og alle data når som helst fra Min side.</p>
+    </section>
+
+    <!-- Nytt passord (etter lenke fra «Glemt passord») -->
+    <section id="nytt-passord" hidden>
+      <p class="overline">Min side</p>
+      <h1>Velg nytt passord</h1>
+      <form id="nytt-passord-skjema" class="kort skjema">
+        <label for="nytt-passord-felt">Nytt passord</label>
+        <input id="nytt-passord-felt" type="password" autocomplete="new-password" required minlength="8">
+        <p class="liten">Minst 8 tegn.</p>
+        <button class="knapp" type="submit">Lagre passord</button>
+        <p class="melding" id="nytt-passord-melding" role="status"></p>
+      </form>
     </section>
 
     <!-- Innlogget -->

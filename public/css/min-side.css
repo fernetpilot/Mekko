@@ -130,6 +130,41 @@ select option { color: #111; }
   cursor: pointer;
 }
 
+/* Faner: Logg inn / Opprett konto */
+.faner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  background: var(--felt);
+  border: 1px solid var(--glass-kant);
+  border-radius: 14px;
+}
+.fane {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tekst-dempet);
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+.fane[aria-selected="true"] { background: var(--tekst); color: var(--bg); }
+.lenke-knapp {
+  font: inherit;
+  font-size: 14px;
+  color: var(--tekst-dempet);
+  background: none;
+  border: 0;
+  padding: 4px;
+  text-decoration: underline;
+  cursor: pointer;
+  justify-self: center;
+}
+
 .melding { margin: 0; font-size: 14px; min-height: 1.2em; }
 .melding.feil { color: var(--kritisk); }
 .melding.ok { color: var(--ok); }
