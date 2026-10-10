@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b0d">
   <title>Mekkoo – full kontroll på bilen</title>
+  <!-- Innlogging kreves: uten lagret innlogging sendes brukeren rett til innloggingssiden.
+       Sjekken er synkron, så forsiden ikke blinker før omdirigeringen. -->
+  <script>
+    try {
+      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
+        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
+      }
+    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+  </script>
   <link rel="stylesheet" href="bilhold/css/bilhold.css">
   <!-- Three.js lastes fra CDN, så vi trenger ikke noe byggesteg -->
   <script type="importmap">
@@ -15,15 +24,28 @@
       }
     }
   </script>
+  <script type="module" src="bilhold/js/profilmeny.js"></script>
 </head>
 <body>
   <header class="topp" id="topp">
     <a class="logo" href="/">MEKKOO</a>
     <nav class="topp-meny">
       <a class="topp-knapp" href="/kalkulator">Tilhengerkalkulator <span aria-hidden="true">→</span></a>
-      <a class="topp-knapp ikon" href="/min-side" aria-label="Min side" title="Min side">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      </a>
+      <div class="profil">
+        <button class="topp-knapp ikon" id="profil-knapp" type="button"
+                aria-label="Min profil" aria-haspopup="menu" aria-expanded="false" aria-controls="profil-meny">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </button>
+        <div class="profil-meny" id="profil-meny" role="menu" hidden>
+          <p class="profil-tittel">Min profil</p>
+          <p class="profil-epost" id="profil-epost"></p>
+          <a role="menuitem" href="/min-side">Mine biler</a>
+          <a role="menuitem" href="/min-side#kvitteringer" aria-disabled="true" class="kommer">
+            Mine kvitteringer <span class="merke">Kommer snart</span>
+          </a>
+          <button role="menuitem" type="button" id="profil-logg-ut">Logg ut</button>
+        </div>
+      </div>
     </nav>
   </header>
 

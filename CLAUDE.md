@@ -26,11 +26,14 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
   Viser foreløpig bare eksempeldata. Trykk på tilhengeren (eller knappen øverst) åpner en enkel
   førerkort-sjekk på samme side, som bruker `sjekkForerkort` fra `public/js/beregning.js`.
+  Krever innlogging: uten lagret Supabase-økt sendes brukeren til `/min-side?neste=/` (skript øverst i `<head>`).
+  Kalkulatoren er åpen uten innlogging.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Mine kvitteringer (kommer), Logg ut.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
   Ingen DOM, ingen nettverkskall. Skal kunne gjenbrukes i en app.
 - `public/js/kjoretoy.js` – henter vekter, EU-kontrollfrist m.m. ut av API-svaret.
-- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-postlenke), mine biler og vedlikehold.
+- `public/min-side.html` + `public/js/min-side.js` – innlogging (e-post og passord), mine biler og vedlikehold.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet

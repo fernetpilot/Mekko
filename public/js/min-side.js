@@ -19,27 +19,134 @@ function idagTekst() {
 // Innlogging
 // ---------------------------------------------------------------------------
 
+// Modus: "logg-inn" eller "ny-konto"
+let modus = "logg-inn";
+
+function settModus(ny) {
+  modus = ny;
+  const nyKonto = ny === "ny-konto";
+  $("fane-logg-inn").setAttribute("aria-selected", String(!nyKonto));
+  $("fane-ny-konto").setAttribute("aria-selected", String(nyKonto));
+  $("innlogging-tittel").textContent = nyKonto ? "Opprett konto" : "Logg inn";
+  $("innlogging-knapp").textContent = nyKonto ? "Opprett konto" : "Logg inn";
+  $("passord").autocomplete = nyKonto ? "new-password" : "current-password";
+  $("passord-hint").hidden = !nyKonto;
+  $("ny-konto-felter").hidden = !nyKonto;
+  $("skilt-ny-konto").required = nyKonto;
+  $("glemt-passord").hidden = nyKonto;
+  melding($("innlogging-melding"), "");
+}
+$("fane-logg-inn").addEventListener("click", () => settModus("logg-inn"));
+$("fane-ny-konto").addEventListener("click", () => settModus("ny-konto"));
+
+/** Gjør Supabase-feil om til forståelig norsk. */
+function feilTekst(error) {
+  const kode = error?.code ?? "";
+  const tekst = error?.message ?? "";
+  if (error?.status === 429 || /rate limit/i.test(tekst)) return "For mange forsøk akkurat nå. Vent litt og prøv igjen.";
+  if (kode === "invalid_credentials" || /invalid login/i.test(tekst)) return "Feil e-post eller passord.";
+  if (kode === "email_not_confirmed" || /not confirmed/i.test(tekst)) return "Du må bekrefte e-postadressen først. Sjekk innboksen din.";
+  if (kode === "user_already_exists" || /already registered/i.test(tekst)) return "Det finnes allerede en konto med denne e-postadressen. Logg inn i stedet.";
+  if (kode === "weak_password" || /password/i.test(tekst)) return "Passordet er for svakt. Bruk minst 8 tegn.";
+  return "Noe gikk galt. Prøv igjen.";
+}
+
 $("innlogging-skjema").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const knapp = e.submitter;
+  const knapp = $("innlogging-knapp");
   const m = $("innlogging-melding");
+  const email = $("epost").value.trim();
+  const password = $("passord").value;
   knapp.disabled = true;
-  melding(m, "Sender …");
+  melding(m, modus === "ny-konto" ? "Oppretter konto …" : "Logger inn …");
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: $("epost").value.trim(),
-    options: { emailRedirectTo: `${location.origin}/min-side` },
-  });
+  if (modus === "ny-konto") {
+    // 1. Slå opp bilen først, så kontoen ikke opprettes med et ugyldig skilt
+    const skilt = normaliserSkilt($("skilt-ny-konto").value);
+    if (!skilt) {
+      knapp.disabled = false;
+      return melding(m, "Skriv et gyldig skiltnummer, f.eks. AB 12345.", "feil");
+    }
+    let bil;
+    try {
+      melding(m, "Henter bilen fra Statens vegvesen …");
+      bil = await slaOppBil(skilt);
+    } catch (feil) {
+      knapp.disabled = false;
+      return melding(m, feil.message, "feil");
+    }
 
-  knapp.disabled = false;
-  if (error) {
-    const forMange = error.status === 429 || /rate limit/i.test(error.message);
-    melding(m, forMange
-      ? "For mange forsøk akkurat nå. Vent litt og prøv igjen."
-      : "Kunne ikke sende lenken. Sjekk e-postadressen og prøv igjen.", "feil");
-  } else {
-    melding(m, "Sjekk e-posten din og trykk på lenken for å logge inn.", "ok");
+    // 2. Opprett kontoen. Skiltet lagres på brukeren, og bilen legges inn
+    //    automatisk første gang brukeren er logget inn (etter e-postbekreftelse).
+    melding(m, "Oppretter konto …");
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Etter bekreftelse: logg inn og gå til forsiden
+        emailRedirectTo: `${location.origin}/min-side?neste=%2F`,
+        data: { forste_bil: skilt },
+      },
+    });
+    knapp.disabled = false;
+    if (error) return melding(m, feilTekst(error), "feil");
+    // Med e-postbekreftelse på i Supabase får vi ingen innlogging før lenken er trykket.
+    if (!data.session) {
+      melding(m, `Fant ${bilNavn(bil)}. Nesten ferdig! Vi har sendt deg en e-post – trykk på lenken for å bekrefte kontoen, og logg deretter inn.`, "ok");
+      settModusBeholdMelding("logg-inn");
+      $("skilt-ny-konto").value = "";
+    }
+    return;
   }
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  knapp.disabled = false;
+  if (error) return melding(m, feilTekst(error), "feil");
+  // Videre til riktig side skjer i visInnlogget()
+});
+
+/** Trygg adresse å sende brukeren videre til etter innlogging, eller null. */
+function nesteSide() {
+  const neste = new URLSearchParams(location.search).get("neste");
+  // Bare stier på vår egen side («/…», ikke «//annen-side.no»)
+  return neste && /^\/(?!\/)/.test(neste) && !neste.startsWith("/min-side") ? neste : null;
+}
+
+function settModusBeholdMelding(ny) {
+  const m = $("innlogging-melding");
+  const tekst = m.textContent, klasse = m.className;
+  settModus(ny);
+  m.textContent = tekst;
+  m.className = klasse;
+  $("passord").value = "";
+}
+
+$("glemt-passord").addEventListener("click", async () => {
+  const m = $("innlogging-melding");
+  const email = $("epost").value.trim();
+  if (!$("epost").checkValidity() || !email) {
+    $("epost").focus();
+    return melding(m, "Skriv e-postadressen din først, og trykk «Glemt passord?» igjen.", "feil");
+  }
+  melding(m, "Sender …");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}/min-side`,
+  });
+  if (error) return melding(m, feilTekst(error), "feil");
+  // Samme svar uansett om kontoen finnes, så siden ikke avslører hvem som er registrert.
+  melding(m, "Hvis det finnes en konto med denne adressen, har vi sendt en lenke for å velge nytt passord.", "ok");
+});
+
+// Nytt passord etter lenke fra «Glemt passord»
+$("nytt-passord-skjema").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const m = $("nytt-passord-melding");
+  e.submitter.disabled = true;
+  const { error } = await supabase.auth.updateUser({ password: $("nytt-passord-felt").value });
+  e.submitter.disabled = false;
+  if (error) return melding(m, feilTekst(error), "feil");
+  $("nytt-passord").hidden = true;
+  visInnlogget((await supabase.auth.getUser()).data.user);
 });
 
 $("logg-ut").addEventListener("click", async () => {
@@ -54,20 +161,52 @@ $("slett-konto").addEventListener("click", async () => {
   alert("Kontoen din er slettet.");
 });
 
-function visInnlogget(bruker) {
+// Første bil legges inn bare én gang, selv om flere hendelser ber om det samtidig.
+let forsteBilJobb = null;
+function sikreForsteBil(bruker) {
+  if (!bruker?.user_metadata?.forste_bil) return forsteBilJobb ?? Promise.resolve();
+  forsteBilJobb ??= leggInnForsteBil(bruker);
+  return forsteBilJobb;
+}
+
+let viderekobler = false;
+
+async function visInnlogget(bruker) {
+  // Kom brukeren fra en side som krever innlogging? Send dem tilbake dit
+  // (etter at en eventuell første bil er lagt inn).
+  if (bruker && nesteSide()) {
+    if (viderekobler) return;
+    viderekobler = true;
+    melding($("innlogging-melding"), "Logger inn …");
+    await sikreForsteBil(bruker);
+    location.replace(nesteSide());
+    return;
+  }
   $("laster").hidden = true;
   $("innlogging").hidden = !!bruker;
   $("konto").hidden = !bruker;
   $("logg-ut").hidden = !bruker;
-  if (bruker) {
-    $("bruker-epost").textContent = bruker.email;
-    lastBiler();
-  }
+  if (!bruker) return;
+  $("bruker-epost").textContent = bruker.email;
+
+  if (bruker.user_metadata?.forste_bil) $("biler").textContent = "Legger inn bilen din …";
+  await sikreForsteBil(bruker);
+  lastBiler();
 }
 
-supabase.auth.onAuthStateChange((_hendelse, okt) => {
+supabase.auth.onAuthStateChange((hendelse, okt) => {
   // setTimeout: Supabase anbefaler å ikke kalle databasen direkte i denne callbacken
-  setTimeout(() => visInnlogget(okt?.user ?? null), 0);
+  setTimeout(() => {
+    if (hendelse === "PASSWORD_RECOVERY") {
+      $("laster").hidden = true;
+      $("innlogging").hidden = true;
+      $("konto").hidden = true;
+      $("nytt-passord").hidden = false;
+      return;
+    }
+    if (!$("nytt-passord").hidden) return; // bli på «Velg nytt passord» til det er lagret
+    visInnlogget(okt?.user ?? null);
+  }, 0);
 });
 
 // ---------------------------------------------------------------------------
@@ -199,7 +338,60 @@ async function lagreVedlikehold(e, bil) {
   lastBiler();
 }
 
-// Legg til bil via skiltoppslag hos Statens vegvesen
+// ---------------------------------------------------------------------------
+// Skiltoppslag hos Statens vegvesen (via vår proxy)
+// ---------------------------------------------------------------------------
+
+/** Slår opp et skilt og returnerer bilen. Kaster feil med norsk tekst. */
+async function slaOppBil(skilt) {
+  let res, svar;
+  try {
+    res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
+    svar = await res.json();
+  } catch {
+    throw new Error("Fikk ikke kontakt med Statens vegvesen. Prøv igjen.");
+  }
+  if (!res.ok) throw new Error(svar.feil || "Fant ikke bilen.");
+  const k = hentKjoretoy(svar);
+  if (k.erTilhenger) throw new Error("Dette skiltet tilhører en tilhenger. Skriv skiltet på bilen din.");
+  return k;
+}
+
+const bilNavn = (k) => [k.merke, k.modell].filter(Boolean).join(" ") || "bilen";
+
+/** Lagrer en oppslått bil på innlogget bruker. */
+async function lagreBil(skilt, k) {
+  const { error } = await supabase.from("biler").insert({
+    kjennemerke: skilt,
+    merke: k.merke,
+    modell: k.modell,
+    forstegangsregistrert: k.forstegangsregistrert,
+    eu_kontrollfrist: k.euKontrollfrist,
+  });
+  if (error) {
+    throw new Error(error.code === "23505"
+      ? "Denne bilen ligger allerede under Mine biler."
+      : "Kunne ikke lagre bilen. Prøv igjen.");
+  }
+}
+
+/**
+ * Første innlogging: bilen fra registreringen ligger på brukeren (forste_bil).
+ * Legg den inn i databasen og fjern merket, så det bare skjer én gang.
+ */
+async function leggInnForsteBil(bruker) {
+  const skilt = normaliserSkilt(bruker?.user_metadata?.forste_bil);
+  if (!skilt) return;
+  try {
+    await lagreBil(skilt, await slaOppBil(skilt));
+  } catch (feil) {
+    // Finnes den allerede er alt i orden; andre feil vises, men stopper ikke siden
+    if (!/allerede/.test(feil.message)) melding($("ny-bil-melding"), `Kunne ikke legge inn ${skilt}: ${feil.message}`, "feil");
+  }
+  await supabase.auth.updateUser({ data: { forste_bil: null } });
+}
+
+// Legg til flere biler fra Min side
 $("ny-bil-skjema").addEventListener("submit", async (e) => {
   e.preventDefault();
   const m = $("ny-bil-melding");
@@ -209,27 +401,10 @@ $("ny-bil-skjema").addEventListener("submit", async (e) => {
   e.submitter.disabled = true;
   melding(m, "Henter bilen …");
   try {
-    const res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
-    const svar = await res.json();
-    if (!res.ok) throw new Error(svar.feil || "Fant ikke bilen.");
-
-    const k = hentKjoretoy(svar);
-    if (k.erTilhenger) throw new Error("Dette er en tilhenger. Legg til bilen din her.");
-
-    const { error } = await supabase.from("biler").insert({
-      kjennemerke: skilt,
-      merke: k.merke,
-      modell: k.modell,
-      forstegangsregistrert: k.forstegangsregistrert,
-      eu_kontrollfrist: k.euKontrollfrist,
-    });
-    if (error) {
-      throw new Error(error.code === "23505"
-        ? "Denne bilen ligger allerede under Mine biler."
-        : "Kunne ikke lagre bilen. Prøv igjen.");
-    }
+    const k = await slaOppBil(skilt);
+    await lagreBil(skilt, k);
     $("nytt-skilt").value = "";
-    melding(m, `${[k.merke, k.modell].filter(Boolean).join(" ")} er lagt til.`, "ok");
+    melding(m, `${bilNavn(k)} er lagt til.`, "ok");
     lastBiler();
   } catch (feil) {
     melding(m, feil.message, "feil");
