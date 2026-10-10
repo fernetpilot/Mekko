@@ -32,6 +32,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Trykk på tilhengeren (eller knappen øverst) åpner tilhengerkalkulatoren på samme side
   (`public/bilhold/js/lastkalkulator.js`): skiltoppslag og maks last med `beregnMaksLast`, samme regler
   som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
+  Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, tre svevende knapper:
+  Mine biler, Service og EU-kontroll, Vedlikehold). «Åpne bilen din» nederst på bilen åpner panelet «Bilen din»
+  (`#bil-panel`, første bil) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
+  eller trykke utenfor teksten.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   foreløpig bare EU-kontroll; service og slitasje i % skal legges til der.
@@ -66,6 +70,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   og grovt verdianslag. Beregningene ligger i `public/js/bilokonomi.js` (ren, testet); antakelsene for
   verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der. Diagramfarger i `public/css/bilokonomi.css`.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
+- `public/service-og-eu.html` + `public/js/service-og-eu.js` – EU-kontroll, service og slitasje de neste 12 mnd (`?bil=<id>`, ellers første bil). Krever innlogging.
+- `public/vedlikehold.html` + `public/js/vedlikehold-oversikt.js` – alt vedlikehold per år med kostnad og vedlegg. Felles: `public/js/dashboard-side.js`, `public/css/dashboard.css`; ren logikk i `public/js/dashboard.js` (testet).
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
 - `netlify/functions/` – proxy mot Vegvesenet

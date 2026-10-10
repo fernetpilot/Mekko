@@ -82,6 +82,9 @@ export function lagTilhenger() {
 
   // Hjul
   const hjul = [];
+  const klossGeo = new THREE.BoxGeometry(0.16, 0.025, 0.045);
+  const boltGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.03, 6);
+  const navMat = new THREE.MeshStandardMaterial({ color: 0x5c6066, metalness: 0.8, roughness: 0.35 });
   for (const s of [-1, 1]) for (const akselZ of AKSLER) {
     const spinn = new THREE.Group();
     spinn.position.set(s * (BREDDE / 2 + 0.13), HJULRADIUS, akselZ);
@@ -90,8 +93,30 @@ export function lagTilhenger() {
     dekk.castShadow = true;
     const felg = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.21, 20), felgMat);
     felg.rotation.z = Math.PI / 2;
-    const nav = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.3), felgMat);
-    spinn.add(dekk, felg, nav);
+    spinn.add(dekk, felg);
+    // Dekkmønster, felgkant, nav og hjulbolter, så dekkene ikke er helt blanke
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      const kloss = new THREE.Mesh(klossGeo, dekkMat);
+      kloss.position.set(0, Math.cos(a) * (HJULRADIUS + 0.008), Math.sin(a) * (HJULRADIUS + 0.008));
+      kloss.rotation.x = a;
+      spinn.add(kloss);
+    }
+    const ytre = s * 0.106;
+    const kant = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.018, 6, 28), felgMat);
+    kant.rotation.y = Math.PI / 2;
+    kant.position.x = ytre;
+    const nav = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 16), navMat);
+    nav.rotation.z = Math.PI / 2;
+    nav.position.x = ytre + s * 0.01;
+    spinn.add(kant, nav);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const bolt = new THREE.Mesh(boltGeo, navMat);
+      bolt.rotation.z = Math.PI / 2;
+      bolt.position.set(ytre + s * 0.012, Math.cos(a) * 0.1, Math.sin(a) * 0.1);
+      spinn.add(bolt);
+    }
     gruppe.add(spinn);
     hjul.push(spinn);
   }

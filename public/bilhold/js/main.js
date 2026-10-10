@@ -88,9 +88,10 @@ for (const lenke of document.querySelectorAll('a.glasskort, .hotspot')) {
 // Når man kommer tilbake med "tilbake"-knappen skal siden ikke stå uskarp
 window.addEventListener('pageshow', () => {
   document.body.classList.remove('forlater');
+  visBil(false);
   if (rot.classList.contains('til-innlogging')) {
     rot.classList.remove('til-innlogging');
-    scene?.settModus(iKalkulator ? 'kalkulator' : 'scroll');
+    scene?.settModus(aapen ?? 'scroll');
     aktivIndeks = -1;
     vedScroll();
   }
@@ -149,34 +150,61 @@ document.addEventListener('click', (e) => {
   setTimeout(videre, 2500);
 });
 
-// ---------- Tilhengeren: hover/berøring og kalkulator-modus ----------
+// ---------- Tilhengeren og bilen: peke/trykke og sidevisning ----------
+// Hengeren åpner tilhengerkalkulatoren. Bilen (bare når man er innlogget) skannes når man
+// peker på den: man ser sjiraffen som kjører, tre knapper svever over bilen, og et skilt
+// nederst på bilen åpner «Bilen din».
 const canvas = document.getElementById('scene');
 const skilt = document.getElementById('tilhenger-skilt');
-const panel = document.getElementById('kalk-panel');
-let iKalkulator = false;
+const bilSkilt = document.getElementById('bil-skilt');
+const bilKnapper = [...document.querySelectorAll('.bil-svev')];
+const PANELER = { kalkulator: document.getElementById('kalk-panel'), bil: document.getElementById('bil-panel') };
+const panel = PANELER.kalkulator;
+let aapen = null;                 // 'kalkulator', 'bil' eller null
+let iKalkulator = false;          // true når en sidevisning er åpen (navnet er beholdt fra før)
 let skiltVises = false;
+let bilVises = false;
+let bilSkjulTimer = null;
+const innlogget = () => rot.classList.contains('innlogget');
 
-function kanPekePaTilhenger() {
-  return scene && !iKalkulator && window.scrollY < window.innerHeight * 0.4;
+function kanPeke() {
+  return scene && !aapen && !rot.classList.contains('til-innlogging') && window.scrollY < window.innerHeight * 0.4;
 }
 
 function visSkilt(vis) {
   skiltVises = vis;
   skilt.classList.toggle('synlig', vis);
-  canvas.classList.toggle('peker', vis);
+  oppdaterPeker();
   scene?.settHover(vis);
 }
+function visBil(vis) {
+  clearTimeout(bilSkjulTimer);
+  if (vis && !innlogget()) vis = false;
+  bilVises = vis;
+  rot.classList.toggle('bil-skannes', vis);
+  oppdaterPeker();
+  scene?.settBilSkann(vis);
+}
+// Skjul knappene litt forsinket, så man rekker å flytte musa fra bilen til en knapp
+function skjulBilSnart() {
+  clearTimeout(bilSkjulTimer);
+  bilSkjulTimer = setTimeout(() => visBil(false), 650);
+}
+function oppdaterPeker() { canvas.classList.toggle('peker', skiltVises || bilVises); }
 
-// Skiltet følger hengeren på skjermen
+// Skilt og knapper følger kjøretøyene på skjermen
+function plasser(el, punkt, { minTopp = 80 } = {}) {
+  const p = scene.skjermpunkt(punkt);
+  if (!p) return;
+  const halv = el.offsetWidth / 2 + 12;
+  el.style.left = `${Math.min(Math.max(p.x, halv), window.innerWidth - halv)}px`;
+  el.style.top = `${Math.min(Math.max(p.y, el.offsetHeight / 2 + minTopp), window.innerHeight - el.offsetHeight / 2 - 12)}px`;
+}
 function plasserSkilt() {
-  if (skiltVises) {
-    const p = scene.skjermpunkt('tilhenger');
-    if (p) {
-      // Hold skiltet innenfor skjermen
-      const halv = skilt.offsetWidth / 2 + 12;
-      skilt.style.left = `${Math.min(Math.max(p.x, halv), window.innerWidth - halv)}px`;
-      skilt.style.top = `${Math.max(p.y, skilt.offsetHeight / 2 + 80)}px`;
-    }
+  if (skiltVises) plasser(skilt, 'tilhenger');
+  if (bilVises) {
+    plasser(bilSkilt, 'bil-apne');
+    bilKnapper.forEach((k, i) => plasser(k, `bil-${i + 1}`));
   }
   requestAnimationFrame(plasserSkilt);
 }
@@ -184,9 +212,13 @@ if (scene) requestAnimationFrame(plasserSkilt);
 
 // Seksjonene slipper gjennom pekeren, så vi lytter på hele vinduet
 window.addEventListener('pointermove', (e) => {
-  if (e.pointerType !== 'mouse' || !kanPekePaTilhenger()) return;
+  if (e.pointerType !== 'mouse' || !kanPeke()) return;
+  if (e.target.closest('.bil-svev, #bil-skilt')) { clearTimeout(bilSkjulTimer); return; }
   if (e.target.closest('a, button, .kalk-panel')) return;
-  visSkilt(scene.treffTilhenger(e.clientX, e.clientY));
+  const hva = scene.treff(e.clientX, e.clientY);
+  visSkilt(hva === 'tilhenger');
+  if (hva === 'bil' && innlogget()) visBil(true);
+  else if (bilVises) skjulBilSnart();
 });
 
 let trykkStart = null;
@@ -194,70 +226,178 @@ window.addEventListener('pointerdown', (e) => {
   trykkStart = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('pointerup', (e) => {
-  if (!trykkStart || !kanPekePaTilhenger() || e.target.closest('a, button, .kalk-panel')) return;
+  if (!trykkStart || !kanPeke() || e.target.closest('a, button, .kalk-panel')) return;
   const flyttet = Math.hypot(e.clientX - trykkStart.x, e.clientY - trykkStart.y) > 10;
   trykkStart = null;
   if (flyttet) return;                       // det var et sveip, ikke et trykk
-  const traff = scene.treffTilhenger(e.clientX, e.clientY);
-  if (!traff) {
-    if (e.pointerType !== 'mouse') visSkilt(false);
-    return;
+  const hva = scene.treff(e.clientX, e.clientY);
+  const mus = e.pointerType === 'mouse';
+  if (hva === 'tilhenger') {
+    visBil(false);
+    // På mobil viser første trykk skiltet, andre trykk åpner. Med mus åpner klikket direkte.
+    if (mus || skiltVises) apneSide('kalkulator');
+    else visSkilt(true);
+  } else if (hva === 'bil' && innlogget()) {
+    visSkilt(false);
+    if (mus || bilVises) apneSide('bil');
+    else visBil(true);
+  } else if (!mus) {
+    visSkilt(false);
+    visBil(false);
   }
-  // På mobil viser første trykk skiltet, andre trykk åpner. Med mus åpner klikket direkte.
-  if (e.pointerType === 'mouse' || skiltVises) apneKalkulator();
-  else visSkilt(true);
 });
-window.addEventListener('scroll', () => { if (skiltVises && window.scrollY > 40) visSkilt(false); }, { passive: true });
-skilt.addEventListener('click', () => apneKalkulator());
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 40) {
+    if (skiltVises) visSkilt(false);
+    if (bilVises) visBil(false);
+  }
+}, { passive: true });
+skilt.addEventListener('click', () => apneSide('kalkulator'));
+bilSkilt.addEventListener('click', () => apneSide('bil'));
+for (const k of bilKnapper) {
+  k.addEventListener('pointerenter', () => clearTimeout(bilSkjulTimer));
+  k.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') skjulBilSnart(); });
+}
+bilSkilt.addEventListener('pointerenter', () => clearTimeout(bilSkjulTimer));
+bilSkilt.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') skjulBilSnart(); });
 
-function apneKalkulator({ historikk = true } = {}) {
-  if (iKalkulator) return;
+function apneSide(navn, { historikk = true } = {}) {
+  if (aapen === navn) return;
+  if (navn === 'bil' && !innlogget()) return;
+  if (aapen) lukkSide({ historikk: false, umiddelbart: true });
+  aapen = navn;
   iKalkulator = true;
+  const p = PANELER[navn];
   visSkilt(false);
+  visBil(false);
   window.scrollTo({ top: 0, behavior: 'instant' });
   rot.dataset.theme = 'dark';
   scene?.settTema('dark');
-  scene?.settModus('kalkulator');
-  panel.style.setProperty('--kalk-topp', `${scene ? scene.kalkulatorBunn() : 72}px`);
-  panel.hidden = false;
+  scene?.settModus(navn);
+  p.style.setProperty('--kalk-topp', `${scene ? scene.kalkulatorBunn() : 72}px`);
+  p.hidden = false;
+  p.scrollTop = 0;
   // Én frame senere, så overgangen fra skjult til synlig blir animert
-  requestAnimationFrame(() => rot.classList.add('kalkulator-modus'));
+  requestAnimationFrame(() => {
+    rot.classList.add('kalkulator-modus');
+    p.classList.add('apen');
+  });
   header.classList.remove('skjult');
-  if (historikk) history.pushState({ kalkulator: true }, '', '#kalkulator');
+  if (historikk) history.pushState({ side: navn }, '', `#${navn === 'bil' ? 'bilen-din' : 'kalkulator'}`);
+  if (navn === 'bil') lastBilenDin();
   // Tastaturet på mobil ville dekket vogntoget, så bare fokuser med mus/tastatur
-  if (!window.matchMedia('(pointer: coarse)').matches) {
+  if (navn === 'kalkulator' && !window.matchMedia('(pointer: coarse)').matches) {
     setTimeout(() => document.getElementById('last-bil').focus({ preventScroll: true }), 1100);
   }
 }
+const apneKalkulator = (o) => apneSide('kalkulator', o);
 
-function lukkKalkulator({ historikk = true } = {}) {
-  if (!iKalkulator) return;
+function lukkSide({ historikk = true, umiddelbart = false } = {}) {
+  if (!aapen) return;
+  const p = PANELER[aapen];
+  aapen = null;
   iKalkulator = false;
-  rot.classList.remove('kalkulator-modus');
-  scene?.settModus('scroll');
-  aktivIndeks = -1;
-  vedScroll();
-  setTimeout(() => { if (!iKalkulator) panel.hidden = true; }, 900);
-  if (historikk && location.hash === '#kalkulator') history.back();
+  p.classList.remove('apen');
+  if (!umiddelbart) {
+    rot.classList.remove('kalkulator-modus');
+    scene?.settModus('scroll');
+    aktivIndeks = -1;
+    vedScroll();
+  }
+  setTimeout(() => { if (!p.classList.contains('apen')) p.hidden = true; }, 900);
+  if (historikk && /^#(kalkulator|bilen-din)$/.test(location.hash)) history.back();
 }
+const lukkKalkulator = (o) => lukkSide(o);
 
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkKalkulator(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkSide(); });
+
+// Lett å komme tilbake: trykk utenfor teksten (på vogntoget, veien eller sidene) ...
+let kalkTrykk = null;
+window.addEventListener('pointerdown', (e) => {
+  kalkTrykk = aapen ? { x: e.clientX, y: e.clientY } : null;
+});
+window.addEventListener('pointerup', (e) => {
+  if (!kalkTrykk || !aapen) return;
+  const flyttet = Math.hypot(e.clientX - kalkTrykk.x, e.clientY - kalkTrykk.y) > 10;
+  kalkTrykk = null;
+  if (flyttet || e.target.closest('.kalk-innhold, .topp, a, button, input, label, select')) return;
+  lukkSide();
+});
+// ... eller dra/scroll oppover når man allerede står øverst
+let oppover = 0;
+window.addEventListener('wheel', (e) => {
+  if (!aapen || PANELER[aapen].scrollTop > 0 || e.deltaY >= 0) { oppover = 0; return; }
+  oppover += -e.deltaY;
+  if (oppover > 80) { oppover = 0; lukkSide(); }
+}, { passive: true });
+let draStart = null;
+window.addEventListener('touchstart', (e) => {
+  draStart = aapen && PANELER[aapen].scrollTop <= 0 ? e.touches[0].clientY : null;
+}, { passive: true });
+window.addEventListener('touchmove', (e) => {
+  if (draStart === null || !aapen) return;
+  if (PANELER[aapen].scrollTop > 0) { draStart = null; return; }
+  if (e.touches[0].clientY - draStart > 90) { draStart = null; lukkSide(); }
+}, { passive: true });
+
 window.addEventListener('popstate', () => {
-  if (location.hash === '#kalkulator') apneKalkulator({ historikk: false });
-  else lukkKalkulator({ historikk: false });
+  if (location.hash === '#kalkulator') apneSide('kalkulator', { historikk: false });
+  else if (location.hash === '#bilen-din') apneSide('bil', { historikk: false });
+  else lukkSide({ historikk: false });
 });
 window.addEventListener('resize', () => {
-  if (iKalkulator && scene) panel.style.setProperty('--kalk-topp', `${scene.kalkulatorBunn()}px`);
+  if (aapen && scene) PANELER[aapen].style.setProperty('--kalk-topp', `${scene.kalkulatorBunn()}px`);
 });
 
-// Knappen i headeren åpner kalkulatoren her på siden (lenken til /kalkulator virker uten JS)
+// Knappen i headeren åpner kalkulatoren her på siden (lenken til /kalkulator virker uten JS),
+// og blir «Tilbake» når en sidevisning er åpen
 const toppKnapp = document.querySelector('.topp-knapp[href="/kalkulator"]');
 toppKnapp?.addEventListener('click', (e) => {
   if (e.metaKey || e.ctrlKey) return;
   e.preventDefault();
-  if (iKalkulator) lukkKalkulator(); else apneKalkulator();
+  if (aapen) lukkSide(); else apneSide('kalkulator');
 });
-if (location.hash === '#kalkulator') apneKalkulator({ historikk: false });
+if (location.hash === '#kalkulator') apneSide('kalkulator', { historikk: false });
+if (location.hash === '#bilen-din') apneSide('bil', { historikk: false });
+
+// «Bilen din»: henter den første bilen brukeren har registrert
+let bilLastet = false;
+async function lastBilenDin() {
+  if (bilLastet) return;
+  bilLastet = true;
+  const $ = (id) => document.getElementById(id);
+  try {
+    const [{ supabase }, { euStatus, formaterKm }] = await Promise.all([
+      import('/js/supabase.js'),
+      import('/js/bilstatus.js'),
+    ]);
+    const { data: biler, error } = await supabase.from('biler').select('*').order('opprettet').limit(1);
+    if (error) throw error;
+    const bil = biler?.[0];
+    if (!bil) {
+      $('bil-navn').textContent = 'Ingen bil registrert ennå';
+      $('bil-kjennemerke').textContent = 'Legg til bilen din på Min side.';
+      return;
+    }
+    $('bil-navn').textContent = bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(' ') || 'Bilen din';
+    $('bil-kjennemerke').textContent = bil.kjennemerke ?? '';
+    const eu = euStatus(bil.eu_kontrollfrist);
+    const euEl = $('bil-eu');
+    euEl.textContent = eu.tekst;
+    euEl.className = `fakta-verdi ${eu.status}`;
+    $('bil-km').textContent = formaterKm(bil.kilometerstand);
+    for (const a of document.querySelectorAll('[data-bil-lenke]')) {
+      const url = new URL(a.getAttribute('href'), location.origin);
+      url.searchParams.set('bil', bil.id);
+      a.href = url.pathname + url.search;
+    }
+  } catch (feil) {
+    console.warn('Kunne ikke hente bilen:', feil);
+    bilLastet = false;
+    $('bil-navn').textContent = 'Kunne ikke hente bilen';
+    $('bil-kjennemerke').textContent = 'Prøv igjen litt senere.';
+  }
+}
 
 // ---------- Selve kalkulatoren: oppslag på skilt (lastkalkulator.js) ----------
 import('./lastkalkulator.js');
