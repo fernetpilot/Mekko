@@ -178,3 +178,57 @@ test("datoer med månedsnavn", () => {
   assert.equal(r.dato, "2023-08-14");
   assert.equal(r.kostnad, 3450);
 });
+
+import { tolkHendelsesliste } from "../public/js/import-historikk.js";
+
+test("PDF med mange hendelser deles opp (servicehefte fra Mekkoo)", () => {
+  const tekst = `SERVICEHEFTE
+AB12345 – TESTMERKE MODELL
+Første gang registrert: 28. mars 2008
+Utskrevet: 10. okt. 2026 fra Mekkoo
+10. okt. 2026 · Bremser
+280 000 km · 670 kr · Utført av: Ola Nordmann
+Byttet klosser foran,
+og skiver bak
+5. okt. 2026 · Service
+281 345 km · Utført av: Byttet selv
+Stor service – Type service: Ekstra Service
+Vedlegg 1: kvittering.pdf
+AB12345 · Side 1 av 3
+23. des. 2025 · Oljeskift / motor
+270 500 km · Utført av: Testverksted AS
+Olje og filter
+8. nov. 2025 · Annet
+269 000 km
+Bilsalg
+Vedlegg 1 – 10. okt. 2026 – Bremser – kvittering.pdf
+12.03.2020 Dette er en kvittering inne i et vedlegg`;
+  const h = tolkHendelsesliste(tekst, new Date(2026, 9, 10));
+  assert.equal(h.length, 4);
+  assert.deepEqual(h[0], { dato: "2026-10-10", komponent: "bremser", kilometerstand: 280000, kostnad: 670, utfort_av: "Ola Nordmann", notat: "Byttet klosser foran, og skiver bak" });
+  assert.equal(h[1].komponent, "service");
+  assert.equal(h[1].notat, "Stor service – Type service: Ekstra Service");
+  assert.equal(h[2].komponent, "motor");
+  assert.equal(h[2].utfort_av, "Testverksted AS");
+  assert.equal(h[3].komponent, "annet");
+  assert.equal(h[3].kilometerstand, 269000);
+  assert.equal(h[3].notat, "Bilsalg");
+});
+
+test("liste fra verksted med andre datoformater", () => {
+  const tekst = `Servicehistorikk
+12.03.2023 - Service
+Km: 142 000
+Totalt kr 4 850
+01.11.2023 - Dekkskift
+Vinterdekk på`;
+  const h = tolkHendelsesliste(tekst, new Date(2026, 9, 10));
+  assert.equal(h.length, 2);
+  assert.equal(h[0].dato, "2023-03-12");
+  assert.equal(h[0].kilometerstand, 142000);
+  assert.equal(h[1].komponent, "dekk");
+});
+
+test("én kvittering gir ingen liste", () => {
+  assert.deepEqual(tolkHendelsesliste("Verksted AS\nFakturadato: 20.08.2023\nÅ betale kr 3 450,00"), []);
+});

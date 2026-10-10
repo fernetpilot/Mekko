@@ -2,7 +2,7 @@
 // Alt vises som redigerbare forslag; ingenting lagres før brukeren trykker «Importer».
 import { supabase } from "./supabase.js";
 import { KOMPONENT_NAVN, formaterDato } from "./bilstatus.js";
-import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst } from "./import-historikk.js";
+import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst, tolkHendelsesliste } from "./import-historikk.js";
 import { lastOppDokumenter, erPdf, MAKS_BYTES } from "./dokumenter.js";
 
 const $ = (id) => document.getElementById(id);
@@ -127,7 +127,7 @@ async function lesPdfTekstEnGang(fil) {
   await lastPdfjs();
   const dok = await pdfjs.getDocument({ data: new Uint8Array(await fil.arrayBuffer()) }).promise;
   const linjer = [];
-  for (let n = 1; n <= Math.min(dok.numPages, 5); n++) {
+  for (let n = 1; n <= Math.min(dok.numPages, 40); n++) {
     const { items } = await (await dok.getPage(n)).getTextContent();
     // Sett sammen tekstbiter til linjer ut fra høyden på siden
     const rader = new Map();
@@ -144,28 +144,46 @@ async function lesPdfTekstEnGang(fil) {
   return linjer.join("\n");
 }
 
+/** Lager ett eller flere forslag fra et dokument. Et servicehefte eller en historikkutskrift gir mange. */
 async function forslagFraDokument(fil) {
   const f = nyttForslag({ filer: [fil] });
   if (!erPdf(fil)) {
     f.lest = "bilde";
-    return f;
+    return [f];
   }
+  let tekst;
   try {
-    const tekst = await lesPdfTekst(fil);
-    f.pdfTekst = tekst;
-    if (tekst.replace(/\s/g, "").length < 20) {
-      f.lest = "skannet";
-      return f;
-    }
-    const funnet = tolkKvitteringstekst(tekst);
-    Object.assign(f, funnet);
-    f.lest = funnet.dato ? "pdf" : "pdf-uten-dato";
+    tekst = await lesPdfTekst(fil);
   } catch (e) {
     console.error("Kunne ikke lese PDF", fil.name, e);
     f.lest = "feil";
     f.lesefeil = e?.message || String(e);
+    return [f];
   }
-  return f;
+  f.pdfTekst = tekst;
+  if (tekst.replace(/\s/g, "").length < 20) {
+    f.lest = "skannet";
+    return [f];
+  }
+
+  // Mange hendelser i samme PDF (f.eks. servicehefte): ett forslag per hendelse.
+  // Selve PDF-en legges ved den første, og kan flyttes eller fjernes.
+  const liste = tolkHendelsesliste(tekst);
+  if (liste.length >= 2) {
+    return liste.map((h, i) => nyttForslag({
+      ...h,
+      filer: i === 0 ? [fil] : [],
+      lest: i === 0 ? "liste" : "liste-del",
+      kildeNavn: fil.name,
+      antallIListe: liste.length,
+      pdfTekst: i === 0 ? tekst : undefined,
+    }));
+  }
+
+  const funnet = tolkKvitteringstekst(tekst);
+  Object.assign(f, funnet);
+  f.lest = funnet.dato ? "pdf" : "pdf-uten-dato";
+  return [f];
 }
 
 async function taImotFiler(filer) {
@@ -187,7 +205,10 @@ async function taImotFiler(filer) {
     } else if (erPdf(fil) || fil.type.startsWith("image/") || /\.(heic|heif)$/i.test(fil.name)) {
       if (erPdf(fil) && fil.size > MAKS_BYTES) { feil.push(`${fil.name} er større enn 10 MB.`); continue; }
       melding(m, `Leser ${fil.name} …`);
-      forslag.unshift(await forslagFraDokument(fil));
+      const nye = await forslagFraDokument(fil);
+      // Hendelser som trolig finnes fra før, velges bort som standard
+      for (const f of nye) if (erDublett(f, eksisterende)) f.med = false;
+      forslag.unshift(...nye);
       antallDok++;
     } else {
       feil.push(`${fil.name}: bare regneark, PDF og bilder kan importeres.`);
@@ -208,7 +229,7 @@ function lagForslagFraArk(a) {
   const gamle = forslag.filter((f) => f.arkId === a.id);
   const lose = gamle.flatMap((f) => f.filer.map((fil) => nyttForslag({ filer: [fil] })));
   forslag = forslag.filter((f) => f.arkId !== a.id);
-  const nye = raderTilForslag(a.rader, a).map((f) => nyttForslag({ ...f, arkId: a.id }));
+  const nye = raderTilForslag(a.rader, a).map((f) => nyttForslag({ ...f, arkId: a.id, med: !erDublett(f, eksisterende) }));
   nye.sort((x, y) => (y.dato ?? "").localeCompare(x.dato ?? ""));
   forslag.push(...lose, ...nye);
 }
@@ -284,19 +305,20 @@ function tegnForslag() {
 
     const med = lag("input", { type: "checkbox", checked: f.med });
     med.addEventListener("change", () => { f.med = med.checked; tegnForslag(); });
-    const kilde = f.arkId ? "📊 Fra regneark" : "📎 Fra dokument";
+    const kilde = f.arkId ? "📊 Fra regneark" : f.kildeNavn ? `📄 Fra ${f.kildeNavn}` : "📎 Fra dokument";
     li.append(lag("div", { className: "forslag-topp" },
       lag("label", { className: "ta-med" }, med, lag("span", { textContent: "Ta med" })),
       lag("span", { className: "liten", textContent: kilde }),
       dublett ? lag("span", { className: "merke-dublett", textContent: "Finnes kanskje allerede" }) : null));
     const hint = {
       pdf: "Fylt ut fra PDF-en. Sjekk at det stemmer.",
+      liste: `Fant ${f.antallIListe} hendelser i ${f.kildeNavn}. PDF-en legges ved denne hendelsen – flytt eller fjern den hvis du vil.`,
       "pdf-uten-dato": "Fant ikke dato i PDF-en. Fyll inn dato, og sjekk resten.",
       skannet: "PDF-en er skannet og kan ikke leses automatisk ennå. Fyll inn selv.",
       bilde: "Bilder kan ikke leses automatisk ennå. Fyll inn dato og det du vil ha med.",
       feil: "Kunne ikke lese PDF-en. Fyll inn selv.",
     }[f.lest];
-    if (hint) li.append(lag("p", { className: `lest-hint ${f.lest === "pdf" ? "ok" : ""}`, textContent: hint + (f.lesefeil ? ` (${f.lesefeil})` : "") }));
+    if (hint) li.append(lag("p", { className: `lest-hint ${f.lest === "pdf" || f.lest === "liste" ? "ok" : ""}`, textContent: hint + (f.lesefeil ? ` (${f.lesefeil})` : "") }));
     // Teksten som ble lest, så brukeren kan se hva siden fant og skrive av resten
     if (f.pdfTekst?.trim()) {
       li.append(lag("details", { className: "pdf-tekst" },

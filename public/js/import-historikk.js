@@ -279,3 +279,79 @@ export function tolkKvitteringstekst(tekst, idag = new Date()) {
 
   return svar;
 }
+
+// ---------------------------------------------------------------------------
+// PDF med mange hendelser (servicehefte, utskrift av servicehistorikk)
+// ---------------------------------------------------------------------------
+
+const START_MED_DATO = new RegExp("^" + DATO + String.raw`(?:\s*[·|–\-:,]\s*|\s+|$)(.*)$`, "i");
+
+/** Finner typen ut fra overskriften, f.eks. «Oljeskift / motor» eller «EU-kontroll». */
+function typeFraTittel(tittel, resten) {
+  const t = vask(tittel);
+  for (const [nokkel, navn] of Object.entries(KOMPONENT_NAVN)) {
+    if (t === nokkel || t === vask(navn)) return nokkel;
+  }
+  return gjettKomponent(tittel, resten);
+}
+
+/**
+ * Deler teksten i hendelser når den er en liste der hver hendelse starter med en dato
+ * (som serviceheftet fra Mekkoo eller utskrifter fra verksteder). Gir tom liste hvis
+ * teksten ikke ser ut som en liste (færre enn to hendelser) – da tolkes den som én kvittering.
+ * @returns {Array<{ dato, komponent, kilometerstand, kostnad, utfort_av, notat }>}
+ */
+export function tolkHendelsesliste(tekst, idag = new Date()) {
+  const linjer = String(tekst ?? "").split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const blokker = [];
+  let gjeldende = null;
+  for (const l of linjer) {
+    if (/^vedlegg \d+\s*[–-]/i.test(l)) break;            // vedleggssider i et Mekkoo-servicehefte
+    if (/\bside \d+ av \d+\b/i.test(l) || /^vedlegg \d+:/i.test(l)) continue; // sidetall og vedleggslister
+    const m = l.match(START_MED_DATO);
+    const dato = m && tolkDato(m[1], idag);
+    if (dato) {
+      gjeldende = { dato, tittel: m[2].trim(), linjer: [] };
+      blokker.push(gjeldende);
+    } else if (gjeldende) {
+      gjeldende.linjer.push(l);
+    }
+  }
+  if (blokker.length < 2) return [];
+
+  return blokker.map((b) => {
+    let kilometerstand = null, kostnad = null, utfort_av = null;
+    const notat = [];
+    for (const l of b.linjer) {
+      // Linjer som «280 000 km · 67 kr · Utført av: Verksted AS» deles opp i biter
+      const biter = l.split(/\s+·\s+/);
+      const erDetaljlinje = biter.length > 1 || /^(utført av|utfort av)/i.test(l) || /^\d[\d\s.]*\s*(km|mil)\b/i.test(l);
+      if (!erDetaljlinje) { notat.push(l); continue; }
+      for (const bit of biter) {
+        let m;
+        if ((m = bit.match(/^(?:km[- ]?stand:?\s*)?(\d[\d\s.,]*)\s*(km|mil)$/i))) {
+          kilometerstand = Math.round(tolkTall(m[1]) * (/mil/i.test(m[2]) ? 10 : 1));
+        } else if ((m = bit.match(/^(?:kr\.?\s*)?(\d[\d\s.,]*)\s*(?:kr|nok|,-)?$/i)) && /kr|nok|,-/i.test(bit)) {
+          kostnad = tolkTall(m[1]);
+        } else if ((m = bit.match(/^(?:utført|utfort) av:?\s*(.+)$/i))) {
+          utfort_av = m[1].trim().slice(0, 100);
+        } else {
+          notat.push(bit);
+        }
+      }
+    }
+    // Reserve: let etter tall med etiketter i hele blokken
+    const reserve = tolkKvitteringstekst([b.tittel, ...b.linjer].join("\n"), idag);
+    const tekstNotat = notat.join(" ").replace(/\s+/g, " ").trim();
+    return {
+      dato: b.dato,
+      komponent: typeFraTittel(b.tittel, tekstNotat),
+      kilometerstand: kilometerstand ?? reserve.kilometerstand ?? null,
+      kostnad: kostnad ?? null,
+      utfort_av: utfort_av ?? null,
+      // Overskriften tas med i notatet hvis den sier mer enn typen
+      notat: [typeFraTittel(b.tittel, "") === "annet" && vask(b.tittel) !== "annet" ? b.tittel : "", tekstNotat]
+        .filter(Boolean).join(" – ").slice(0, 1000) || null,
+    };
+  });
+}
