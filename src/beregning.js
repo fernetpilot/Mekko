@@ -56,13 +56,61 @@ export function forerkortMaksTilhenger(forerkort, bilTotalvekt) {
   throw new Error(`Ukjent førerkort: ${forerkort}`);
 }
 
+// Vekt for en fører. Bilen regnes tom med fører. Brukes til kontroller av egenvekt med fører.
+export const FORER_VEKT_KG = 80;
+
+// Tilhengere med tillatt totalvekt opp til 750 kg kan trekkes uten brems.
+const UTEN_BREMS_GRENSE = 750;
+
 /**
- * @param {object} bil     Vekter fra bilens vognkort (kg)
- * @param {object} henger  Vekter fra hengerens vognkort (kg)
- * @param {string} forerkort "B" | "B96" | "BE"
- * @returns {{ maksLast: number|null, begrensning: string, forklaring: string[] }}
+ * Maks last på hengeren, og hvilken grense som begrenser den.
+ *
+ * Hengerens tillatte totalvekt er begrenset av tre ting: førerkortet, bilens
+ * tilhengervekt (med brems, eller uten brems hvis hengeren er 750 kg eller lettere),
+ * og hengerens egen tillatte totalvekt. Maks last er det hengeren kan veie totalt,
+ * minus hengerens egenvekt.
+ *
+ * @param {object} bil     Vognkortverdier for bilen (kg):
+ *                         tillattTotalvekt, tillattTilhengervektMedBrems, tillattTilhengervektUtenBrems
+ * @param {object} henger  Vognkortverdier for hengeren (kg): tillattTotalvekt, egenvekt
+ * @param {"B"|"B96"|"BE"} forerkort
+ * @returns {{ maksLast: number|null, begrensning: "forerkort"|"bil"|"henger", forklaring: string[] }}
+ *          maksLast er null hvis hengeren ikke kan trekkes med denne kombinasjonen.
  */
 export function beregnMaksLast(bil, henger, forerkort) {
-  // TODO: implementeres mot testcasene i tests/
-  throw new Error("Ikke implementert ennå");
+  const grenser = {
+    forerkort: forerkortMaksTilhenger(forerkort, bil.tillattTotalvekt),
+    bil: bil.tillattTilhengervektMedBrems,
+    henger: henger.tillattTotalvekt,
+  };
+
+  // Laveste grense. Ved likhet vinner førerkort, så bil, så henger.
+  let begrensning = "forerkort";
+  for (const navn of ["bil", "henger"]) {
+    if (grenser[navn] < grenser[begrensning]) begrensning = navn;
+  }
+  let maksTotal = grenser[begrensning];
+
+  // Hengere på 750 kg eller lighter kan trekkes uten brems. Da gjelder bilens grense uten brems.
+  if (maksTotal <= UTEN_BREMS_GRENSE && bil.tillattTilhengervektUtenBrems < maksTotal) {
+    maksTotal = bil.tillattTilhengervektUtenBrems;
+    begrensning = "bil";
+  }
+
+  const forklaring = [
+    `Førerkort ${forerkort}: hengeren kan maks være ${grenser.forerkort} kg.`,
+    `Bilen: maks tilhengervekt ${bil.tillattTilhengervektMedBrems} kg med brems.`,
+    `Hengeren: tillatt totalvekt ${henger.tillattTotalvekt} kg.`,
+  ];
+
+  const maksLast = maksTotal - henger.egenvekt;
+  if (maksLast < 0) {
+    forklaring.push(
+      `Hengerens egenvekt (${henger.egenvekt} kg) er større enn ${maksTotal} kg, som er grensen for denne kombinasjonen.`
+    );
+    return { maksLast: null, begrensning, forklaring };
+  }
+
+  forklaring.push(`Begrenset av ${begrensning}: ${maksTotal} kg totalt, minus hengerens egenvekt ${henger.egenvekt} kg.`);
+  return { maksLast, begrensning, forklaring };
 }
