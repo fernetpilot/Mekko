@@ -434,3 +434,13 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
   line-height: 1.4;
 }
 .import-lenke .kort-pil { font-size: 26px; color: var(--tekst-dempet); }
+.melding.advarsel { color: var(--sjekk); }
+.lest-hint {
+  margin: 0;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sjekk) 14%, transparent);
+  color: var(--tekst);
+}
+.lest-hint.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); }

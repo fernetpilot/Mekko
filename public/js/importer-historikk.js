@@ -2,7 +2,7 @@
 // Alt vises som redigerbare forslag; ingenting lagres før brukeren trykker «Importer».
 import { supabase } from "./supabase.js";
 import { KOMPONENT_NAVN, formaterDato } from "./bilstatus.js";
-import { FELTER, finnKobling, raderTilForslag, erDublett } from "./import-historikk.js";
+import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst } from "./import-historikk.js";
 import { lastOppDokumenter, erPdf, MAKS_BYTES } from "./dokumenter.js";
 
 const $ = (id) => document.getElementById(id);
@@ -88,6 +88,55 @@ async function lesRegneark(fil) {
   return [];
 }
 
+// PDF-er med tekst (de fleste fakturaer fra verksted) leses med pdf.js fra CDN.
+// Skannede PDF-er og bilder har ingen tekst å lese – de må fylles ut for hånd inntil videre.
+const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build";
+let pdfjs = null;
+async function lesPdfTekst(fil) {
+  if (!pdfjs) {
+    pdfjs = await import(`${PDFJS}/pdf.min.mjs`);
+    pdfjs.GlobalWorkerOptions.workerSrc = `${PDFJS}/pdf.worker.min.mjs`;
+  }
+  const dok = await pdfjs.getDocument({ data: new Uint8Array(await fil.arrayBuffer()) }).promise;
+  const linjer = [];
+  for (let n = 1; n <= Math.min(dok.numPages, 5); n++) {
+    const { items } = await (await dok.getPage(n)).getTextContent();
+    // Sett sammen tekstbiter til linjer ut fra høyden på siden
+    const rader = new Map();
+    for (const it of items) {
+      if (!it.str?.trim()) continue;
+      const y = Math.round(it.transform[5] / 3);
+      if (!rader.has(y)) rader.set(y, []);
+      rader.get(y).push(it);
+    }
+    [...rader.entries()].sort((a, b) => b[0] - a[0])
+      .forEach(([, biter]) => linjer.push(biter.sort((a, b) => a.transform[4] - b.transform[4]).map((b) => b.str).join(" ")));
+  }
+  await dok.destroy();
+  return linjer.join("\n");
+}
+
+async function forslagFraDokument(fil) {
+  const f = nyttForslag({ filer: [fil] });
+  if (!erPdf(fil)) {
+    f.lest = "bilde";
+    return f;
+  }
+  try {
+    const tekst = await lesPdfTekst(fil);
+    if (tekst.replace(/\s/g, "").length < 20) {
+      f.lest = "skannet";
+      return f;
+    }
+    const funnet = tolkKvitteringstekst(tekst);
+    Object.assign(f, funnet);
+    f.lest = funnet.dato ? "pdf" : "pdf-uten-dato";
+  } catch {
+    f.lest = "feil";
+  }
+  return f;
+}
+
 async function taImotFiler(filer) {
   const m = $("fil-melding");
   const feil = [];
@@ -106,7 +155,8 @@ async function taImotFiler(filer) {
       }
     } else if (erPdf(fil) || fil.type.startsWith("image/") || /\.(heic|heif)$/i.test(fil.name)) {
       if (erPdf(fil) && fil.size > MAKS_BYTES) { feil.push(`${fil.name} er større enn 10 MB.`); continue; }
-      forslag.unshift(nyttForslag({ filer: [fil] }));
+      melding(m, `Leser ${fil.name} …`);
+      forslag.unshift(await forslagFraDokument(fil));
       antallDok++;
     } else {
       feil.push(`${fil.name}: bare regneark, PDF og bilder kan importeres.`);
@@ -208,6 +258,14 @@ function tegnForslag() {
       lag("label", { className: "ta-med" }, med, lag("span", { textContent: "Ta med" })),
       lag("span", { className: "liten", textContent: kilde }),
       dublett ? lag("span", { className: "merke-dublett", textContent: "Finnes kanskje allerede" }) : null));
+    const hint = {
+      pdf: "Fylt ut fra PDF-en. Sjekk at det stemmer.",
+      "pdf-uten-dato": "Fant ikke dato i PDF-en. Fyll inn dato, og sjekk resten.",
+      skannet: "PDF-en er skannet og kan ikke leses automatisk ennå. Fyll inn selv.",
+      bilde: "Bilder kan ikke leses automatisk ennå. Fyll inn dato og det du vil ha med.",
+      feil: "Kunne ikke lese PDF-en. Fyll inn selv.",
+    }[f.lest];
+    if (hint) li.append(lag("p", { className: `lest-hint ${f.lest === "pdf" ? "ok" : ""}`, textContent: hint }));
 
     // Felt
     const felt = (navn, el) => { el.name = navn; return lag("label", {}, FELTER[navn], el); };
@@ -280,12 +338,15 @@ function tegnForslag() {
   }));
 
   const valgte = forslag.filter((f) => f.med);
-  const vedlegg = valgte.reduce((n, f) => n + f.filer.length, 0);
+  const klare = valgte.filter((f) => f.dato);
+  const vedlegg = klare.reduce((n, f) => n + f.filer.length, 0);
   $("antall-forslag").textContent = `(${valgte.length} av ${forslag.length} valgt)`;
-  $("importer").textContent = `Importer ${valgte.length} ${valgte.length === 1 ? "hendelse" : "hendelser"}${vedlegg ? ` med ${vedlegg} vedlegg` : ""}`;
-  $("importer").disabled = !valgte.length;
-  const uten = valgte.filter((f) => !f.dato).length;
-  melding($("melding"), uten ? `${uten} av de valgte mangler dato.` : "", uten ? "feil" : "");
+  $("importer").textContent = `Importer ${klare.length} ${klare.length === 1 ? "hendelse" : "hendelser"}${vedlegg ? ` med ${vedlegg} vedlegg` : ""}`;
+  $("importer").disabled = !klare.length;
+  const uten = valgte.length - klare.length;
+  melding($("melding"), uten
+    ? `${uten} ${uten === 1 ? "hendelse mangler" : "hendelser mangler"} dato og blir liggende her til du fyller den inn.`
+    : "", uten ? "advarsel" : "");
 }
 
 $("velg-alle").addEventListener("click", () => {
@@ -299,12 +360,10 @@ $("velg-alle").addEventListener("click", () => {
 // Import
 // ---------------------------------------------------------------------------
 $("importer").addEventListener("click", async () => {
-  const valgte = forslag.filter((f) => f.med);
+  // Bare hendelser med dato importeres; resten blir liggende i lista
+  const valgte = forslag.filter((f) => f.med && f.dato);
   const m = $("melding");
-  if (valgte.some((f) => !f.dato)) {
-    document.querySelector(".forslag.mangler")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    return melding(m, "Fyll inn dato på alle valgte hendelser, eller fjern haken på dem.", "feil");
-  }
+  if (!valgte.length) return;
 
   const knapp = $("importer");
   knapp.disabled = true;
@@ -343,12 +402,17 @@ $("importer").addEventListener("click", async () => {
     await supabase.from("biler").update({ kilometerstand: Math.round(hoyest.kilometerstand), kilometerstand_dato: hoyest.dato }).eq("id", bilId);
   }
 
-  if (feil.length) {
-    // Behold det som ikke ble importert, så brukeren kan prøve igjen
+  const igjen = forslag.filter((f) => !f.importert && f.med);
+  if (feil.length || igjen.length) {
+    // Behold det som ikke ble importert, så brukeren kan fullføre resten
     forslag = forslag.filter((f) => !f.importert);
+    ark = ark.filter((a) => forslag.some((f) => f.arkId === a.id));
+    tegnArk();
     tegnForslag();
-    knapp.disabled = false;
-    alert(`${ferdig} av ${valgte.length} hendelser er importert.\n\nNoe gikk galt:\n${feil.join("\n")}`);
+    eksisterende = (await supabase.from("vedlikehold").select("dato, komponent, kilometerstand").eq("bil_id", bilId)).data ?? eksisterende;
+    if (feil.length) alert(`${ferdig} av ${valgte.length} hendelser er importert.\n\nNoe gikk galt:\n${feil.join("\n")}`);
+    melding(m, `${ferdig} ${ferdig === 1 ? "hendelse er" : "hendelser er"} importert. ${igjen.length} gjenstår – fyll inn dato og importer igjen.`, "ok");
+    document.querySelector(".forslag")?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
   melding(m, `${ferdig} hendelser er importert.`, "ok");

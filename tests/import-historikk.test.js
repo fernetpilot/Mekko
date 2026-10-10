@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gjettFelt, finnKobling, tolkDato, tolkTall, gjettKomponent, raderTilForslag, erDublett } from "../public/js/import-historikk.js";
+import { gjettFelt, gjettFeltFraInnhold, finnKobling, tolkDato, tolkTall, gjettKomponent, raderTilForslag, erDublett } from "../public/js/import-historikk.js";
 
 const idag = new Date(2026, 9, 10);
 
@@ -44,7 +44,8 @@ test("tall med mellomrom, kr, km og norsk desimalkomma", () => {
   assert.equal(tolkTall("4850.5"), 4850.5);
   assert.equal(tolkTall("12,5"), 12.5);
   assert.equal(tolkTall(1234), 1234);
-  assert.equal(tolkTall("ca. 1000"), null);
+  assert.equal(tolkTall("ca. 1000"), 1000);
+  assert.equal(tolkTall("ukjent"), null);
   assert.equal(tolkTall(""), null);
 });
 
@@ -88,4 +89,81 @@ test("dubletter: samme dato og samme type eller km", () => {
   assert.equal(erDublett({ dato: "2023-03-12", komponent: "dekk", kilometerstand: 142000 }, finnes), true);
   assert.equal(erDublett({ dato: "2023-03-12", komponent: "dekk", kilometerstand: 150000 }, finnes), false);
   assert.equal(erDublett({ dato: null, komponent: "motor" }, finnes), false);
+});
+
+test("delvise treff på overskrifter", () => {
+  assert.equal(gjettFelt("Arbeidsnotater"), "notat");
+  assert.equal(gjettFelt("Utført arbeid"), "notat");
+  assert.equal(gjettFelt("Totalbeløp"), "kostnad");
+  assert.equal(gjettFelt("Kostnader"), "kostnad");
+  assert.equal(gjettFelt("Sum inkl. mva"), "kostnad");
+  assert.equal(gjettFelt("Fakturadato"), "dato");
+  assert.equal(gjettFelt("Km ved service"), "kilometerstand");
+  assert.equal(gjettFelt("Miljøavgift"), "kostnad"); // ikke «mil»
+  assert.equal(gjettFelt("Verkstednavn"), "utfort_av");
+});
+
+test("tall med tekst rundt", () => {
+  assert.equal(tolkTall("kr. 2490"), 2490);
+  assert.equal(tolkTall("1 234,50 kr inkl. mva"), 1234.5);
+  assert.equal(tolkTall("NOK 4 850,00"), 4850);
+  assert.equal(tolkTall("4850 kr"), 4850);
+  assert.equal(tolkTall("4\u00a0850,-"), 4850);
+  assert.equal(tolkTall("1,234,567"), 1234567);
+  assert.equal(tolkTall("12.03.2023"), null);
+});
+
+test("kolonner uten kjent overskrift gjenkjennes på innholdet", () => {
+  assert.equal(gjettFeltFraInnhold(["12.03.2023", "01.11.2023", ""]), "dato");
+  assert.equal(gjettFeltFraInnhold(["kr 2 490", "4 850,-"]), "kostnad");
+  assert.equal(gjettFeltFraInnhold(["Skiftet olje og filter", "Nye bremseklosser foran"]), "notat");
+  assert.equal(gjettFeltFraInnhold(["12", "15"]), null);
+});
+
+test("ukjente kolonner havner i notatet, ingenting går tapt", () => {
+  const rader = [
+    ["Når", "Hva", "Arbeidsnotater", "Totalbeløp", "Bonuspoeng"],
+    ["12.03.2023", "Oljeskift", "Byttet olje og filter", "kr 2 490,-", "250"],
+  ];
+  const oppsett = finnKobling(rader);
+  assert.deepEqual(oppsett.kobling, ["dato", "komponent", "notat", "kostnad", null]);
+  const [f] = raderTilForslag(rader, oppsett);
+  assert.equal(f.komponent, "motor");
+  assert.equal(f.kostnad, 2490);
+  assert.equal(f.notat, "Byttet olje og filter – Bonuspoeng: 250");
+});
+
+import { tolkKvitteringstekst } from "../public/js/import-historikk.js";
+
+test("kvitteringstekst: dato, km, beløp og verksted", () => {
+  const tekst = `Bilxtra Verksted Oslo AS
+Org.nr 912 345 678 MVA
+Faktura 10234
+Fakturadato: 20.08.2023
+Forfallsdato: 03.09.2023
+Utført: 14.08.2023
+Reg.nr: BR 67285   Km-stand: 152 340
+Skift av bremseklosser foran       2 100,00
+Arbeid 1,5 t                       1 350,00
+Sum eks. mva                       2 760,00
+Mva 25 %                             690,00
+Å betale                       kr  3 450,00`;
+  const r = tolkKvitteringstekst(tekst, new Date(2026, 9, 10));
+  assert.equal(r.dato, "2023-08-14");
+  assert.equal(r.kilometerstand, 152340);
+  assert.equal(r.kostnad, 3450);
+  assert.equal(r.utfort_av, "Bilxtra Verksted Oslo AS");
+  assert.equal(r.komponent, "bremser");
+});
+
+test("kvitteringstekst: uten etiketter brukes første dato og km etter tallet", () => {
+  const r = tolkKvitteringstekst("EU-kontroll godkjent\n28.05.2026\nKjørt 209 000 km\nTotalt kr 1 150,-", new Date(2026, 9, 10));
+  assert.equal(r.dato, "2026-05-28");
+  assert.equal(r.kilometerstand, 209000);
+  assert.equal(r.kostnad, 1150);
+  assert.equal(r.komponent, "eu_kontroll");
+});
+
+test("kvitteringstekst: tom tekst gir bare type", () => {
+  assert.deepEqual(tolkKvitteringstekst(""), { komponent: "service" });
 });

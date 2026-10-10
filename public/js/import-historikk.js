@@ -13,15 +13,16 @@ export const FELTER = {
   notat: "Beskrivelse / notat",
 };
 
-// Overskrifter vi kjenner igjen (små bokstaver, uten tegnsetting)
-const SYNONYMER = {
-  dato: ["dato", "date", "dag", "tidspunkt", "utfort dato", "utført dato", "servicedato", "når"],
-  kilometerstand: ["km", "kilometer", "kilometerstand", "km stand", "kmstand", "km-stand", "odometer", "kjorelengde", "kjørelengde", "mil", "milstand", "mil stand"],
-  kostnad: ["kostnad", "pris", "belop", "beløp", "sum", "total", "totalt", "kr", "nok", "kost", "betalt", "pris kr", "beløp kr"],
-  utfort_av: ["verksted", "utfort av", "utført av", "leverandor", "leverandør", "firma", "sted", "hvem", "mekaniker"],
-  komponent: ["type", "kategori", "hva", "hva er gjort", "tjeneste", "jobb", "del"],
-  notat: ["beskrivelse", "notat", "kommentar", "merknad", "detaljer", "arbeid", "arbeid utfort", "arbeid utført", "tekst", "info"],
-};
+// Overskrifter vi kjenner igjen. Sjekkes i denne rekkefølgen, og delvise treff godtas,
+// slik at «Fakturadato», «Arbeidsnotater», «Totalbeløp» og «Km ved service» også fungerer.
+const MONSTRE = [
+  ["dato", /dato|date|tidspunkt|\bdag\b|\bnår\b|\bnar\b/],
+  ["kilometerstand", /kilometer|\bkm\b|km ?stand|km-|odometer|kjørelengde|kjorelengde|\bmil\b|milstand/],
+  ["kostnad", /kost|pris|beløp|belop|\bsum|total|betal|\bkr\b|\bnok\b|mva|faktura|avgift|gebyr/],
+  ["utfort_av", /verksted|utført av|utfort av|leverandør|leverandor|firma|forhandler|mekaniker|\bsted\b|hvem|butikk|selskap/],
+  ["komponent", /^type$|kategori|hva er gjort|^hva$|tjeneste|^del$|^jobb$|servicetype/],
+  ["notat", /beskriv|notat|kommentar|merknad|detalj|arbeid|tekst|info|jobb|tiltak|utført|utfort|oppdrag/],
+];
 
 const vask = (t) => String(t ?? "").replace(/\ufeff/g, "").toLowerCase().replace(/[()[\].:_]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -29,11 +30,20 @@ const vask = (t) => String(t ?? "").replace(/\ufeff/g, "").toLowerCase().replace
 export function gjettFelt(overskrift) {
   const o = vask(overskrift);
   if (!o) return null;
-  for (const [felt, ord] of Object.entries(SYNONYMER)) if (ord.includes(o)) return felt;
-  // Delvis treff, f.eks. «Kilometerstand ved service» eller «Pris inkl. mva»
-  for (const [felt, ord] of Object.entries(SYNONYMER)) {
-    if (ord.some((s) => s.length >= 3 && o.split(" ").includes(s.split(" ")[0]) && o.startsWith(s.split(" ")[0]))) return felt;
-  }
+  for (const [felt, monster] of MONSTRE) if (monster.test(o)) return felt;
+  return null;
+}
+
+/** Gjetter felt ut fra innholdet i en kolonne når overskriften ikke sier noe. */
+export function gjettFeltFraInnhold(verdier) {
+  const fylte = verdier.filter((v) => v != null && String(v).trim() !== "");
+  if (fylte.length < 1) return null;
+  const andel = (fn) => fylte.filter(fn).length / fylte.length;
+  if (andel((v) => tolkDato(v) != null) >= 0.6) return "dato";
+  if (andel((v) => /kr|nok|,-/i.test(String(v)) && tolkTall(v) != null) >= 0.6) return "kostnad";
+  if (andel((v) => /km|mil/i.test(String(v)) && tolkTall(v) != null) >= 0.6) return "kilometerstand";
+  const snittLengde = fylte.reduce((n, v) => n + String(v).length, 0) / fylte.length;
+  if (andel((v) => tolkTall(v) == null) >= 0.8 && snittLengde >= 12) return "notat";
   return null;
 }
 
@@ -55,7 +65,17 @@ export function finnKobling(rader) {
     const treff = unik.filter(Boolean).length;
     if (treff > best.treff) best = { overskriftRad: i, kobling: unik, treff };
   });
-  return { overskriftRad: best.overskriftRad, kobling: best.kobling };
+
+  // Kolonner uten kjent overskrift: se på innholdet
+  const data = rader.slice(best.overskriftRad + 1);
+  const bredde = Math.max(best.kobling.length, ...data.map((r) => r?.length ?? 0));
+  const kobling = Array.from({ length: bredde }, (_, i) => best.kobling[i] ?? null);
+  for (let i = 0; i < bredde; i++) {
+    if (kobling[i]) continue;
+    const felt = gjettFeltFraInnhold(data.map((r) => r?.[i]));
+    if (felt && !kobling.includes(felt)) kobling[i] = felt;
+  }
+  return { overskriftRad: best.overskriftRad, kobling };
 }
 
 /**
@@ -98,16 +118,23 @@ export function tolkDato(v, idag = new Date()) {
 export function tolkTall(v) {
   if (v == null || v === "") return null;
   if (typeof v === "number") return isFinite(v) ? v : null;
-  let t = String(v).replace(/[\s  ]/g, "").replace(/(kr|nok|km|mil|,-|\.-)$/i, "").replace(/^(kr|nok)/i, "");
-  if (!/\d/.test(t) || /[^\d.,-]/.test(t)) return null;
+  const tekst = String(v).replace(/[\u00a0\u202f]/g, " ");
+  // Finn første tall i teksten, med mellomrom, punktum eller komma som skilletegn
+  const funn = tekst.match(/-?\d(?:[\d .,]*\d)?/);
+  if (!funn) return null;
+  // «12.03.2023» og lignende er en dato, ikke et tall
+  if (/^\d{1,2}[./]\d{1,2}[./]\d{2,4}$/.test(funn[0].trim())) return null;
+  let t = funn[0].replace(/ /g, "");
   const sisteKomma = t.lastIndexOf(","), sistePunktum = t.lastIndexOf(".");
   if (sisteKomma >= 0 && sistePunktum >= 0) {
     // Den som kommer sist er desimalskilletegnet
     t = sisteKomma > sistePunktum ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
   } else if (sisteKomma >= 0) {
-    t = /^\d{1,3}(,\d{3})+$/.test(t) && !/,\d{1,2}$/.test(t) ? t.replace(/,/g, "") : t.replace(",", ".");
+    t = /^\d{1,3}(,\d{3})+$/.test(t) ? t.replace(/,/g, "") : t.replace(/,(?=.*,)/g, "").replace(",", ".");
   } else if (/^\d{1,3}(\.\d{3})+$/.test(t)) {
     t = t.replace(/\./g, ""); // 4.850 = fire tusen åtte hundre og femti
+  } else {
+    t = t.replace(/\.(?=.*\.)/g, "");
   }
   const n = Number(t);
   return isFinite(n) ? n : null;
@@ -147,6 +174,11 @@ export function raderTilForslag(rader, { overskriftRad, kobling }, overskrifter 
       const kostnad = tolkTall(verdi(rad, "kostnad"));
       const typeTekst = tekst(verdi(rad, "komponent"));
       const notat = tekst(verdi(rad, "notat"));
+      // Kolonner som ikke er koblet til noe felt legges i notatet, så ingenting går tapt
+      const ekstra = overskrifter
+        .map((o, i) => (kobling[i] ? null : [tekst(o), tekst(rad[i])]))
+        .filter((x) => x && x[1] !== "")
+        .map(([o, v]) => (o ? `${o}: ${v}` : v));
       return {
         dato: tolkDato(verdi(rad, "dato")),
         komponent: gjettKomponent(typeTekst, typeTekst ? "" : notat),
@@ -154,7 +186,7 @@ export function raderTilForslag(rader, { overskriftRad, kobling }, overskrifter 
         kostnad: kostnad == null ? null : Math.round(kostnad * 100) / 100,
         utfort_av: tekst(verdi(rad, "utfort_av")).slice(0, 100) || null,
         // Typeteksten tas med i notatet hvis den sier mer enn typen vi gjettet
-        notat: [typeTekst && gjettKomponent(typeTekst) === "annet" ? typeTekst : "", notat]
+        notat: [typeTekst && gjettKomponent(typeTekst) === "annet" ? typeTekst : "", notat, ...ekstra]
           .filter(Boolean).join(" – ").slice(0, 1000) || null,
       };
     });
@@ -167,4 +199,74 @@ export function erDublett(forslag, eksisterende) {
     e.dato === forslag.dato &&
     (e.komponent === forslag.komponent ||
       (e.kilometerstand != null && e.kilometerstand === forslag.kilometerstand)));
+}
+
+// ---------------------------------------------------------------------------
+// Tekst fra kvitteringer og serviceordrer (PDF med tekst)
+// ---------------------------------------------------------------------------
+
+const DATO = String.raw`(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})`;
+const TALL = String.raw`(-?\d[\d . ]*(?:[,.]\d{1,2})?)`;
+
+/**
+ * Finner dato, kilometerstand, beløp, verksted og type i teksten fra en kvittering.
+ * Bare felt som faktisk ble funnet er med i svaret.
+ * @param {string} tekst
+ * @returns {{ dato?: string, kilometerstand?: number, kostnad?: number, utfort_av?: string, komponent: string }}
+ */
+export function tolkKvitteringstekst(tekst, idag = new Date()) {
+  const linjer = String(tekst ?? "").split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const alt = linjer.join("\n");
+  const svar = { komponent: gjettKomponent(alt) };
+
+  // Dato: foretrekk når arbeidet ble utført, deretter ordre-/fakturadato. Forfallsdato brukes aldri.
+  const datoEtiketter = [/utført|utfort|arbeidsdato|levert|servicedato|kontrolldato/i, /ordredato|ordre/i, /fakturadato|faktura|kvittering/i, /dato/i];
+  finnDato: for (const etikett of datoEtiketter) {
+    for (const l of linjer) {
+      if (/forfall/i.test(l) || !etikett.test(l)) continue;
+      const m = l.match(new RegExp(DATO));
+      const d = m && tolkDato(m[1], idag);
+      if (d) { svar.dato = d; break finnDato; }
+    }
+  }
+  if (!svar.dato) {
+    for (const l of linjer) {
+      if (/forfall/i.test(l)) continue;
+      for (const m of l.matchAll(new RegExp(DATO, "g"))) {
+        const d = tolkDato(m[1], idag);
+        if (d) { svar.dato = d; break; }
+      }
+      if (svar.dato) break;
+    }
+  }
+
+  // Kilometerstand: «Km-stand: 152 340», «Kilometerstand 152340», «152 340 km», «Mil: 15 234»
+  const kmKandidater = [];
+  for (const l of linjer) {
+    const etikett = l.match(new RegExp(String.raw`(kilometerstand|km[- ]?stand|kjørelengde|kjorelengde|\bkm\b|\bmil(?:stand)?\b)[^\d\n]{0,15}` + TALL, "i"));
+    if (etikett) kmKandidater.push(tolkTall(etikett[2]) * (/^mil/i.test(etikett[1]) ? 10 : 1));
+    const etter = l.match(new RegExp(TALL + String.raw`\s*km\b`, "i"));
+    if (etter) kmKandidater.push(tolkTall(etter[1]));
+  }
+  const km = kmKandidater.find((n) => n != null && n >= 100 && n <= 2_000_000);
+  if (km != null) svar.kilometerstand = Math.round(km);
+
+  // Beløp: «Å betale» er sikrest, ellers største beløp ved «Total», «Sum» eller «Beløp»
+  const belop = (monster) => linjer
+    .filter((l) => monster.test(l) && !/mva-grunnlag|grunnlag|rabatt|forfall|konto|kid/i.test(l))
+    .map((l) => {
+      const etter = l.slice(l.search(monster));
+      const tall = [...etter.matchAll(new RegExp(TALL, "g"))].map((m) => tolkTall(m[1])).filter((n) => n != null && n > 0);
+      return tall.length ? tall[tall.length - 1] : null;
+    })
+    .filter((n) => n != null && n < 10_000_000);
+  const aBetale = belop(/å betale|a betale|til betaling|betalt/i);
+  const totaler = aBetale.length ? aBetale : belop(/total|\bsum\b|beløp|belop/i);
+  if (totaler.length) svar.kostnad = Math.round(Math.max(...totaler) * 100) / 100;
+
+  // Verksted: firmanavn øverst på dokumentet («… AS»)
+  const firma = linjer.slice(0, 15).find((l) => /\b(AS|ASA|ANS|DA|ENK|SA)\b/.test(l) && l.length <= 60 && !/org|mva|konto/i.test(l));
+  if (firma) svar.utfort_av = firma.slice(0, 100);
+
+  return svar;
 }
