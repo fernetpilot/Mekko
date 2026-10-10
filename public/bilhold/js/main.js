@@ -86,7 +86,38 @@ for (const lenke of document.querySelectorAll('a.glasskort, .hotspot')) {
   });
 }
 // Når man kommer tilbake med "tilbake"-knappen skal siden ikke stå uskarp
-window.addEventListener('pageshow', () => document.body.classList.remove('forlater'));
+window.addEventListener('pageshow', () => {
+  document.body.classList.remove('forlater');
+  if (rot.classList.contains('til-innlogging')) {
+    rot.classList.remove('til-innlogging');
+    scene?.settModus(iKalkulator ? 'kalkulator' : 'scroll');
+    aktivIndeks = -1;
+    vedScroll();
+  }
+});
+
+// ---------- Innlogging: kameraet zoomer inn på sjiraffen før vi bytter side ----------
+// Innloggingssiden har det samme sjiraffhodet som bakgrunn, så overgangen blir sømløs.
+const redusertBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.addEventListener('click', (e) => {
+  const lenke = e.target.closest('a[data-logg-inn]');
+  if (!lenke || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  if (!scene || redusertBevegelse) return;          // vanlig lenke
+  e.preventDefault();
+  visSkilt(false);
+  rot.classList.add('til-innlogging');
+  rot.dataset.theme = 'dark';
+  scene.settTema('dark');
+  // Bytt side når kameraet er framme (eller etter litt, hvis telefonen er treg)
+  let gatt = false;
+  const videre = () => {
+    if (gatt || !rot.classList.contains('til-innlogging')) return;
+    gatt = true;
+    window.location.href = lenke.href;
+  };
+  scene.zoomTilSjiraff().then(videre);
+  setTimeout(videre, 2500);
+});
 
 // ---------- Tilhengeren: hover/berøring og kalkulator-modus ----------
 const canvas = document.getElementById('scene');
@@ -163,7 +194,10 @@ function apneKalkulator({ historikk = true } = {}) {
   requestAnimationFrame(() => rot.classList.add('kalkulator-modus'));
   header.classList.remove('skjult');
   if (historikk) history.pushState({ kalkulator: true }, '', '#kalkulator');
-  setTimeout(() => document.getElementById('kalk-bil').focus({ preventScroll: true }), 1100);
+  // Tastaturet på mobil ville dekket vogntoget, så bare fokuser med mus/tastatur
+  if (!window.matchMedia('(pointer: coarse)').matches) {
+    setTimeout(() => document.getElementById('last-bil').focus({ preventScroll: true }), 1100);
+  }
 }
 
 function lukkKalkulator({ historikk = true } = {}) {
@@ -196,7 +230,10 @@ toppKnapp?.addEventListener('click', (e) => {
 });
 if (location.hash === '#kalkulator') apneKalkulator({ historikk: false });
 
-// ---------- Selve kalkulatoren: samme førerkortregler som /kalkulator ----------
+// ---------- Selve kalkulatoren: oppslag på skilt (lastkalkulator.js) ----------
+import('./lastkalkulator.js');
+
+// ---------- Rask førerkort-sjekk med vekter fra vognkortet ----------
 const { sjekkForerkort } = await import('/js/beregning.js');
 const feltBil = document.getElementById('kalk-bil');
 const feltHenger = document.getElementById('kalk-henger');

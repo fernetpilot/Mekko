@@ -109,6 +109,7 @@ export function lagTilhenger() {
   return {
     gruppe,
     skiltpunkt,
+    sjiraffHode: sjiraff.hode,
     oppdater({ strekning, tid, hover, blink = 0 }) {
       for (const h of hjul) h.rotation.x = strekning / HJULRADIUS;
       kasse.position.y = Math.sin(strekning * 1.1 + 1) * 0.008;
@@ -124,7 +125,8 @@ export function lagTilhenger() {
 }
 
 // Stilisert sjiraff som ser framover (+z). Nakken vugger rolig fra side til side.
-function lagSjiraff() {
+// Brukes også alene som bakgrunn på innloggingssiden (sjiraff-bakgrunn.js).
+export function lagSjiraff() {
   const gruppe = new THREE.Group();
   const pels = new THREE.MeshStandardMaterial({ map: lagFlekktekstur(), roughness: 0.85 });
   const lys = new THREE.MeshStandardMaterial({ color: 0xe1b866, roughness: 0.85 });
@@ -189,8 +191,14 @@ function lagSjiraff() {
     oye.position.set(s * 0.087, 0.03, 0.12);
   }
 
+  // Punkt midt på hodet, som kameraet zoomer inn på før innlogging
+  const hodepunkt = new THREE.Object3D();
+  hodepunkt.position.set(0, 0.02, 0.12);
+  hodeledd.add(hodepunkt);
+
   return {
     gruppe,
+    hode: hodepunkt,
     oppdater(tid) {
       // Rolig, nesten umerkelig bevegelse
       nakkeledd.rotation.z = Math.sin(tid * 0.55) * 0.09;
@@ -231,4 +239,13 @@ function lagFlekktekstur() {
   tekstur.wrapS = tekstur.wrapT = THREE.RepeatWrapping;
   tekstur.repeat.set(2, 2);
   return tekstur;
+}
+
+// Kameraet rett foran sjiraffhodet, brukt både når forsiden zoomer inn og som bakgrunn
+// på innloggingssiden, så de to bildene blir like. Hodet havner ca. 30 % fra toppen.
+export function sjiraffKamera(hodePos, aspekt, fov, utPos, utMal) {
+  const avstand = aspekt < 1 ? 1.05 : 1.35;
+  const halvHoyde = avstand * Math.tan(THREE.MathUtils.degToRad(fov) / 2);
+  utPos.set(hodePos.x, hodePos.y + 0.03, hodePos.z + avstand);
+  utMal.set(hodePos.x, hodePos.y - halvHoyde * 0.4, hodePos.z);
 }

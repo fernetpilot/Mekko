@@ -255,3 +255,20 @@ details summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
 }
 .datablokk dt { color: var(--tekst-dempet); }
 .datablokk dd { margin: 0; text-align: right; font-weight: 500; overflow-wrap: anywhere; }
+
+/* ---------- Sjiraffhodet bak innloggingen ---------- */
+@view-transition { navigation: auto; }
+.sjiraff-bakgrunn {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 400ms;
+}
+html.uten-sjiraff .sjiraff-bakgrunn { opacity: 0; }
+main { position: relative; z-index: 1; }
+/* Gi plass til hodet øverst, så skjemaet ligger under det */
+#innlogging { padding-top: 36vh; }
+#innlogging .kort { background: rgba(10, 11, 13, 0.55); }

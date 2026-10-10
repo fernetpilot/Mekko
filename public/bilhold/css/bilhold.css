@@ -631,19 +631,6 @@ html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
     0 0 30px color-mix(in srgb, var(--status) 18%, transparent);
 }
 
-.kalk-full {
-  display: flex;
-  justify-content: center;
-  margin: 18px 0 0;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: var(--tekst);
-  color: var(--bg);
-  font-weight: 600;
-  font-size: 15px;
-  text-decoration: none;
-  text-align: center;
-}
 .kalk-ansvar { margin: 16px 0 0; font-size: 12px; line-height: 1.5; color: var(--tekst-dempet); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -743,3 +730,102 @@ html:not(.innlogget) .topp-meny .profil { display: none; }
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
+
+/* ---------- Overgang til innlogging (kameraet zoomer inn på sjiraffen) ---------- */
+html.til-innlogging { overflow: hidden; }
+html.til-innlogging main,
+html.til-innlogging .topp,
+html.til-innlogging .kalk-panel,
+html.til-innlogging .styrelinjer,
+html.til-innlogging .hotspot,
+html.til-innlogging .eksempeldata,
+html.til-innlogging .tilhenger-skilt {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 450ms;
+}
+
+/* ---------- Lastkalkulator (skiltoppslag) i tilhenger-visningen ---------- */
+.glassfelt input[type="text"] { text-transform: uppercase; }
+.glassfelt input[type="text"]::placeholder { text-transform: none; }
+fieldset.glassfelt { display: block; margin: 0; min-width: 0; }
+.valgfelt legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+.segment { display: flex; gap: 6px; clear: both; }
+.segment label { flex: 1; position: relative; }
+.segment input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.segment span {
+  display: block;
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-kant);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--tekst-dempet);
+  transition: background 200ms, color 200ms;
+}
+.segment input:checked + span { background: var(--tekst); color: var(--bg); border-color: var(--tekst); }
+.segment input:focus-visible + span { outline: 2px solid rgba(156, 200, 255, 0.8); outline-offset: 2px; }
+.hjelpetekst { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--tekst-dempet); }
+details.hjelpetekst summary { cursor: pointer; color: var(--tekst); font-weight: 600; }
+details.hjelpetekst p { margin: 6px 0 0; }
+#last-brems.mangler { border-color: #ff3b30; box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.25); }
+.kalk-knapp {
+  margin-top: 4px;
+  padding: 15px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--tekst);
+  color: var(--bg);
+  font: 700 16px var(--font);
+  cursor: pointer;
+}
+.kalk-knapp:disabled { opacity: 0.6; cursor: wait; }
+.kalk-feil {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 59, 48, 0.14);
+  border: 1px solid rgba(255, 59, 48, 0.45);
+  font-size: 14px;
+}
+.last-resultat { display: grid; gap: 10px; margin-top: 16px; scroll-margin-top: 12px; }
+.resultatkort .hovedtall { margin: 2px 0 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+.resultatkort .hovedtall.mindre { font-size: 28px; }
+.hovedtall.ok { color: #34c759; }
+.hovedtall.ingen { color: #ff3b30; }
+.begrenser-pille {
+  justify-self: start;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(156, 200, 255, 0.16);
+  color: #9cc8ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.grenser { list-style: none; margin: 8px 0 0; padding: 0; }
+.grenser li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--glass-kant); }
+.grenser li.begrenser { margin: 0 -8px; padding: 10px 8px; border: 0; border-radius: 12px; background: rgba(156, 200, 255, 0.12); }
+.grenser li.begrenser .grense-navn::after { content: " ← begrenser"; color: #9cc8ff; }
+.grense-navn { margin: 0; font-weight: 600; font-size: 15px; }
+.grense-verdi { margin: 0; font-weight: 700; white-space: nowrap; }
+.last-resultat .logg-inn-cta.liten { justify-self: center; text-align: center; }
+.kalk-manuelt { margin-top: 18px; }
+.kalk-manuelt summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tekst-dempet);
+}
+.kalk-manuelt .kalk-resultat { margin-bottom: 4px; }
+.kalk-panel [hidden] { display: none !important; }

@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { lagTilhenger } from './tilhenger.js';
+import { lagTilhenger, sjiraffKamera } from './tilhenger.js';
 
 const FARTKMT = 60;
 const FART = FARTKMT / 3.6;              // meter per sekund
@@ -87,7 +87,12 @@ export function lagScene(canvas) {
   const onsketPos = new THREE.Vector3();
   const onsketMal = new THREE.Vector3();
   const aktivitet = { motor: 0, bremser: 0, dekk: 0 };
-  let modus = 'scroll';              // 'scroll' eller 'kalkulator'
+  let modus = 'scroll';              // 'scroll', 'kalkulator' eller 'sjiraff' (på vei til innlogging)
+  let sjiraffT = 0;                  // 0..1, hvor langt kameraet har zoomet inn på sjiraffen
+  const sjiraffPos = new THREE.Vector3();
+  const sjiraffMal = new THREE.Vector3();
+  const hodePos = new THREE.Vector3();
+  let vedSjiraff = null;             // kalles når kameraet er helt inne ved sjiraffen
   let kalkBlend = 0;                 // 0 = scroll-kamera, 1 = kalkulator-kamera
   let hoverMal = 0;
   let hover = 0;
@@ -167,7 +172,17 @@ export function lagScene(canvas) {
     onsketPos.lerp(kalkPos, b);
     onsketPos.y += Math.sin(Math.PI * b) * 2.5;           // løftes litt på veien ut til siden
     onsketMal.lerp(kalkMal, b);
-    if (kalkBlend > 0 && kalkBlend < 1) {
+    // Innlogging: kameraet flyr inn til sjiraffhodet, som ser rett på deg
+    sjiraffT = THREE.MathUtils.clamp(sjiraffT + (modus === 'sjiraff' ? dt / 1.3 : -dt / 0.8), 0, 1);
+    const sj = kurve(sjiraffT);
+    if (sjiraffT === 1 && vedSjiraff) { vedSjiraff(); vedSjiraff = null; }
+    if (sjiraffT > 0) {
+      tilhenger.sjiraffHode.getWorldPosition(hodePos);
+      sjiraffKamera(hodePos, window.innerWidth / window.innerHeight, baseFov, sjiraffPos, sjiraffMal);
+      onsketPos.lerp(sjiraffPos, sj);
+      onsketMal.lerp(sjiraffMal, sj);
+    }
+    if ((kalkBlend > 0 && kalkBlend < 1) || sjiraffT > 0) {
       kamPos.copy(onsketPos);                             // følger kurven direkte under overgangen
       kamMal.copy(onsketMal);
     } else {
@@ -181,6 +196,9 @@ export function lagScene(canvas) {
     // Tåken trekkes bakover når kameraet står langt unna
     scene.fog.near = 18 + kalkBlend * 22;
     scene.fog.far = 60 + kalkBlend * 50;
+    // ... og trekkes helt inn rundt sjiraffen, så bare hodet står igjen mot mørk bakgrunn
+    scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1.2, sj);
+    scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, 6, sj);
 
     // Kjøring
     const fart = redusertBevegelse ? FART * 0.15 : FART;
@@ -221,7 +239,12 @@ export function lagScene(canvas) {
   const peker = new THREE.Vector2();
   return {
     settFremdrift(p) { fremdrift = p; },
-    settModus(m) { modus = m === 'kalkulator' ? 'kalkulator' : 'scroll'; },
+    settModus(m) { modus = ['kalkulator', 'sjiraff'].includes(m) ? m : 'scroll'; },
+    // Zoomer inn på sjiraffhodet og svarer når kameraet er framme
+    zoomTilSjiraff() {
+      modus = 'sjiraff';
+      return new Promise((ferdig) => { vedSjiraff = ferdig; });
+    },
     settHover(on) { hoverMal = on ? 1 : 0; },
     // Treffer et punkt på skjermen (px) hengeren eller sjiraffen?
     treffTilhenger(x, y) {
