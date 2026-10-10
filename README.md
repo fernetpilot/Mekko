@@ -1,4 +1,4 @@
-# Mekko
+# Mekko0
 
 Kalkulator for maks last på tilhenger i Norge – viser om det er førerkortet, bilen eller
 hengeren som begrenser. Data fra Statens vegvesens kjøretøy-API.
