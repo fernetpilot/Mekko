@@ -18,7 +18,7 @@ const SPORVIDDE = 0.82;                  // avstand fra midten til hjulsenter
 // Bil + tilhenger + sjiraff, brukt til å ramme inn kalkulator-visningen
 const VOGNTOG = { midtZ: -1.8, lengde: 10.2, hoyde: 3.4, midtY: 1.5 };
 // Bare bilen, brukt når man åpner «bilen din» (innlogget)
-const BILRAMME = { midtZ: 0.03, lengde: 5.0, hoyde: 2.4, midtY: 1.15 };
+const BILRAMME = { midtZ: 0.03, lengde: 5.9, hoyde: 2.4, midtY: 1.15 };
 const VEIKANT_NAER_X = 1.9 + 7.5 / 2;    // veikanten nærmest kameraet i kalkulator-modus (se lagOmgivelser)
 
 const STATUSFARGER = {
