@@ -14,6 +14,7 @@ const STIL = {
   bremsevaeske: { ikon: "💧", gruppe: "bremse" },
   bremseklosser: { ikon: "🛑", gruppe: "bremse" },
   luftfilter: { ikon: "🌬️", gruppe: "filter" },
+  pollenfilter: { ikon: "🌼", gruppe: "filter" },
   registerreim: { ikon: "🔗", gruppe: "motor" },
   "ekstra-service": { ikon: "🧰", gruppe: "annet" },
   "annet-arbeid": { ikon: "📝", gruppe: "annet" },

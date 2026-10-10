@@ -553,3 +553,9 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .historikk .punkt-rad { flex: 1 1 100%; order: 3; }
 .punkt-rad .bekreft { width: auto; margin: 0; padding: 8px 12px; font-size: 0.95rem; justify-self: start; }
 .punkt-rad .punkt-knapp { font-size: 0.95rem; }
+
+/* Registrering: vanlige deler først, resten under «Flere deler» */
+#servicepunkt-valg { display: grid; gap: 10px; }
+.punkt-flere { width: 100%; }
+.punkt-flere summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 1rem; color: var(--tekst-dempet); padding: 6px 0; }
+.punkt-flere .punkt-valg { margin-top: 6px; }

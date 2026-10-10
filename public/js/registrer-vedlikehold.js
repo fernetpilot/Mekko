@@ -2,7 +2,7 @@
 import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
-import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { gjettServicepunkter, alleServicepunkter, utvidDeler, VANLIGE_SERVICEDELER } from "./servicepunkt-gjetting.js";
 import { stilFor } from "./punktstil.js";
 
 const $ = (id) => document.getElementById(id);
@@ -72,7 +72,11 @@ valg.addEventListener("change", visKmHint);
 
 // Servicepunkt: vises for service og oljeskift. Foreløpig bare for LR3 2.7 TDV6.
 const punktBeholder = $("servicepunkt-valg");
-for (const p of alleServicepunkter()) {
+const alle = alleServicepunkter();
+const vanligeListe = VANLIGE_SERVICEDELER.map((id) => alle.find((p) => p.id === id)).filter(Boolean);
+const flereListe = alle.filter((p) => !VANLIGE_SERVICEDELER.includes(p.id));
+
+function lagAvkrysning(p) {
   const stil = stilFor(p.id);
   const lab = document.createElement("label");
   lab.className = `punkt-chip gruppe-${stil.gruppe}`;
@@ -89,8 +93,23 @@ for (const p of alleServicepunkter()) {
     }
   });
   lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
-  punktBeholder.append(lab);
+  return lab;
 }
+
+// Vanlige deler øverst, resten under «Flere deler»
+const vanlige = document.createElement("div");
+vanlige.className = "punkt-valg punkt-vanlige";
+vanlige.append(...vanligeListe.map(lagAvkrysning));
+const flere = document.createElement("details");
+flere.className = "punkt-flere";
+const flereSum = document.createElement("summary");
+flereSum.textContent = "Flere deler";
+flere.append(flereSum);
+const flereBeholder = document.createElement("div");
+flereBeholder.className = "punkt-valg";
+flereBeholder.append(...flereListe.map(lagAvkrysning));
+flere.append(flereBeholder);
+punktBeholder.append(vanlige, flere);
 const valgteDeler = () => [...punktBeholder.querySelectorAll("input:checked")].map((i) => i.value);
 function visServicepunkt() {
   const komp = skjema.komponent.value;

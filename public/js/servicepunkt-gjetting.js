@@ -6,8 +6,18 @@ import { SLITASJE_PUNKTER } from "./slitasje.js";
 
 // Valg uten intervall. Brukes når besøket ikke passer et fast punkt.
 export const ANDRE_PUNKTER = [
+  { id: "pollenfilter", navn: "Pollenfilter" },
   { id: "ekstra-service", navn: "Ekstra service" },
   { id: "annet-arbeid", navn: "Annet" },
+];
+
+// Det som oftest byttes ved service. Vises øverst på registreringen.
+export const VANLIGE_SERVICEDELER = [
+  "motorolje",
+  "oljefilter",
+  "bremseklosser",
+  "luftfilter",
+  "pollenfilter",
 ];
 
 /** Alle servicepunkter som kan velges, med norsk navn. */

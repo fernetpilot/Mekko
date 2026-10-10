@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "../public/js/servicepunkt-gjetting.js";
+import { gjettServicepunkter, alleServicepunkter, utvidDeler, VANLIGE_SERVICEDELER } from "../public/js/servicepunkt-gjetting.js";
 
 const likt = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
 
@@ -63,4 +63,10 @@ test("ekstra service og annet kan velges, men gir ingen intervall", () => {
 test("ekstra service alene gir ekstra service, men ikke når faste deler finnes", () => {
   likt(gjettServicepunkter("bremser", "Type service: Ekstra Service, bremseklosser"), ["bremseklosser"]);
   likt(gjettServicepunkter("service", "Ekstra Service"), ["ekstra-service"]);
+});
+
+test("vanlige servicedeler finnes i valgene, og pollenfilter er med", () => {
+  const id = alleServicepunkter().map((p) => p.id);
+  for (const v of VANLIGE_SERVICEDELER) assert.ok(id.includes(v), v);
+  assert.ok(id.includes("pollenfilter"));
 });
