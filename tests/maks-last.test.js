@@ -114,6 +114,24 @@ test("klasse B96: samlet vekt over 4 250 kg gir null", () => {
   assert.ok(res.forklaring[0].includes("4250"));
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: BT98997 (GLA 180) med DV1249, klasse B96.
+// Med brems 855 kg, uten brems 370 kg.
+test("B96: GLA 180 med DV1249 gir 855 kg med brems", () => {
+  const bil = { tillattTotalvekt: 1940, tillattTilhengervektMedBrems: 1200, tillattTilhengervektUtenBrems: 715 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "B96");
+  assert.equal(res.maksLast, 855);
+  assert.equal(res.begrensning, "bil");
+});
+
+test("B96: GLA 180 med DV1249 gir 370 kg uten brems", () => {
+  const bil = { tillattTotalvekt: 1940, tillattTilhengervektMedBrems: 1200, tillattTilhengervektUtenBrems: 715 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "B96", { medBrems: false });
+  assert.equal(res.maksLast, 370);
+  assert.equal(res.begrensning, "bil");
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
