@@ -40,11 +40,12 @@ body {
   background: linear-gradient(to bottom, var(--bg), transparent);
 }
 .logo {
+  /* Samme logo som forsiden (bilhold.css) */
   color: var(--tekst);
   text-decoration: none;
-  font-weight: 800;
-  letter-spacing: 0.18em;
+  font-weight: 700;
   font-size: 15px;
+  letter-spacing: 0.42em;
 }
 .topp-knapp, a.topp-knapp {
   text-decoration: none;
