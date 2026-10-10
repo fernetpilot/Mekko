@@ -109,14 +109,16 @@ export function lagTilhenger() {
   return {
     gruppe,
     skiltpunkt,
-    oppdater({ strekning, tid, hover }) {
+    oppdater({ strekning, tid, hover, blink = 0 }) {
       for (const h of hjul) h.rotation.x = strekning / HJULRADIUS;
       kasse.position.y = Math.sin(strekning * 1.1 + 1) * 0.008;
       kasse.rotation.z = Math.sin(strekning * 0.45 + 0.6) * 0.005;
       sjiraff.oppdater(tid);
       const puls = 0.8 + 0.2 * Math.sin(tid * 3);
       solv.emissive.copy(glod).multiplyScalar(hover * 0.28 * puls);
-      ramme.material.opacity = hover * 0.85;
+      // Sakte blink (ca. 3,5 s per runde) når det er slått på, ellers styrt av hover
+      const blinkNivå = blink * Math.max(0, Math.sin((tid * Math.PI * 2) / 3.5)) * 0.75;
+      ramme.material.opacity = Math.max(hover * 0.85, blinkNivå);
     },
   };
 }

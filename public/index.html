@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b0d">
   <title>Mekkoo – full kontroll på bilen</title>
-  <!-- Innlogging kreves: uten lagret innlogging sendes brukeren rett til innloggingssiden.
-       Sjekken er synkron, så forsiden ikke blinker før omdirigeringen. -->
+  <!-- Forsiden er åpen for alle. Er brukeren logget inn, vises varsler og profilmeny,
+       ellers en «Logg inn»-knapp. Sjekken er synkron, så headeren ikke blinker. -->
   <script>
     try {
-      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
-        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
+      if (localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
+        document.documentElement.classList.add("innlogget");
       }
-    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+    } catch (e) { /* lagring blokkert: vis som utlogget */ }
   </script>
   <link rel="stylesheet" href="bilhold/css/bilhold.css">
   <!-- Three.js lastes fra CDN, så vi trenger ikke noe byggesteg -->
@@ -31,6 +31,7 @@
     <a class="logo" href="/">MEKKOO</a>
     <nav class="topp-meny">
       <a class="topp-knapp" href="/kalkulator"><span class="tekst-lang">Tilhengerkalkulator</span><span class="tekst-kort">Kalkulator</span> <span aria-hidden="true">→</span></a>
+      <a class="topp-knapp logg-inn-knapp" href="/min-side?neste=%2F" data-logg-inn>Logg inn</a>
       <div class="profil">
         <button class="topp-knapp ikon" id="varsel-knapp" type="button"
                 aria-label="Varsler" aria-haspopup="true" aria-expanded="false" aria-controls="varsel-panel">
@@ -83,6 +84,7 @@
         <p class="overline">Bilhold og vedlikehold</p>
         <h1>Full kontroll på din Land Rover</h1>
         <p class="ingress">Service, bremser og dekk – samlet på ett sted.</p>
+        <a class="logg-inn-cta" href="/min-side?neste=%2F&amp;modus=ny-konto" data-logg-inn>Opprett gratis konto <span aria-hidden="true">→</span></a>
       </div>
       <div class="scroll-hint" aria-hidden="true"><span></span></div>
     </section>
@@ -98,6 +100,7 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få påminnelse om oljeskift for din bil – logg inn <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="seksjon" data-theme="light" data-del="bremser">
@@ -111,6 +114,7 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få beskjed før bremsene må sjekkes – logg inn <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="seksjon" data-theme="light" data-del="dekk">
@@ -124,6 +128,7 @@
         </span>
         <span class="kort-pil" aria-hidden="true">›</span>
       </a>
+      <a class="logg-inn-cta liten" href="/min-side?neste=%2F" data-logg-inn>Få varsel når det er tid for dekkskift – logg inn <span aria-hidden="true">→</span></a>
     </section>
   </main>
 

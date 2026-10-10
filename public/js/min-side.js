@@ -35,6 +35,8 @@ function settModus(ny) {
 }
 $("fane-logg-inn").addEventListener("click", () => settModus("logg-inn"));
 $("fane-ny-konto").addEventListener("click", () => settModus("ny-konto"));
+// Lenker fra forsiden kan åpne rett på «Opprett konto» med ?modus=ny-konto
+if (new URLSearchParams(location.search).get("modus") === "ny-konto") settModus("ny-konto");
 
 /** Gjør Supabase-feil om til forståelig norsk. */
 function feilTekst(error) {

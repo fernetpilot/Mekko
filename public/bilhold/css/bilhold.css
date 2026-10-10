@@ -706,3 +706,40 @@ html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 14px rgba(0, 0, 0, 0.55);
 }
+
+/* ---------- Logg inn: forsiden er åpen, men inviterer til innlogging ---------- */
+html.innlogget [data-logg-inn] { display: none !important; }
+html:not(.innlogget) .topp-meny .profil { display: none; }
+.logg-inn-knapp {
+  background: var(--glass);
+  color: var(--tekst);
+  border: 1px solid var(--glass-kant);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.logg-inn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--tekst);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  pointer-events: auto;
+}
+.logg-inn-cta.liten {
+  align-self: center;
+  margin-top: 12px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--glass);
+  color: var(--tekst);
+  border: 1px solid var(--glass-kant);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}

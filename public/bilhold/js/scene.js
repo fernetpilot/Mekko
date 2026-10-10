@@ -69,6 +69,7 @@ export function lagScene(canvas) {
   sol.shadow.mapSize.set(2048, 2048);
   Object.assign(sol.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
   sol.shadow.bias = -0.0005;
+  sol.shadow.normalBias = 0.02;
   scene.add(sol);
 
   const omgivelser = lagOmgivelser(scene);
@@ -96,6 +97,7 @@ export function lagScene(canvas) {
   let kalkSenterAndel = 0.2;         // hvor høyt på skjermen bilen står i kalkulator-modus
   let kalkBunnPx = 0;
   const redusertBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const beroring = window.matchMedia('(pointer: coarse)').matches;
 
   function tilpassStorrelse() {
     const b = window.innerWidth;
@@ -186,7 +188,9 @@ export function lagScene(canvas) {
     omgivelser.oppdater(veistrekning);
     for (const hjul of bil.hjul) hjul.rotation.x = veistrekning / HJULRADIUS;
     hover = THREE.MathUtils.damp(hover, modus === 'scroll' ? hoverMal : 0, 10, dt);
-    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover });
+    // På mobil blinker en tynn kant rundt hengeren sakte, så man skjønner at den kan trykkes på
+    const blink = beroring && modus === 'scroll' ? THREE.MathUtils.clamp(1 - fremdrift * 2, 0, 1) : 0;
+    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover, blink });
     // Litt liv i karosseriet
     bil.karosseri.position.y = Math.sin(veistrekning * 1.3) * 0.006 + Math.sin(veistrekning * 0.37) * 0.008;
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
@@ -392,8 +396,9 @@ function lagBil() {
   // Mørk innerskjerm i hjulbuene
   for (const s of [-1, 1]) {
     for (const [a, b] of [fremreBue, bakreBue]) {
-      boks(0.02, BUE_TOPP - 0.48, b - a, plast, s * (MIDT_B / 2 + 0.01), (BUE_TOPP + 0.48) / 2, (a + b) / 2);
-      boks(sideB, 0.02, b - a, plast, s * sideX, BUE_TOPP - 0.01, (a + b) / 2);
+      // Litt luft til karosseriflatene, ellers flimrer de mot hverandre (z-fighting)
+      boks(0.01, BUE_TOPP - 0.5, b - a - 0.01, plast, s * (MIDT_B / 2 + 0.012), (BUE_TOPP + 0.48) / 2, (a + b) / 2);
+      boks(sideB - 0.01, 0.01, b - a - 0.01, plast, s * sideX, BUE_TOPP - 0.012, (a + b) / 2);
     }
   }
   // Frontpanel med grill
