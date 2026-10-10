@@ -109,6 +109,16 @@
       margin-bottom: 16px;
     }
     .hidden { display: none; }
+    .hjelp {
+      background: #f5f6f8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    .hjelp p { margin: 0 0 6px; }
+    .hjelp p:last-child { margin-bottom: 0; }
+    #brems-felt.mangler { outline: 2px solid var(--feil); outline-offset: 6px; border-radius: 4px; }
     footer { max-width: 560px; margin: 0 auto; padding: 8px 16px 32px; font-size: 0.85rem; color: var(--dempet); }
   </style>
 </head>
@@ -136,13 +146,17 @@
           <option value="BE">BE (tilhenger opptil 3 500 kg)</option>
         </select>
 
-        <fieldset>
+        <fieldset id="brems-felt">
           <legend>Har hengeren brems?</legend>
-          <div class="valg">
-            <label><input type="radio" name="brems" value="ja" checked> Ja</label>
-            <label><input type="radio" name="brems" value="nei"> Nei</label>
+          <div class="hjelp">
+            <p><strong>Slik ser du det:</strong> Har hengeren brems, sitter det vanligvis en plastbelg rett bak hengerhodet (koblingen), der draget går inn i hengeren. Mangler belgen, er hengeren sannsynligvis uten brems.</p>
+            <p>Er du usikker, sjekk hengeren fysisk eller spør eieren.</p>
           </div>
-          <p class="notat">Hengere over 750 kg må ha brems, og da settes dette automatisk.</p>
+          <div class="valg">
+            <label><input type="radio" name="brems" value="ja"> Ja, hengeren har brems</label>
+            <label><input type="radio" name="brems" value="nei"> Nei, uten brems</label>
+          </div>
+          <p class="notat">Hengere over 750 kg må ha brems. Da trenger vi ikke svaret ditt.</p>
         </fieldset>
 
         <button id="knapp" type="submit">Beregn maks last</button>
@@ -279,6 +293,7 @@
     skjema.addEventListener("submit", async (e) => {
       e.preventDefault();
       feilBoks.classList.add("hidden");
+      document.getElementById("brems-felt").classList.remove("hidden");
       knapp.disabled = true;
       knapp.textContent = "Henter opplysninger …";
 
@@ -286,7 +301,7 @@
         const bilSkilt = rens(document.getElementById("bil").value);
         const hengerSkilt = rens(document.getElementById("henger").value);
         const forerkort = document.getElementById("forerkort").value;
-        const brukerSierBrems = document.querySelector('input[name="brems"]:checked').value === "ja";
+        const valgtBrems = document.querySelector('input[name="brems"]:checked')?.value;
 
         const [bil, henger] = await Promise.all([slaOpp(bilSkilt), slaOpp(hengerSkilt)]);
 
@@ -296,8 +311,15 @@
         const bilVekter = bil.vekter;
         const bilFaktiskVekt = (bilVekter.egenvekt ?? 0) + FORER_VEKT_KG;
         const hengerErTung = (henger.vekter.tillattTotalvekt ?? 0) > LETT_HENGER_GRENSE;
-        // Hengere over 750 kg må ha brems. Lettere hengere følger valget til brukeren.
-        const harBrems = hengerErTung ? true : brukerSierBrems;
+        const bremsFelt = document.getElementById("brems-felt");
+        // Hengere over 750 kg må ha brems, så da spør vi ikke. Lettere hengere må svares på.
+        bremsFelt.classList.toggle("hidden", hengerErTung);
+        if (!hengerErTung && !valgtBrems) {
+          bremsFelt.classList.add("mangler");
+          throw new Error("Svar på om hengeren har brems. Se beskrivelsen under spørsmålet.");
+        }
+        bremsFelt.classList.remove("mangler");
+        const harBrems = hengerErTung ? true : valgtBrems === "ja";
 
         const res = beregnMaksLast({
           bil: bilVekter,
