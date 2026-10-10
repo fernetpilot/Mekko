@@ -6,6 +6,7 @@ import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
+import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -220,7 +221,7 @@ async function lastBiler() {
   const liste = $("biler");
   const { data: biler, error } = await supabase
     .from("biler")
-    .select("*, vedlikehold(*, dokumenter(id))")
+    .select("*, vedlikehold(*, dokumenter(id)), utsettelser(*)")
     .order("opprettet")
     .order("dato", { referencedTable: "vedlikehold", ascending: false });
 
@@ -288,6 +289,9 @@ function tegnBil(bil) {
     serviceUl.append(li);
   }
 
+  // Slitasjedeler: bremser, luftfilter og dekk
+  tegnSlitasje(node, bil);
+
   // Historikk
   const hendelser = bil.vedlikehold ?? [];
   node.querySelector(".antall").textContent = hendelser.length ? `(${hendelser.length})` : "";
@@ -315,6 +319,88 @@ function tegnBil(bil) {
   });
 
   return node;
+}
+
+function span(klasse, tekst) {
+  const el = document.createElement("span");
+  el.className = klasse;
+  el.textContent = tekst;
+  return el;
+}
+
+function stolpe(kmIgjen, kmIntervall) {
+  const andel = Math.max(0, Math.min(1, kmIgjen / kmIntervall));
+  const el = document.createElement("div");
+  el.className = "stolpe";
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", `${Math.round(andel * 100)} prosent igjen`);
+  const fyll = document.createElement("div");
+  fyll.className = "fyll";
+  fyll.style.width = `${Math.round(andel * 100)}%`;
+  el.append(fyll);
+  return el;
+}
+
+function tegnSlitasje(node, bil) {
+  const ul = node.querySelector(".slitasjeliste");
+  const kmNaa = bil.kilometerstand ?? null;
+  const linjer = slitasjeLinjer({
+    bil,
+    rader: bil.vedlikehold ?? [],
+    utsettelser: bil.utsettelser ?? [],
+    kmNaa,
+    idag: new Date(),
+  });
+  for (const l of linjer) {
+    const li = document.createElement("li");
+    li.className = `servicelinje ${l.status}`;
+    li.append(span("navn", l.navn), span("status", l.label));
+    if (l.frist) li.append(span("frist", l.frist));
+    if (l.kmIgjen != null && l.kmIntervall) {
+      li.append(stolpe(l.kmIgjen, l.kmIntervall), span("km-igjen", l.kmIgjen > 0 ? `${formaterKm(l.kmIgjen)} igjen` : `${formaterKm(-l.kmIgjen)} over`));
+    }
+    if (l.kanUtsette) {
+      const knapp = document.createElement("button");
+      knapp.type = "button";
+      knapp.className = "knapp sekundaer utsett";
+      knapp.textContent = l.utsettTekst;
+      knapp.addEventListener("click", () => utsett(bil, l.id, kmNaa));
+      li.append(knapp);
+    }
+    ul.append(li);
+  }
+
+  const skjema = node.querySelector(".dekk-skjema");
+  skjema.dekk_type.value = bil.dekk_type ?? "sommer";
+  skjema.dekk_montert.value = bil.dekk_montert ?? "";
+  skjema.dekk_mm.value = bil.dekk_mm ?? "";
+  skjema.addEventListener("submit", (e) => lagreDekk(e, bil));
+}
+
+async function utsett(bil, punktId, kmNaa) {
+  if (punktId === "bremseklosser" && kmNaa == null) {
+    return alert("Legg inn kilometerstanden på bilen først, så vi vet når vi skal minne deg på igjen.");
+  }
+  const rad = utsettelseFor(punktId, { kmNaa, idag: new Date().toISOString().slice(0, 10) });
+  if (!rad) return;
+  const { error } = await supabase.from("utsettelser").insert({ ...rad, bil_id: bil.id });
+  if (error) return alert("Kunne ikke utsette. Prøv igjen.");
+  lastBiler();
+}
+
+async function lagreDekk(e, bil) {
+  e.preventDefault();
+  const f = e.currentTarget;
+  const mm = f.dekk_mm.value === "" ? null : Number(f.dekk_mm.value);
+  const endring = {
+    dekk_type: f.dekk_type.value,
+    dekk_montert: f.dekk_montert.value || null,
+    dekk_mm: mm,
+  };
+  if (mm != null) endring.dekk_maalt = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase.from("biler").update(endring).eq("id", bil.id);
+  if (error) return alert("Kunne ikke lagre dekkene. Prøv igjen.");
+  lastBiler();
 }
 
 async function visKjoretoydata(skilt, mal) {
