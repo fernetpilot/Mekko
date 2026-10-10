@@ -77,3 +77,27 @@ test("rader uten servicepunkt hoppes over", () => {
   assert.deepEqual(sisteUtfortPerPunkt([{ servicepunkt: null, dato: "2025-01-01", kilometerstand: 1 }]), {});
   assert.deepEqual(sisteUtfortPerPunkt(null), {});
 });
+
+import { servicelinjer } from "../public/js/servicevarsler.js";
+import { punkterFor } from "../public/js/servicepunkter.js";
+
+test("servicelinjer viser status og frist per punkt", () => {
+  const linjer = servicelinjer(
+    [OLJE, { id: "bremsevaeske", navn: "Bremsevæske", kmIntervall: null, manederIntervall: 60 }],
+    [{ servicepunkt: "motorolje", dato: "2025-01-01", kilometerstand: 100000 }],
+    109500,
+    idag,
+  );
+  assert.equal(linjer[0].status, "snart");
+  assert.equal(linjer[0].label, "Snart");
+  assert.match(linjer[0].frist, /110 000 km/);
+  assert.equal(linjer[1].status, "ukjent");
+  assert.equal(linjer[1].label, "Ingen registrering ennå");
+  assert.equal(linjer[1].frist, "");
+});
+
+test("punkterFor gir bare punkter for Discovery 3", () => {
+  assert.equal(punkterFor({ modell: "DISCOVERY 3" }).length, LR3_2_7_TDV6.length);
+  assert.deepEqual(punkterFor({ modell: "GLA 180" }), []);
+  assert.deepEqual(punkterFor(null), []);
+});

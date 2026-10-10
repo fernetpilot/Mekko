@@ -3,7 +3,7 @@
 
 import { beregnServicefrist, fmtDato, fmtKm } from "./service.js";
 
-function fristTekst(res) {
+export function fristTekst(res) {
   const deler = [];
   if (res.neste?.dato) deler.push(fmtDato(res.neste.dato));
   if (res.neste?.km != null) deler.push(`innen ${fmtKm(res.neste.km)} km`);
@@ -59,4 +59,30 @@ export function sisteUtfortPerPunkt(rader) {
     if (nyere) siste[r.servicepunkt] = { dato: r.dato, km: r.kilometerstand ?? null };
   }
   return siste;
+}
+
+const STATUS_TEKST = {
+  ok: "OK",
+  snart: "Snart",
+  forfalt: "Bør gjøres",
+  ukjent: "Ingen registrering ennå",
+};
+
+/**
+ * Servicestatus per punkt, klar til visning på «Mine biler».
+ * @returns {Array<{id: string, navn: string, status: string, label: string, frist: string}>}
+ */
+export function servicelinjer(punkter, rader, kmNaa = null, idag = new Date()) {
+  const iDag = idag.toISOString().slice(0, 10);
+  const siste = sisteUtfortPerPunkt(rader);
+  return punkter.map((punkt) => {
+    const res = beregnServicefrist({ punkt, sist: siste[punkt.id] ?? null, idag: iDag, kmNaa });
+    return {
+      id: punkt.id,
+      navn: punkt.navn,
+      status: res.status,
+      label: STATUS_TEKST[res.status],
+      frist: res.status === "ukjent" ? "" : fristTekst(res),
+    };
+  });
 }
