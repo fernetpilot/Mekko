@@ -263,6 +263,15 @@ test("klasse B96: Crafter med tilhenger F1336 gir null", () => {
   assert.equal(res.begrensning, "forerkort");
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: Crafter med tilhenger F1336 (1300 kg), klasse B.
+test("klasse B: Crafter med tilhenger F1336 gir null", () => {
+  const bil = { tillattTotalvekt: 3500, tillattTilhengervektMedBrems: 3000, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1300, egenvekt: 580 };
+  const res = beregnMaksLast(bil, henger, "B");
+  assert.equal(res.maksLast, null);
+  assert.equal(res.begrensning, "forerkort");
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
