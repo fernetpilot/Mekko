@@ -653,3 +653,49 @@ html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
 .glassfelt input::-webkit-outer-spin-button,
 .glassfelt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .glassfelt input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ---------- Varsler (bjelle) ---------- */
+.topp-knapp.ikon { position: relative; }
+.varsel-teller {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--sjekk);
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.varsel-teller.kritisk { background: var(--kritisk); color: #fff; }
+.varsel-teller[hidden] { display: none; }
+.varsel-panel { min-width: 280px; max-width: calc(100vw - 32px); }
+.varsel-liste { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.varsel-tom { padding: 8px 10px 10px; font-size: 14px; color: var(--tekst-dempet); line-height: 1.4; }
+.varsel {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--glass);
+  border-left: 4px solid var(--sjekk);
+  color: var(--tekst);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.varsel span { color: var(--tekst-dempet); }
+.varsel-kritisk { border-left-color: var(--kritisk); }
+.varsel:focus-visible { outline: 2px solid var(--tekst); outline-offset: 1px; }
+
+/* Kortere knappetekst på smale skjermer, så alt får plass i headeren */
+.tekst-kort { display: none; }
+@media (max-width: 420px) {
+  .tekst-lang { display: none; }
+  .tekst-kort { display: inline; }
+}
