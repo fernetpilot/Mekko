@@ -699,3 +699,10 @@ html.kalkulator-modus .kalk-panel { transform: none; visibility: visible; }
   .tekst-lang { display: none; }
   .tekst-kort { display: inline; }
 }
+
+/* «03 · Dekk og hjul» ligger over et mørkt parti av bilen: hvit tekst med mørk skygge for kontrast */
+.seksjon[data-del="dekk"] .seksjon-tittel {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 14px rgba(0, 0, 0, 0.55);
+}
