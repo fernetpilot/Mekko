@@ -4,9 +4,19 @@
 import { LR3_2_7_TDV6 } from "./servicepunkter.js";
 import { SLITASJE_PUNKTER } from "./slitasje.js";
 
+// Valg uten intervall. Brukes når besøket ikke passer et fast punkt.
+export const ANDRE_PUNKTER = [
+  { id: "ekstra-service", navn: "Ekstra service" },
+  { id: "annet-arbeid", navn: "Annet" },
+];
+
 /** Alle servicepunkter som kan velges, med norsk navn. */
 export function alleServicepunkter() {
-  return [...LR3_2_7_TDV6, ...SLITASJE_PUNKTER].map((p) => ({ id: p.id, navn: p.navn }));
+  return [
+    ...LR3_2_7_TDV6,
+    ...SLITASJE_PUNKTER,
+    ...ANDRE_PUNKTER,
+  ].map((p) => ({ id: p.id, navn: p.navn }));
 }
 
 const vask = (s) => String(s ?? "").toLowerCase();
@@ -54,5 +64,7 @@ export function gjettServicepunkter(komponent, tekst) {
   }
   if (/olje/.test(t) && (komponent === "motor" || komponent === "service")) funnet.push("motorolje");
   if (komponent === "motor" && funnet.length === 0) funnet.push("motorolje");
+  // «Ekstra service» alene er bare en merkelapp, så det tas bare når ingen av de faste delene er funnet
+  if (funnet.length === 0 && /ekstra service/.test(vask(tekst))) return ["ekstra-service"];
   return utvidDeler(funnet);
 }

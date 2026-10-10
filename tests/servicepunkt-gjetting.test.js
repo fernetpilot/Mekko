@@ -53,3 +53,14 @@ test("alle servicepunkter har id og navn", () => {
   assert.ok(liste.length > 10);
   for (const p of liste) assert.ok(p.id && p.navn);
 });
+
+test("ekstra service og annet kan velges, men gir ingen intervall", () => {
+  const id = alleServicepunkter().map((p) => p.id);
+  assert.ok(id.includes("ekstra-service"));
+  assert.ok(id.includes("annet-arbeid"));
+});
+
+test("ekstra service alene gir ekstra service, men ikke når faste deler finnes", () => {
+  likt(gjettServicepunkter("bremser", "Type service: Ekstra Service, bremseklosser"), ["bremseklosser"]);
+  likt(gjettServicepunkter("service", "Ekstra Service"), ["ekstra-service"]);
+});

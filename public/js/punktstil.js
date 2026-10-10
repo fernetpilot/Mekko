@@ -15,6 +15,8 @@ const STIL = {
   bremseklosser: { ikon: "🛑", gruppe: "bremse" },
   luftfilter: { ikon: "🌬️", gruppe: "filter" },
   registerreim: { ikon: "🔗", gruppe: "motor" },
+  "ekstra-service": { ikon: "🧰", gruppe: "annet" },
+  "annet-arbeid": { ikon: "📝", gruppe: "annet" },
 };
 
 /** @returns {{ ikon: string, gruppe: string }} */
