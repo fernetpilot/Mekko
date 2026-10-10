@@ -4,6 +4,8 @@ import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
 import { euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
+import { servicelinjer } from "./servicevarsler.js";
+import { punkterFor } from "./servicepunkter.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -261,6 +263,30 @@ function tegnBil(bil) {
     if (error) return alert("Kunne ikke fjerne bilen. Prøv igjen.");
     lastBiler();
   });
+
+  // Servicestatus (bare for biler med servicepunkter, foreløpig Discovery 3)
+  const serviceUl = node.querySelector(".servicestatus");
+  const punkter = punkterFor(bil);
+  const serviceSeksjon = node.querySelector(".service-status");
+  serviceSeksjon.hidden = punkter.length === 0;
+  for (const l of servicelinjer(punkter, bil.vedlikehold ?? [], bil.kilometerstand ?? null)) {
+    const li = document.createElement("li");
+    li.className = `servicelinje ${l.status}`;
+    const navn = document.createElement("span");
+    navn.className = "navn";
+    navn.textContent = l.navn;
+    const status = document.createElement("span");
+    status.className = "status";
+    status.textContent = l.label;
+    li.append(navn, status);
+    if (l.frist) {
+      const f = document.createElement("span");
+      f.className = "frist";
+      f.textContent = `Neste: ${l.frist}`;
+      li.append(f);
+    }
+    serviceUl.append(li);
+  }
 
   // Historikk
   const hendelser = bil.vedlikehold ?? [];
