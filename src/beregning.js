@@ -11,7 +11,7 @@
 export const SAMLET_GRENSE_B = 3500;
 export const SAMLET_GRENSE_B96 = 4250;
 
-// Tilhengere opp til denne vekten kan føres med klasse B uten samlet grense.
+// Tilhengere med tillatt totalvekt opp til denne vekten kan føres med klasse B uten samlet grense.
 export const TILHENGER_UTEN_SAMLET_GRENSE = 750;
 
 // Klasse BE: tilhenger med tillatt totalvekt opp til denne grensen. Ingen samlet grense.
@@ -65,10 +65,12 @@ const UTEN_BREMS_GRENSE = 750;
 /**
  * Maks last på hengeren, og hvilken grense som begrenser den.
  *
- * Hengerens tillatte totalvekt er begrenset av tre ting: førerkortet, bilens
- * tilhengervekt (med brems, eller uten brems hvis hengeren er 750 kg eller lettere),
- * og hengerens egen tillatte totalvekt. Maks last er det hengeren kan veie totalt,
- * minus hengerens egenvekt.
+ * For klasse B og B96 gjelder samlet grense når hengerens tillatte totalvekt er over 750 kg.
+ * Da må bilens og hengerens tillatte totalvekt til sammen holde seg under grensen, og det
+ * gjelder uansett hvor mye hengeren faktisk lastes. Ellers er maks last begrenset av
+ * bilens tilhengervekt (med brems, eller uten brems hvis hengeren er 750 kg eller lettere),
+ * av hengerens tillatte totalvekt, og for BE av 3 500 kg. Maks last er det hengeren kan
+ * veie totalt, minus hengerens egenvekt.
  *
  * @param {object} bil     Vognkortverdier for bilen (kg):
  *                         tillattTotalvekt, tillattTilhengervektMedBrems, tillattTilhengervektUtenBrems
@@ -78,8 +80,38 @@ const UTEN_BREMS_GRENSE = 750;
  *          maksLast er null hvis hengeren ikke kan trekkes med denne kombinasjonen.
  */
 export function beregnMaksLast(bil, henger, forerkort) {
+  if (!["B", "B96", "BE"].includes(forerkort)) {
+    throw new Error(`Ukjent førerkort: ${forerkort}`);
+  }
+
+  // Bil som ikke er godkjent for tilhenger.
+  if (bil.tillattTilhengervektMedBrems === 0) {
+    return {
+      maksLast: null,
+      begrensning: "bil",
+      forklaring: ["Bilen er ikke godkjent for å trekke tilhenger."],
+    };
+  }
+
+  // Klasse B/B96: samlet grense gjelder når hengeren er over 750 kg.
+  if (forerkort !== "BE") {
+    const samletGrense = forerkort === "B96" ? SAMLET_GRENSE_B96 : SAMLET_GRENSE_B;
+    if (
+      henger.tillattTotalvekt > TILHENGER_UTEN_SAMLET_GRENSE &&
+      bil.tillattTotalvekt + henger.tillattTotalvekt > samletGrense
+    ) {
+      return {
+        maksLast: null,
+        begrensning: "forerkort",
+        forklaring: [
+          `Med klasse ${forerkort} kan summen av bilens og hengerens tillatte totalvekt ikke overstige ${samletGrense} kg når hengeren er over 750 kg.`,
+        ],
+      };
+    }
+  }
+
   const grenser = {
-    forerkort: forerkortMaksTilhenger(forerkort, bil.tillattTotalvekt),
+    forerkort: forerkort === "BE" ? BE_TILHENGER_GRENSE : Infinity,
     bil: bil.tillattTilhengervektMedBrems,
     henger: henger.tillattTotalvekt,
   };
@@ -91,30 +123,27 @@ export function beregnMaksLast(bil, henger, forerkort) {
   }
   let maksTotal = grenser[begrensning];
 
-  // Hengere på 750 kg eller lighter kan trekkes uten brems. Da gjelder bilens grense uten brems.
+  // Hengere på 750 kg eller lettere kan trekkes uten brems. Da gjelder bilens grense uten brems.
   if (maksTotal <= UTEN_BREMS_GRENSE && bil.tillattTilhengervektUtenBrems < maksTotal) {
     maksTotal = bil.tillattTilhengervektUtenBrems;
     begrensning = "bil";
   }
 
   const forklaring = [
-    `Førerkort ${forerkort}: hengeren kan maks være ${grenser.forerkort} kg.`,
     `Bilen: maks tilhengervekt ${bil.tillattTilhengervektMedBrems} kg med brems.`,
     `Hengeren: tillatt totalvekt ${henger.tillattTotalvekt} kg.`,
   ];
 
   const maksLast = maksTotal - henger.egenvekt;
   if (maksLast < 0) {
-    if (begrensning === "bil" && maksTotal === 0) {
-      forklaring.push("Bilen er ikke godkjent for å trekke tilhenger.");
-      return { maksLast: null, begrensning, forklaring };
-    }
     forklaring.push(
       `Hengerens egenvekt (${henger.egenvekt} kg) er større enn ${maksTotal} kg, som er grensen for denne kombinasjonen.`
     );
     return { maksLast: null, begrensning, forklaring };
   }
 
-  forklaring.push(`Begrenset av ${begrensning}: ${maksTotal} kg totalt, minus hengerens egenvekt ${henger.egenvekt} kg.`);
+  forklaring.push(
+    `Begrenset av ${begrensning}: ${maksTotal} kg totalt, minus hengerens egenvekt ${henger.egenvekt} kg.`
+  );
   return { maksLast, begrensning, forklaring };
 }

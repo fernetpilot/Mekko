@@ -69,12 +69,29 @@ test("hengere på 750 kg eller lettere følger bilens grense uten brems", () => 
   assert.equal(res.begrensning, "bil");
 });
 
-test("B96 gir større maks last enn B for samme kombinasjon", () => {
+test("B96 tillater tilhenger som B avviser, når samlet vekt er mellom 3 500 og 4 250 kg", () => {
   const bil = { ...DISCOVERY, tillattTotalvekt: 2000 };
-  const henger = { tillattTotalvekt: 3500, egenvekt: 800 };
-  const b = beregnMaksLast(bil, henger, "B");
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  assert.equal(beregnMaksLast(bil, henger, "B").maksLast, null);
   const b96 = beregnMaksLast(bil, henger, "B96");
-  assert.ok(b96.maksLast > b.maksLast);
+  assert.equal(b96.maksLast, 1655);
+  assert.equal(b96.begrensning, "henger");
+});
+
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: bil 3200 kg med tilhenger 2000 kg, klasse B.
+test("klasse B: samlet vekt over 3 500 kg gir null, selv med lav last", () => {
+  const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 2000, egenvekt: 345 };
+  const res = beregnMaksLast(bil, henger, "B");
+  assert.equal(res.maksLast, null);
+  assert.equal(res.begrensning, "forerkort");
+});
+
+test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
+  const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 700, egenvekt: 300 };
+  const res = beregnMaksLast(bil, henger, "B");
+  assert.equal(res.maksLast, 400);
 });
 
 test("forklaringen nevner begrensende grense", () => {
