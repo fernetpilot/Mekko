@@ -83,6 +83,8 @@ export function servicelinjer(punkter, rader, kmNaa = null, idag = new Date()) {
       status: res.status,
       label: STATUS_TEKST[res.status],
       frist: res.status === "ukjent" ? "" : fristTekst(res),
+      kmIgjen: res.gjenstaar?.km ?? null,
+      kmIntervall: punkt.kmIntervall ?? null,
     };
   });
 }

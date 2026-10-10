@@ -458,6 +458,11 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .servicelinje.forfalt .status { color: #b42318; }
 .servicelinje.ok .status { color: #1a7f37; }
 .servicelinje.ukjent .status { opacity: 0.6; }
+.servicelinje .stolpe { grid-column: 1 / -1; height: 8px; border-radius: 999px; background: var(--glass-kant); overflow: hidden; margin-top: 4px; }
+.servicelinje .stolpe .fyll { height: 100%; background: #1a7f37; border-radius: 999px; }
+.servicelinje.snart .stolpe .fyll { background: #b26a00; }
+.servicelinje.forfalt .stolpe .fyll { background: #b42318; width: 100% !important; }
+.servicelinje .km-igjen { grid-column: 1 / -1; font-size: 0.85rem; opacity: 0.75; }
 
 .pdf-tekst summary { font-size: 13px; color: var(--tekst-dempet); padding: 4px 0; }
 .pdf-tekst pre {
