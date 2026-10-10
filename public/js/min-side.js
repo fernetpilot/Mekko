@@ -7,6 +7,7 @@ import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
+import { alleServicepunkter, gjettServicepunkt } from "./servicepunkt-gjetting.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -487,8 +488,40 @@ function tegnHendelse(h) {
     lastBiler();
   });
 
-  li.append(tekst, slett);
+  li.append(tekst, servicepunktValg(h), slett);
   return li;
+}
+
+// Hva gjelder registreringen? Lagres når du velger, eller når du bekrefter forslaget.
+function servicepunktValg(h) {
+  const wrap = document.createElement("div");
+  wrap.className = "servicepunkt-valg";
+  const gjettet = h.servicepunkt ? null : gjettServicepunkt(h.komponent, h.notat);
+  const navnPå = (id) => alleServicepunkter().find((p) => p.id === id)?.navn ?? id;
+
+  const velg = document.createElement("select");
+  velg.setAttribute("aria-label", "Hva gjelder dette?");
+  velg.append(new Option("Hva gjelder dette?", ""));
+  for (const p of alleServicepunkter()) velg.append(new Option(p.navn, p.id));
+  velg.value = h.servicepunkt ?? "";
+  velg.addEventListener("change", () => lagreServicepunkt(h, velg.value || null));
+  wrap.append(velg);
+
+  if (gjettet) {
+    const knapp = document.createElement("button");
+    knapp.type = "button";
+    knapp.className = "knapp sekundaer bekreft";
+    knapp.textContent = `Bekreft: ${navnPå(gjettet)}`;
+    knapp.addEventListener("click", () => lagreServicepunkt(h, gjettet));
+    wrap.append(knapp);
+  }
+  return wrap;
+}
+
+async function lagreServicepunkt(h, punkt) {
+  const { error } = await supabase.from("vedlikehold").update({ servicepunkt: punkt }).eq("id", h.id);
+  if (error) return alert("Kunne ikke lagre. Prøv igjen.");
+  lastBiler();
 }
 
 // ---------------------------------------------------------------------------

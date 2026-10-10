@@ -4,6 +4,7 @@ import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
 import { LR3_2_7_TDV6 } from "./servicepunkter.js";
 import { SLITASJE_PUNKTER } from "./slitasje.js";
+import { gjettServicepunkt } from "./servicepunkt-gjetting.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -125,6 +126,10 @@ $("filer").addEventListener("change", (e) => {
   tegnValgteFiler();
 });
 
+function rad_notat(skjema) {
+  return skjema.notat.value.trim();
+}
+
 skjema.addEventListener("submit", async (e) => {
   e.preventDefault();
   const tall = (v) => (v === "" ? null : Number(v));
@@ -137,7 +142,9 @@ skjema.addEventListener("submit", async (e) => {
     kostnad: tall(skjema.kostnad.value),
     utfort_av: skjema.utfort_av.value.trim() || null,
     notat: skjema.notat.value.trim() || null,
-    servicepunkt: $("servicepunkt-felt").hidden ? null : (skjema.servicepunkt.value || null),
+    servicepunkt: $("servicepunkt-felt").hidden
+      ? null
+      : (skjema.servicepunkt.value || gjettServicepunkt(skjema.komponent.value, rad_notat(skjema))),
   };
 
   if (valgteFiler.some((f) => erPdf(f) && f.size > MAKS_BYTES)) {
