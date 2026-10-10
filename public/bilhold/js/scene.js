@@ -97,6 +97,7 @@ export function lagScene(canvas) {
   const sidekamera = {};             // { kalkulator: {...}, bil: {...} }
   let bilSkannMal = 0;
   let bilSkann = 0;
+  let bilHover = 0;
   let sjiraffT = 0;                  // 0..1, hvor langt kameraet har zoomet inn på sjiraffen
   const sjiraffPos = new THREE.Vector3();
   const sjiraffMal = new THREE.Vector3();
@@ -241,9 +242,11 @@ export function lagScene(canvas) {
     // På mobil blinker en tynn kant rundt hengeren sakte, så man skjønner at den kan trykkes på
     const blink = beroring && modus === 'scroll' ? THREE.MathUtils.clamp(1 - fremdrift * 2, 0, 1) : 0;
     // Bilen skannes når man peker på den (innlogget), og står gjennomsiktig i bil-visningen
-    bilSkann = THREE.MathUtils.damp(bilSkann, modus === 'bil' ? 1 : modus === 'scroll' ? bilSkannMal : 0, 6, dt);
+    // Samme tempo som når man peker på tilhengeren
+    bilSkann = THREE.MathUtils.damp(bilSkann, modus === 'bil' ? 1 : modus === 'scroll' ? bilSkannMal : 0, 10, dt);
     if (bilSkann < 0.005) bilSkann = 0;
-    bil.skann(bilSkann, klokke.elapsedTime);
+    bilHover = THREE.MathUtils.damp(bilHover, modus === 'scroll' ? bilSkannMal : 0, 10, dt);
+    bil.skann(bilSkann, klokke.elapsedTime, bilHover);
     tilhenger.oppdater({ strekning: veistrekning, hjulvinkel, tid: klokke.elapsedTime, hover, blink });
     // Litt liv i karosseriet
     bil.karosseri.position.y = veiHump(veistrekning);
@@ -551,8 +554,9 @@ function lagBil() {
   }
 
   // Plate i sideprofil (z, y), lagt i planet x = posX
-  const sideplate = (punkter, tykkelse, mat, posX) => {
+  const sideplate = (punkter, tykkelse, mat, posX, hull = []) => {
     const form = new THREE.Shape(punkter.map(([z, y]) => new THREE.Vector2(z, y)));
+    for (const h of hull) form.holes.push(new THREE.Path(h.map(([z, y]) => new THREE.Vector2(z, y))));
     const geo = new THREE.ExtrudeGeometry(form, { depth: tykkelse, bevelEnabled: false });
     const m = new THREE.Mesh(geo, mat);
     m.rotation.y = -Math.PI / 2;            // formens x blir bilens z
@@ -565,15 +569,18 @@ function lagBil() {
   const VINDU_TOPP = 1.84;
   for (const s of [-1, 1]) {
     const ytre = s * (KUPE_B / 2 - 0.01);
-    // Sidevegg fra beltelinjen helt opp til taket
-    sideplate([[BAK, BELTE], [RUTE_FOT.z, BELTE], [RUTE_TOPP.z, TAK_UNDER + 0.01], [BAK, TAK_UNDER + 0.01]], 0.03, solv, ytre);
+    // Vindusåpningene (z, y): fordør (følger frontruta), bakdør og bakre sidevindu
+    const vinduer = [
+      [[0.0, VINDU_FOT], [aStolpeZ(VINDU_FOT) - 0.06, VINDU_FOT], [aStolpeZ(VINDU_TOPP) - 0.06, VINDU_TOPP], [0.0, VINDU_TOPP]],
+      [[-1.0, VINDU_FOT], [-0.1, VINDU_FOT], [-0.1, VINDU_TOPP], [-1.0, VINDU_TOPP]],
+      [[BAK + 0.12, VINDU_FOT], [-1.1, VINDU_FOT], [-1.1, VINDU_TOPP], [BAK + 0.12, VINDU_TOPP]],
+    ];
+    // Sidevegg fra beltelinjen helt opp til taket, med hull der vinduene er (så man ser inn når glasset blir klart)
+    sideplate([[BAK, BELTE], [RUTE_FOT.z, BELTE], [RUTE_TOPP.z, TAK_UNDER + 0.01], [BAK, TAK_UNDER + 0.01]], 0.03, solv, ytre, vinduer);
     // Hevet tak bak: veggen fortsetter opp
     sideplate([[BAK, TAK_UNDER], [TRINN_Z, TAK_UNDER], [TRINN_Z, TAK_UNDER + 0.15], [BAK, TAK_UNDER + 0.15]], 0.03, solv, ytre);
     const glassX = ytre + s * 0.02;
-    // Fordør (følger frontruta), bakdør og bakre sidevindu
-    sideplate([[0.0, VINDU_FOT], [aStolpeZ(VINDU_FOT) - 0.06, VINDU_FOT], [aStolpeZ(VINDU_TOPP) - 0.06, VINDU_TOPP], [0.0, VINDU_TOPP]], 0.01, glass, glassX);
-    sideplate([[-1.0, VINDU_FOT], [-0.1, VINDU_FOT], [-0.1, VINDU_TOPP], [-1.0, VINDU_TOPP]], 0.01, glass, glassX);
-    sideplate([[BAK + 0.12, VINDU_FOT], [-1.1, VINDU_FOT], [-1.1, VINDU_TOPP], [BAK + 0.12, VINDU_TOPP]], 0.01, glass, glassX);
+    for (const v of vinduer) sideplate(v, 0.01, glass, glassX);
     // Alpine-vinduer i det hevede taket
     sideplate([[BAK + 0.2, TAK_UNDER + 0.03], [TRINN_Z - 0.12, TAK_UNDER + 0.03], [TRINN_Z - 0.12, TAK_UNDER + 0.12], [BAK + 0.2, TAK_UNDER + 0.12]], 0.01, glass, glassX);
     // Speil
@@ -670,17 +677,17 @@ function lagBil() {
     m.castShadow = false;
     return m;
   };
-  iboks(KUPE_B - 0.16, 0.24, 0.32, dashMat, 0, 1.12, 0.5);                  // dashbord
+  iboks(KUPE_B - 0.16, 0.2, 0.28, dashMat, 0, 1.08, 0.34);                  // dashbord (holder seg bak frontruta)
   for (const sx of [-1, 1]) {
-    iboks(0.5, 0.14, 0.5, skinn, sx * 0.42, 0.78, -0.22);                  // forsete
-    iboks(0.48, 0.66, 0.12, skinn, sx * 0.42, 1.12, -0.5, -0.12);          // ryggstø
-    iboks(0.26, 0.14, 0.1, skinn, sx * 0.42, 1.52, -0.55, -0.12);          // nakkestøtte
+    iboks(0.5, 0.14, 0.5, skinn, sx * 0.42, 0.78, -0.14);                  // forsete
+    iboks(0.48, 0.66, 0.12, skinn, sx * 0.42, 1.12, -0.42, -0.12);          // ryggstø
+    iboks(0.26, 0.14, 0.1, skinn, sx * 0.42, 1.52, -0.47, -0.12);          // nakkestøtte
   }
   iboks(1.4, 0.14, 0.5, skinn, 0, 0.8, -1.3);                              // baksete
   iboks(1.4, 0.6, 0.12, skinn, 0, 1.13, -1.58, -0.1);
   // Ratt på venstre side (førersiden i Norge; bilens venstre er +x)
   const ratt = new THREE.Group();
-  ratt.position.set(0.42, 1.3, 0.34);
+  ratt.position.set(0.42, 1.3, 0.2);
   ratt.rotation.x = -1.05;
   interior.add(ratt);
   const rattring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.022, 8, 28), dashMat);
@@ -700,7 +707,7 @@ function lagBil() {
   // Sjåføren: en mindre sjiraff i førersetet
   const sjafor = lagSjiraff();
   sjafor.gruppe.scale.setScalar(0.48);
-  sjafor.gruppe.position.set(0.42, 0.47, -0.22);
+  sjafor.gruppe.position.set(0.42, 0.47, -0.14);
   interior.add(sjafor.gruppe);
 
   // Skanning: en lysende flate som glir over bilen og en tynn ramme rundt
@@ -730,8 +737,11 @@ function lagBil() {
   }
 
   // styrke 0..1: hvor gjennomsiktig glasset er og hvor synlig skanningen er
-  function skann(styrke, tid) {
-    glass.opacity = 1 - styrke * 0.8;
+  const glod = new THREE.Color(0x9cc8ff);
+  function skann(styrke, tid, hover = 0) {
+    glass.opacity = 1 - styrke * 0.9;
+    glass.metalness = 0.9 - styrke * 0.8;              // mindre speiling, så man ser inn
+    solv.emissive.copy(glod).multiplyScalar(hover * 0.14 * (0.8 + 0.2 * Math.sin(tid * 3)));
     glass.depthWrite = styrke < 0.05;
     interior.visible = styrke > 0.02;
     if (interior.visible) sjafor.oppdater(tid + 3);

@@ -179,16 +179,19 @@ function visSkilt(vis) {
 }
 function visBil(vis) {
   clearTimeout(bilSkjulTimer);
+  bilSkjulTimer = null;
   if (vis && !innlogget()) vis = false;
   bilVises = vis;
   rot.classList.toggle('bil-skannes', vis);
   oppdaterPeker();
   scene?.settBilSkann(vis);
 }
-// Skjul knappene litt forsinket, så man rekker å flytte musa fra bilen til en knapp
+// Skanningen slukker med en gang, som på tilhengeren. Knappene blir et øyeblikk til,
+// så man rekker å flytte musa fra bilen til en knapp.
 function skjulBilSnart() {
-  clearTimeout(bilSkjulTimer);
-  bilSkjulTimer = setTimeout(() => visBil(false), 650);
+  if (bilSkjulTimer) return;
+  scene?.settBilSkann(false);
+  bilSkjulTimer = setTimeout(() => visBil(false), 250);
 }
 function oppdaterPeker() { canvas.classList.toggle('peker', skiltVises || bilVises); }
 
@@ -213,11 +216,11 @@ if (scene) requestAnimationFrame(plasserSkilt);
 // Seksjonene slipper gjennom pekeren, så vi lytter på hele vinduet
 window.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse' || !kanPeke()) return;
-  if (e.target.closest('.bil-svev, #bil-skilt')) { clearTimeout(bilSkjulTimer); return; }
+  if (e.target.closest('.bil-svev, #bil-skilt')) { if (bilVises) visBil(true); return; }
   if (e.target.closest('a, button, .kalk-panel')) return;
   const hva = scene.treff(e.clientX, e.clientY);
   visSkilt(hva === 'tilhenger');
-  if (hva === 'bil' && innlogget()) visBil(true);
+  if (hva === 'bil' && innlogget()) { if (!bilVises || bilSkjulTimer) visBil(true); }
   else if (bilVises) skjulBilSnart();
 });
 
@@ -255,10 +258,10 @@ window.addEventListener('scroll', () => {
 skilt.addEventListener('click', () => apneSide('kalkulator'));
 bilSkilt.addEventListener('click', () => apneSide('bil'));
 for (const k of bilKnapper) {
-  k.addEventListener('pointerenter', () => clearTimeout(bilSkjulTimer));
+  k.addEventListener('pointerenter', () => { if (bilVises) visBil(true); });
   k.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') skjulBilSnart(); });
 }
-bilSkilt.addEventListener('pointerenter', () => clearTimeout(bilSkjulTimer));
+bilSkilt.addEventListener('pointerenter', () => { if (bilVises) visBil(true); });
 bilSkilt.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') skjulBilSnart(); });
 
 function apneSide(navn, { historikk = true } = {}) {
