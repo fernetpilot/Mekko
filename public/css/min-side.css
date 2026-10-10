@@ -332,3 +332,21 @@ main { position: relative; z-index: 1; }
 .pdf-ikon { display: grid; place-items: center; font-weight: 700; color: var(--kritisk); }
 .vedlegg-navn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tekst-dempet); }
 .vedlegg-antall { color: var(--tekst-dempet); }
+
+/* Tilbake-knapp øverst på Mine biler */
+.tilbake {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 12px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tilbake span { font-size: 22px; line-height: 0.8; }
+.tilbake:active { transform: scale(0.97); }
