@@ -69,3 +69,13 @@ export function beregnServicefrist({ punkt, sist, idag, kmNaa = null }) {
     gjenstaar: { dager: datoFrist?.dagerIgjen ?? null, km: kmFrist?.kmIgjen ?? null },
   };
 }
+
+// Lesbar kortform av en dato og et km-tall, for varselteksten.
+export function fmtDato(iso) {
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+export function fmtKm(n) {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
