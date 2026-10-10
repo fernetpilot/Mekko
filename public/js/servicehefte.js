@@ -1,7 +1,7 @@
 // Servicehefte for én bil: historikk med dokumentasjon, og nedlasting som PDF.
 import { supabase } from "./supabase.js";
 import { KOMPONENT_NAVN, formaterDato, formaterKm } from "./bilstatus.js";
-import { BUCKET, signerteLenker } from "./dokumenter.js";
+import { BUCKET, signerteLenker, slettFilerForVedlikehold } from "./dokumenter.js";
 import { lagServiceheftePdf } from "./servicehefte-pdf.js";
 
 const $ = (id) => document.getElementById(id);
@@ -87,7 +87,13 @@ async function tegnTidslinje() {
       h.utfort_av && `Utført av ${h.utfort_av}`,
     ].filter(Boolean).join(" · ");
 
-    li.append(dato, tittel, detaljer);
+    const slett = document.createElement("button");
+    slett.type = "button";
+    slett.className = "ikon-knapp slett-hendelse";
+    slett.setAttribute("aria-label", `Slett ${tittel.textContent} ${dato.textContent}`);
+    slett.textContent = "✕";
+    slett.addEventListener("click", () => slettHendelse(h));
+    li.append(slett, dato, tittel, detaljer);
     if (h.notat) {
       const notat = document.createElement("p");
       notat.className = "notat";
@@ -121,12 +127,55 @@ async function tegnTidslinje() {
         navn.className = "vedlegg-navn";
         navn.textContent = d.filnavn;
         a.append(navn);
-        liste.append(a);
+        const boks = document.createElement("div");
+        boks.className = "vedlegg-boks";
+        const fjern = document.createElement("button");
+        fjern.type = "button";
+        fjern.className = "slett-vedlegg";
+        fjern.setAttribute("aria-label", `Slett vedlegget ${d.filnavn}`);
+        fjern.textContent = "✕";
+        fjern.addEventListener("click", () => slettVedlegg(h, d));
+        boks.append(a, fjern);
+        liste.append(boks);
       }
       li.append(liste);
     }
     return li;
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Sletting
+// ---------------------------------------------------------------------------
+async function slettHendelse(h) {
+  const antall = h.dokumenter?.length ?? 0;
+  const navn = `${KOMPONENT_NAVN[h.komponent] ?? h.komponent} ${formaterDato(h.dato)}`;
+  if (!confirm(antall ? `Slette «${navn}» og ${antall} vedlegg?` : `Slette «${navn}»?`)) return;
+  try {
+    await slettFilerForVedlikehold(supabase, [h.id]);
+    const { error } = await supabase.from("vedlikehold").delete().eq("id", h.id);
+    if (error) throw error;
+    hendelser = hendelser.filter((x) => x !== h);
+    melding("Hendelsen er slettet.", "ok");
+    await tegnTidslinje();
+  } catch {
+    melding("Kunne ikke slette. Prøv igjen.", "feil");
+  }
+}
+
+async function slettVedlegg(h, d) {
+  if (!confirm(`Slette vedlegget «${d.filnavn}»?`)) return;
+  try {
+    const { error: lagringsfeil } = await supabase.storage.from(BUCKET).remove([d.filsti]);
+    if (lagringsfeil) throw lagringsfeil;
+    const { error } = await supabase.from("dokumenter").delete().eq("id", d.id);
+    if (error) throw error;
+    h.dokumenter = h.dokumenter.filter((x) => x !== d);
+    melding("Vedlegget er slettet.", "ok");
+    await tegnTidslinje();
+  } catch {
+    melding("Kunne ikke slette vedlegget. Prøv igjen.", "feil");
+  }
 }
 
 // ---------------------------------------------------------------------------

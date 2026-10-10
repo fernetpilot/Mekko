@@ -4,11 +4,13 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { lagTilhenger, sjiraffKamera } from './tilhenger.js';
+import { lagTilhenger, sjiraffKamera, veiHump } from './tilhenger.js';
 
 const FARTKMT = 60;
 const FART = FARTKMT / 3.6;              // meter per sekund
 const HJULRADIUS = 0.39;
+// Lakk: varm, litt gulaktig grå, som mange Discovery 2. Hengeren bruker samme farge.
+const LAKK = 0xbdb9ac;
 const FORAKSEL_Z = 1.32;
 const BAKAKSEL_Z = -1.22;
 const SPORVIDDE = 0.82;                  // avstand fra midten til hjulsenter
@@ -159,6 +161,10 @@ export function lagScene(canvas) {
 
   const klokke = new THREE.Clock();
   let veistrekning = 0;
+  // Hjulene snurrer saktere enn farten tilsier. Ekte fart (ca. 7 omdreininger i sekundet) gir
+  // samme effekt som i film: eikene og dekkmønsteret ser ut til å hakke og stå stille.
+  let hjulvinkel = 0;
+  const HJUL_OMDR_PER_SEK = 0.7;
 
   function tegn() {
     const dt = Math.min(klokke.getDelta(), 0.05);
@@ -204,13 +210,14 @@ export function lagScene(canvas) {
     const fart = redusertBevegelse ? FART * 0.15 : FART;
     veistrekning += fart * dt;
     omgivelser.oppdater(veistrekning);
-    for (const hjul of bil.hjul) hjul.rotation.x = veistrekning / HJULRADIUS;
+    hjulvinkel += dt * Math.PI * 2 * HJUL_OMDR_PER_SEK * (redusertBevegelse ? 0.3 : 1);
+    for (const hjul of bil.hjul) hjul.rotation.x = hjulvinkel;
     hover = THREE.MathUtils.damp(hover, modus === 'scroll' ? hoverMal : 0, 10, dt);
     // På mobil blinker en tynn kant rundt hengeren sakte, så man skjønner at den kan trykkes på
     const blink = beroring && modus === 'scroll' ? THREE.MathUtils.clamp(1 - fremdrift * 2, 0, 1) : 0;
-    tilhenger.oppdater({ strekning: veistrekning, tid: klokke.elapsedTime, hover, blink });
+    tilhenger.oppdater({ strekning: veistrekning, hjulvinkel, tid: klokke.elapsedTime, hover, blink });
     // Litt liv i karosseriet
-    bil.karosseri.position.y = Math.sin(veistrekning * 1.3) * 0.006 + Math.sin(veistrekning * 0.37) * 0.008;
+    bil.karosseri.position.y = veiHump(veistrekning);
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
 
     // Hvor aktiv hver seksjon er (1 når den er midt på skjermen)
@@ -240,6 +247,8 @@ export function lagScene(canvas) {
   return {
     settFremdrift(p) { fremdrift = p; },
     settModus(m) { modus = ['kalkulator', 'sjiraff'].includes(m) ? m : 'scroll'; },
+    // Hvor langt sjiraffen er kommet i bevegelsen sin (sekunder), så innloggingssiden kan fortsette der
+    sjiraffTid() { return klokke.elapsedTime; },
     // Zoomer inn på sjiraffhodet og svarer når kameraet er framme
     zoomTilSjiraff() {
       modus = 'sjiraff';
@@ -374,7 +383,7 @@ function lagBil() {
   const karosseri = new THREE.Group();
   gruppe.add(karosseri);
 
-  const solv = new THREE.MeshStandardMaterial({ color: 0xbfc3c8, metalness: 0.85, roughness: 0.28 });
+  const solv = new THREE.MeshStandardMaterial({ color: LAKK, metalness: 0.75, roughness: 0.3 });
   const plast = new THREE.MeshStandardMaterial({ color: 0x17181a, metalness: 0.1, roughness: 0.75 });
   const glass = new THREE.MeshStandardMaterial({ color: 0x0b0f14, metalness: 0.9, roughness: 0.08 });
   const krom = new THREE.MeshStandardMaterial({ color: 0xe8eaec, metalness: 1, roughness: 0.15 });
@@ -430,9 +439,18 @@ function lagBil() {
   for (let i = 0; i < 4; i++) boks(0.86, 0.015, 0.02, krom, 0, 0.87 + i * 0.045, FRONT + 0.035);
   // Lykter
   for (const s of [-1, 1]) {
-    boks(0.32, 0.2, 0.04, lykt, s * 0.7, 0.94, FRONT + 0.01);
+    // Discovery 2: to runde lamper i hver lyktboks
+    boks(0.34, 0.2, 0.04, plast, s * 0.7, 0.94, FRONT + 0.01);
+    for (const dx of [-0.08, 0.08]) {
+      const lampe = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.03, 24), lykt);
+      lampe.rotation.x = Math.PI / 2;
+      lampe.position.set(s * 0.7 + dx, 0.94, FRONT + 0.035);
+      karosseri.add(lampe);
+    }
     boks(0.09, 0.06, 0.03, new THREE.MeshStandardMaterial({ color: 0xff9a1f, emissive: 0x663300 }), s * 0.7, 0.8, FRONT + 0.01);
-    boks(0.04, 0.42, 0.14, baklykt, s * 0.9, 0.98, BAK + 0.1);
+    // Baklys høyt oppe på bakhjørnene, og små lys i støtfangeren
+    boks(0.1, 0.5, 0.05, baklykt, s * 0.81, 1.5, BAK - 0.01);
+    boks(0.16, 0.06, 0.03, baklykt, s * 0.75, 0.62, BAK - 0.19);
   }
   // Brannvegg og selve motorrommet
   boks(BREDDE - 0.28, 0.32, 0.05, motorrom, 0, 0.96, 0.75);
@@ -472,7 +490,16 @@ function lagBil() {
   boks(KUPE_B, 0.04, 2.75, solv, 0, BELTE + 0.02, -0.8);                              // overgang
   boks(KUPE_B, 0.08, RUTE_TOPP.z + 0.02 - TRINN_Z, solv, 0, TAK_UNDER + 0.04, (RUTE_TOPP.z + 0.02 + TRINN_Z) / 2); // tak foran
   boks(KUPE_B, 0.16, TRINN_Z - BAK, solv, 0, TAK_UNDER + 0.08, (TRINN_Z + BAK) / 2);  // hevet tak bak
-  for (const s of [-1, 1]) boks(0.04, 0.04, RUTE_TOPP.z - 0.05 - BAK, plast, s * 0.72, 2.1, (RUTE_TOPP.z - 0.05 + BAK) / 2); // takrails
+  // Takrails med føtter ned i taket (foran, ved trinnet og bak)
+  const RAIL_Y = 2.08;
+  const TAK_FORAN = TAK_UNDER + 0.08;      // oversiden av taket foran
+  const TAK_BAK = TAK_UNDER + 0.16;        // oversiden av det hevede taket
+  for (const s of [-1, 1]) {
+    boks(0.04, 0.04, RUTE_TOPP.z - 0.05 - BAK, plast, s * 0.72, RAIL_Y, (RUTE_TOPP.z - 0.05 + BAK) / 2);
+    for (const [z, tak] of [[RUTE_TOPP.z - 0.12, TAK_FORAN], [TRINN_Z + 0.12, TAK_FORAN], [BAK + 0.1, TAK_BAK]]) {
+      boks(0.05, RAIL_Y - tak, 0.1, plast, s * 0.72, (RAIL_Y + tak) / 2, z);
+    }
+  }
 
   // Plate i sideprofil (z, y), lagt i planet x = posX
   const sideplate = (punkter, tykkelse, mat, posX) => {
@@ -522,6 +549,7 @@ function lagBil() {
   boks(BREDDE + 0.06, 0.2, 0.2, plast, 0, 0.6, BAK - 0.08);
   for (const s of [-1, 1]) {
     boks(0.04, 0.08, fremreBue[0] - bakreBue[1], plast, s * (BREDDE / 2 + 0.01), 0.52, (fremreBue[0] + bakreBue[1]) / 2); // sidelist
+    boks(0.03, 0.06, fremreBue[0] - bakreBue[1] - 0.1, plast, s * (BREDDE / 2 + 0.01), 0.84, (fremreBue[0] + bakreBue[1]) / 2); // støtlist på dørene
     for (const z of [FORAKSEL_Z, BAKAKSEL_Z]) {
       boks(0.1, 0.07, BUE_HALV * 2 + 0.14, plast, s * (BREDDE / 2 + 0.03), BUE_TOPP + 0.035, z);
       for (const zz of [-1, 1]) boks(0.1, BUE_TOPP - 0.6, 0.07, plast, s * (BREDDE / 2 + 0.03), (BUE_TOPP + 0.6) / 2, z + zz * (BUE_HALV + 0.035));

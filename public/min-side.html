@@ -16,7 +16,7 @@
   </script>
   <script type="module" src="js/min-side.js"></script>
   <!-- Sjiraffhodet bak innloggingsskjemaet (samme som forsiden zoomer inn på) -->
-  <script type="module" src="/bilhold/js/sjiraff-bakgrunn.js"></script>
+  <script type="module" blocking="render" src="/bilhold/js/sjiraff-bakgrunn.js"></script>
 </head>
 <body>
   <canvas class="sjiraff-bakgrunn" id="sjiraff-bakgrunn" aria-hidden="true"></canvas>
@@ -115,6 +115,20 @@
       <details class="seksjon-detaljer service-status">
         <summary>Service</summary>
         <ul class="servicestatus"></ul>
+      </details>
+
+      <details class="seksjon-detaljer slitasje">
+        <summary>Slitasjedeler</summary>
+        <ul class="servicestatus slitasjeliste"></ul>
+        <form class="dekk-skjema" autocomplete="off">
+          <p class="liten">Dekk på bilen</p>
+          <label>Type
+            <select name="dekk_type"><option value="sommer">Sommerdekk</option><option value="vinter">Vinterdekk</option></select>
+          </label>
+          <label>Montert <input name="dekk_montert" type="date"></label>
+          <label>Mønsterdybde (mm) <input name="dekk_mm" type="number" min="0" step="0.1" inputmode="decimal"></label>
+          <button class="knapp sekundaer" type="submit">Lagre dekk</button>
+        </form>
       </details>
 
       <details class="seksjon-detaljer vedlikehold">

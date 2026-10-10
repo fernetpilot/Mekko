@@ -444,6 +444,10 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
   color: var(--tekst);
 }
 .lest-hint.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+/* Skjemaet glir rolig inn over sjiraffen i stedet for å dukke opp brått */
+#innlogging:not([hidden]) { animation: inn-over-sjiraff 450ms ease-out both; }
+@keyframes inn-over-sjiraff { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { #innlogging:not([hidden]) { animation: none; } }
 
 /* Servicestatus per bil */
 .servicestatus { list-style: none; padding: 0; margin: 8px 0 0; }
@@ -459,3 +463,43 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .servicelinje.snart .stolpe .fyll { background: #b26a00; }
 .servicelinje.forfalt .stolpe .fyll { background: #b42318; width: 100% !important; }
 .servicelinje .km-igjen { grid-column: 1 / -1; font-size: 0.85rem; opacity: 0.75; }
+
+.pdf-tekst summary { font-size: 13px; color: var(--tekst-dempet); padding: 4px 0; }
+.pdf-tekst pre {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--felt);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Sletting i servicehefte */
+.hendelse { position: relative; }
+.slett-hendelse { position: absolute; top: 12px; right: 10px; }
+.vedlegg-boks { position: relative; }
+.slett-vedlegg {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-kant);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+/* Slitasjedeler */
+.slitasjeliste .utsett { margin-top: 6px; width: auto; padding: 6px 12px; font-size: 0.9rem; }
+.dekk-skjema { margin-top: 12px; display: grid; gap: 8px; }
+.dekk-skjema label { display: grid; gap: 4px; font-size: 0.9rem; }
+.dekk-skjema select, .dekk-skjema input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--glass-kant); background: transparent; color: inherit; }
+.dekk-skjema .knapp { justify-self: start; }

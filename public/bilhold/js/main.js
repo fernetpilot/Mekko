@@ -97,6 +97,32 @@ window.addEventListener('pageshow', () => {
 });
 
 // ---------- Innlogging: kameraet zoomer inn på sjiraffen før vi bytter side ----------
+// Mens kameraet flyr, henter nettleseren innloggingssiden og skriptene den trenger,
+// så den er klar i det vi bytter og ikke hakker.
+let forhandslastet = false;
+function forhandslastInnlogging(href) {
+  if (forhandslastet) return;
+  forhandslastet = true;
+  const lenker = [
+    ['prefetch', href],
+    ['modulepreload', '/bilhold/js/sjiraff-bakgrunn.js'],
+    ['modulepreload', '/js/min-side.js'],
+    ['modulepreload', '/js/supabase.js'],
+  ];
+  for (const [rel, url] of lenker) {
+    const l = document.createElement('link');
+    l.rel = rel;
+    l.href = url;
+    document.head.append(l);
+  }
+}
+// Start hentingen allerede når fingeren eller musa kommer på en innloggingsknapp
+for (const hendelse of ['pointerenter', 'touchstart']) {
+  document.addEventListener(hendelse, (e) => {
+    if (e.target.closest?.('a[data-logg-inn]')) forhandslastInnlogging(e.target.closest('a[data-logg-inn]').href);
+  }, { capture: true, passive: true });
+}
+
 // Innloggingssiden har det samme sjiraffhodet som bakgrunn, så overgangen blir sømløs.
 const redusertBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.addEventListener('click', (e) => {
@@ -104,6 +130,7 @@ document.addEventListener('click', (e) => {
   if (!lenke || e.metaKey || e.ctrlKey || e.shiftKey) return;
   if (!scene || redusertBevegelse) return;          // vanlig lenke
   e.preventDefault();
+  forhandslastInnlogging(lenke.href);
   visSkilt(false);
   rot.classList.add('til-innlogging');
   rot.dataset.theme = 'dark';
@@ -113,6 +140,9 @@ document.addEventListener('click', (e) => {
   const videre = () => {
     if (gatt || !rot.classList.contains('til-innlogging')) return;
     gatt = true;
+    try {
+      sessionStorage.setItem('sjiraff-tid', JSON.stringify({ tid: scene.sjiraffTid(), naa: Date.now() }));
+    } catch { /* uten lagring starter sjiraffen bare fra begynnelsen */ }
     window.location.href = lenke.href;
   };
   scene.zoomTilSjiraff().then(videre);
@@ -211,7 +241,6 @@ function lukkKalkulator({ historikk = true } = {}) {
   if (historikk && location.hash === '#kalkulator') history.back();
 }
 
-document.getElementById('kalk-lukk').addEventListener('click', () => lukkKalkulator());
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkKalkulator(); });
 window.addEventListener('popstate', () => {
   if (location.hash === '#kalkulator') apneKalkulator({ historikk: false });
