@@ -99,9 +99,10 @@ export function lagTilhenger() {
   ramme.renderOrder = 10;
   kasse.add(ramme);
 
-  // Punkt over hengeren der "Åpne tilhengerkalkulator"-skiltet festes
+  // Punkt midt på hengerveggen mot kameraet der "Åpne tilhengerkalkulator"-skiltet festes,
+  // så skiltet ligger på selve hengeren og ikke over sjiraffen
   const skiltpunkt = new THREE.Object3D();
-  skiltpunkt.position.set(0, GULV + VEGG_H + 0.3, MIDT_Z);
+  skiltpunkt.position.set(BREDDE / 2, veggMidtY, MIDT_Z - 0.3);
   kasse.add(skiltpunkt);
 
   const glod = new THREE.Color(0x9cc8ff);

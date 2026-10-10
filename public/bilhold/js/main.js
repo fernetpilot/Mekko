@@ -114,7 +114,7 @@ function plasserSkilt() {
       // Hold skiltet innenfor skjermen
       const halv = skilt.offsetWidth / 2 + 12;
       skilt.style.left = `${Math.min(Math.max(p.x, halv), window.innerWidth - halv)}px`;
-      skilt.style.top = `${Math.max(p.y, skilt.offsetHeight + 80)}px`;
+      skilt.style.top = `${Math.max(p.y, skilt.offsetHeight / 2 + 80)}px`;
     }
   }
   requestAnimationFrame(plasserSkilt);
