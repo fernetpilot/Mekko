@@ -3,6 +3,11 @@
 // docs/eksempeldata/servicekilder/lr3-2.7tdv6-lrtime.json. Kontroller mot servicebok før bruk.
 // Regel: det som kommer først (km eller måned) gjelder.
 
+// Foreløpig gjelder listen bare for Discovery 3 (2.7 TDV6 er ikke sjekket per bil ennå).
+export function punkterFor(bil) {
+  return /DISCOVERY 3/i.test(bil?.modell ?? "") ? LR3_2_7_TDV6 : [];
+}
+
 export const LR3_2_7_TDV6 = [
   { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIntervall: 12 },
   { id: "oljefilter", navn: "Oljefilter", kmIntervall: 10000, manederIntervall: 12 },
