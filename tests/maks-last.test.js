@@ -227,6 +227,15 @@ test("klasse B: bil 3500 kg med tilhenger 1400 kg gir null", () => {
   assert.equal(res.begrensning, "forerkort");
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: bil 3500 kg med tilhenger 1400 kg, klasse B96.
+test("klasse B96: bil 3500 kg med tilhenger 1400 kg gir null", () => {
+  const bil = { tillattTotalvekt: 3500, tillattTilhengervektMedBrems: 3000, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1400, egenvekt: 260 };
+  const res = beregnMaksLast(bil, henger, "B96");
+  assert.equal(res.maksLast, null);
+  assert.equal(res.begrensning, "forerkort");
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
