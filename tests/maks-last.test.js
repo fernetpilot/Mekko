@@ -182,6 +182,16 @@ test("klasse B96: bil 2970 kg med tilhenger 1400 kg gir null", () => {
   assert.equal(res.begrensning, "forerkort");
 });
 
+// Verifisert mot Vegvesen-kalkulatoren 10.10.2026: YF22803 (E 300de) med AT1962, klasse BE.
+test("BE: E 300de med AT1962 gir 1140 kg med brems og 490 kg uten", () => {
+  const bil = { tillattTotalvekt: 2970, tillattTilhengervektMedBrems: 2100, tillattTilhengervektUtenBrems: 750 };
+  const henger = { tillattTotalvekt: 1400, egenvekt: 260 };
+  const med = beregnMaksLast(bil, henger, "BE");
+  assert.equal(med.maksLast, 1140);
+  assert.equal(med.begrensning, "henger");
+  assert.equal(beregnMaksLast(bil, henger, "BE", { medBrems: false }).maksLast, 490);
+});
+
 test("klasse B: tilhenger på 750 kg eller lettere gir maks last uten samlet grense", () => {
   const bil = { tillattTotalvekt: 3200, tillattTilhengervektMedBrems: 3500, tillattTilhengervektUtenBrems: 750 };
   const henger = { tillattTotalvekt: 700, egenvekt: 300 };
