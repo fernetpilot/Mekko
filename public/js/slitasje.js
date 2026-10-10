@@ -17,9 +17,14 @@ export const DEKK_GRENSER = {
   vinter: { rad: 4, kritisk: 3 },
 };
 
+// Registerreimer: 120 000 km eller 6 år, det som kommer først. Kan ikke utsettes.
+export const REGISTERREIM_KM = 120000;
+export const REGISTERREIM_MANEDER = 72;
+
 export const SLITASJE_PUNKTER = [
   { id: "bremseklosser", navn: "Bremseklosser", kmIntervall: BREMSE_KM, manederIntervall: null, snoozeKm: BREMSE_SNOOZE_KM },
   { id: "luftfilter", navn: "Luftfilter", kmIntervall: LUFT_KM, manederIntervall: LUFT_MANEDER, snoozeVedOljeskift: true },
+  { id: "registerreim", navn: "Registerreim", kmIntervall: REGISTERREIM_KM, manederIntervall: REGISTERREIM_MANEDER, utsettbar: false },
 ];
 
 const LABEL = {
@@ -107,7 +112,7 @@ export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null
       frist: res.status === "ukjent" ? "" : fristTekst(res),
       kmIgjen: res.gjenstaar?.km ?? null,
       kmIntervall: punkt.kmIntervall,
-      kanUtsette: res.status === "snart" || res.status === "forfalt",
+      kanUtsette: (res.status === "snart" || res.status === "forfalt") && punkt.utsettbar !== false,
       utsettTekst: punkt.snoozeKm ? `Utsett ${punkt.snoozeKm.toLocaleString("no-NO").replace(/,/g, " ")} km` : "Utsett til neste oljeskift",
     });
   }
@@ -131,6 +136,7 @@ export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null
 
 /** Hva en utsettelse skal lagres som, for et punkt. */
 export function utsettelseFor(punktId, { kmNaa, idag }) {
+  if (punktId === "registerreim") return null;
   if (punktId === "bremseklosser") return { punkt: punktId, til_km: (kmNaa ?? 0) + BREMSE_SNOOZE_KM };
   if (punktId === "luftfilter") return { punkt: punktId, ved_oljeskift: true };
   if (punktId === "dekk") return { punkt: punktId, til_dato: leggTilMåneder(idag, DEKK_SNOOZE_MANEDER) };

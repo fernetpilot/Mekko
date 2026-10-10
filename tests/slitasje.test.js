@@ -77,3 +77,23 @@ test("dekk: utsettelse til neste sesong gir utsatt", () => {
   const l = linje(slitasjeLinjer({ bil: { dekk_type: "sommer", dekk_mm: 1.2 }, rader: [], utsettelser: [u], kmNaa: 130000, idag }), "dekk");
   assert.equal(l.status, "utsatt");
 });
+
+test("registerreim: byttes etter 120 000 km og utsettes ikke", () => {
+  const rader = [{ servicepunkt: "registerreim", dato: "2025-01-01", kilometerstand: 100000 }];
+  const l = linje(slitasjeLinjer({ bil, rader, kmNaa: 125000, idag }), "registerreim");
+  assert.equal(l.kmIgjen, 95000);
+  assert.equal(l.status, "ok");
+  const snart = linje(slitasjeLinjer({ bil, rader, kmNaa: 215000, idag }), "registerreim");
+  assert.equal(snart.status, "snart");
+  assert.equal(snart.kanUtsette, false);
+  const forfalt = linje(slitasjeLinjer({ bil, rader, kmNaa: 221000, idag }), "registerreim");
+  assert.equal(forfalt.status, "forfalt");
+  assert.equal(forfalt.kanUtsette, false);
+  assert.equal(utsettelseFor("registerreim", { kmNaa: 215000, idag: "2026-10-10" }), null);
+});
+
+test("registerreim: forfalt etter 6 år selv om km er god", () => {
+  const rader = [{ servicepunkt: "registerreim", dato: "2019-01-01", kilometerstand: 100000 }];
+  const l = linje(slitasjeLinjer({ bil, rader, kmNaa: 110000, idag }), "registerreim");
+  assert.equal(l.status, "forfalt");
+});
