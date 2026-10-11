@@ -4,6 +4,7 @@
 const STIL = {
   motorolje: { ikon: "🛢️", gruppe: "olje" },
   oljefilter: { ikon: "🧽", gruppe: "filter" },
+  dieselfilter: { ikon: "⛽", gruppe: "filter" },
   automatgir: { ikon: "⚙️", gruppe: "olje" },
   "manuelt-gir": { ikon: "⚙️", gruppe: "olje" },
   overforing: { ikon: "⚙️", gruppe: "olje" },

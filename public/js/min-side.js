@@ -370,6 +370,10 @@ function tegnSlitasje(node, bil) {
     idag: new Date(),
   });
   for (const l of linjer) {
+    if (l.id.startsWith("dekk-")) {
+      tegnDekk(node.querySelector(`.dekk-seksjon[data-sesong="${l.id.slice(5)}"]`), l, bil, kmNaa);
+      continue;
+    }
     const li = document.createElement("li");
     li.className = `servicelinje ${l.status}`;
     li.append(span("navn", l.navn), span("status", l.label));
@@ -377,22 +381,35 @@ function tegnSlitasje(node, bil) {
     if (l.kmIgjen != null && l.kmIntervall) {
       li.append(stolpe(l.kmIgjen, l.kmIntervall), span("km-igjen", l.kmIgjen > 0 ? `${formaterKm(l.kmIgjen)} igjen` : `${formaterKm(-l.kmIgjen)} over`));
     }
-    if (l.kanUtsette) {
-      const knapp = document.createElement("button");
-      knapp.type = "button";
-      knapp.className = "knapp sekundaer utsett";
-      knapp.textContent = l.utsettTekst;
-      knapp.addEventListener("click", () => utsett(bil, l.id, kmNaa));
-      li.append(knapp);
-    }
+    if (l.kanUtsette) li.append(utsettKnapp(bil, l, kmNaa));
     ul.append(li);
   }
 
-  const skjema = node.querySelector(".dekk-skjema");
-  skjema.dekk_type.value = bil.dekk_type ?? "sommer";
-  skjema.dekk_montert.value = bil.dekk_montert ?? "";
-  skjema.dekk_mm.value = bil.dekk_mm ?? "";
-  skjema.addEventListener("submit", (e) => lagreDekk(e, bil));
+  // Sommer- og vinterdekk: egen underseksjon med egen alder og mønsterdybde
+  for (const seksjon of node.querySelectorAll(".dekk-seksjon")) {
+    const sesong = seksjon.dataset.sesong;
+    const skjema = seksjon.querySelector(".dekk-skjema");
+    skjema.montert.value = bil[`dekk_${sesong}_montert`] ?? "";
+    skjema.mm.value = bil[`dekk_${sesong}_mm`] ?? "";
+    skjema.addEventListener("submit", (e) => lagreDekk(e, bil, sesong));
+  }
+}
+
+function utsettKnapp(bil, l, kmNaa) {
+  const knapp = document.createElement("button");
+  knapp.type = "button";
+  knapp.className = "knapp sekundaer utsett";
+  knapp.textContent = l.utsettTekst;
+  knapp.addEventListener("click", () => utsett(bil, l.id, kmNaa));
+  return knapp;
+}
+
+function tegnDekk(seksjon, l, bil, kmNaa) {
+  const status = seksjon.querySelector(".dekk-status");
+  status.className = `dekk-status servicelinje ${l.status}`;
+  status.replaceChildren(span("status", l.label));
+  if (l.frist) status.append(span("frist", l.frist));
+  if (l.kanUtsette) status.append(utsettKnapp(bil, l, kmNaa));
 }
 
 async function utsett(bil, punktId, kmNaa) {
@@ -406,16 +423,15 @@ async function utsett(bil, punktId, kmNaa) {
   lastBiler();
 }
 
-async function lagreDekk(e, bil) {
+async function lagreDekk(e, bil, sesong) {
   e.preventDefault();
   const f = e.currentTarget;
-  const mm = f.dekk_mm.value === "" ? null : Number(f.dekk_mm.value);
+  const mm = f.mm.value === "" ? null : Number(f.mm.value);
   const endring = {
-    dekk_type: f.dekk_type.value,
-    dekk_montert: f.dekk_montert.value || null,
-    dekk_mm: mm,
+    [`dekk_${sesong}_montert`]: f.montert.value || null,
+    [`dekk_${sesong}_mm`]: mm,
   };
-  if (mm != null) endring.dekk_maalt = new Date().toISOString().slice(0, 10);
+  if (mm != null) endring[`dekk_${sesong}_maalt`] = new Date().toISOString().slice(0, 10);
   const { error } = await supabase.from("biler").update(endring).eq("id", bil.id);
   if (error) return alert("Kunne ikke lagre dekkene. Prøv igjen.");
   lastBiler();

@@ -51,31 +51,47 @@ test("ukjent når det ikke er registrert", () => {
   assert.equal(l.status, "ukjent");
 });
 
-test("dekk: ukjent uten dekktype", () => {
-  assert.equal(beregnDekk({ idag: "2026-10-10" }).status, "ukjent");
+test("dekk: ukjent uten dato og mønsterdybde", () => {
+  assert.equal(beregnDekk({ sesong: "sommer", idag: "2026-10-10" }).status, "ukjent");
 });
 
 test("dekk: alder fra 5 år gir sjekk", () => {
-  const d = beregnDekk({ dekk_type: "sommer", dekk_montert: "2020-06-01", dekk_mm: 5, idag: "2026-10-10" });
+  const d = beregnDekk({ sesong: "sommer", montert: "2020-06-01", mm: 5, idag: "2026-10-10" });
   assert.equal(d.status, "sjekk");
 });
 
 test("dekk: mønster under lovlig minimum gir forfalt", () => {
-  assert.equal(beregnDekk({ dekk_type: "sommer", dekk_mm: 1.2, idag: "2026-10-10" }).status, "forfalt");
-  assert.equal(beregnDekk({ dekk_type: "vinter", dekk_mm: 2.9, idag: "2026-10-10" }).status, "forfalt");
+  assert.equal(beregnDekk({ sesong: "sommer", mm: 1.2, idag: "2026-10-10" }).status, "forfalt");
+  assert.equal(beregnDekk({ sesong: "vinter", mm: 2.9, idag: "2026-10-10" }).status, "forfalt");
 });
 
 test("dekk: under NAF sitt råd gir sjekk, over gir ok", () => {
-  assert.equal(beregnDekk({ dekk_type: "sommer", dekk_mm: 2.5, idag: "2026-10-10" }).status, "sjekk");
-  assert.equal(beregnDekk({ dekk_type: "vinter", dekk_mm: 3.5, idag: "2026-10-10" }).status, "sjekk");
-  assert.equal(beregnDekk({ dekk_type: "sommer", dekk_mm: 6, idag: "2026-10-10" }).status, "ok");
+  assert.equal(beregnDekk({ sesong: "sommer", mm: 2.5, idag: "2026-10-10" }).status, "sjekk");
+  assert.equal(beregnDekk({ sesong: "vinter", mm: 3.5, idag: "2026-10-10" }).status, "sjekk");
+  assert.equal(beregnDekk({ sesong: "sommer", mm: 6, idag: "2026-10-10" }).status, "ok");
 });
 
-test("dekk: utsettelse til neste sesong gir utsatt", () => {
-  const u = utsettelseFor("dekk", { kmNaa: null, idag: "2026-10-10" });
+test("dekk: sommer og vinter vurderes hver for seg", () => {
+  const bil = { dekk_sommer_mm: 6, dekk_sommer_montert: "2025-05-01", dekk_vinter_mm: 3.5, dekk_vinter_montert: "2025-05-01" };
+  const linjer = slitasjeLinjer({ bil, rader: [], kmNaa: 130000, idag });
+  assert.equal(linje(linjer, "dekk-sommer").status, "ok");
+  assert.equal(linje(linjer, "dekk-vinter").status, "sjekk");
+});
+
+test("dekk: gammel vinterdekk gir sjekk selv om sommerdekk er nye", () => {
+  const bil = { dekk_sommer_mm: 7, dekk_sommer_montert: "2025-05-01", dekk_vinter_mm: 6, dekk_vinter_montert: "2019-11-01" };
+  const linjer = slitasjeLinjer({ bil, rader: [], kmNaa: 130000, idag });
+  assert.equal(linje(linjer, "dekk-sommer").status, "ok");
+  assert.equal(linje(linjer, "dekk-vinter").status, "sjekk");
+});
+
+test("dekk: utsettelse til neste sesong gir utsatt, bare for den sesongen", () => {
+  const u = utsettelseFor("dekk-sommer", { kmNaa: null, idag: "2026-10-10" });
   assert.equal(u.til_dato, "2027-04-10");
-  const l = linje(slitasjeLinjer({ bil: { dekk_type: "sommer", dekk_mm: 1.2 }, rader: [], utsettelser: [u], kmNaa: 130000, idag }), "dekk");
-  assert.equal(l.status, "utsatt");
+  const bil = { dekk_sommer_mm: 1.2, dekk_vinter_mm: 1.2 };
+  const linjer = slitasjeLinjer({ bil, rader: [], utsettelser: [u], kmNaa: 130000, idag });
+  assert.equal(linje(linjer, "dekk-sommer").status, "utsatt");
+  assert.equal(linje(linjer, "dekk-vinter").status, "forfalt");
 });
 
 test("registerreim: byttes etter 120 000 km og utsettes ikke", () => {

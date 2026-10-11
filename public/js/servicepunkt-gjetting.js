@@ -15,6 +15,7 @@ export const ANDRE_PUNKTER = [
 export const VANLIGE_SERVICEDELER = [
   "motorolje",
   "oljefilter",
+  "dieselfilter",
   "bremseklosser",
   "luftfilter",
   "pollenfilter",
@@ -39,6 +40,7 @@ const REGLER = [
   [/servo/, "servostyring"],
   [/olje\s*-?\s*filter/, "oljefilter"],
   [/luft\s*-?\s*filter/, "luftfilter"],
+  [/diesel\s*-?\s*filter/, "dieselfilter"],
   [/reim/, "registerreim"],
   [/klosse/, "bremseklosser"],
   [/overf[øo]ring|transfer/, "overforing"],

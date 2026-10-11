@@ -146,7 +146,13 @@ alter table public.biler
   add column if not exists dekk_type     text check (dekk_type in ('sommer', 'vinter')),
   add column if not exists dekk_montert  date,
   add column if not exists dekk_mm       numeric(3, 1) check (dekk_mm >= 0),
-  add column if not exists dekk_maalt    date;
+  add column if not exists dekk_maalt    date,
+  add column if not exists dekk_sommer_montert date,
+  add column if not exists dekk_sommer_mm      numeric(3, 1) check (dekk_sommer_mm >= 0),
+  add column if not exists dekk_sommer_maalt   date,
+  add column if not exists dekk_vinter_montert date,
+  add column if not exists dekk_vinter_mm      numeric(3, 1) check (dekk_vinter_mm >= 0),
+  add column if not exists dekk_vinter_maalt   date;
 
 create table if not exists public.utsettelser (
   id            uuid primary key default gen_random_uuid(),

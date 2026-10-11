@@ -60,26 +60,35 @@ function aarMellom(fraIso, tilIso) {
   return (Date.parse(tilIso) - Date.parse(fraIso)) / (365.25 * 24 * 60 * 60 * 1000);
 }
 
-/** Dekk: alder og mønsterdybde. Gir den verste statusen og en kort forklaring. */
-export function beregnDekk({ dekk_type, dekk_montert, dekk_mm, idag }) {
-  if (!dekk_type) return { status: "ukjent", tekst: "Legg inn dekktype, dato og mønsterdybde." };
+// Sommer- og vinterdekk har hver sin egen alder og mønsterdybde.
+export const DEKK_SESONGER = [
+  { sesong: "sommer", id: "dekk-sommer", navn: "Sommerdekk" },
+  { sesong: "vinter", id: "dekk-vinter", navn: "Vinterdekk" },
+];
+
+/**
+ * Dekk for én sesong: alder og mønsterdybde. Gir den verste statusen og en kort forklaring.
+ * @param {{sesong: "sommer"|"vinter", montert?: string|null, mm?: number|null, idag: string}} d
+ */
+export function beregnDekk({ sesong, montert, mm, idag }) {
+  if (!montert && mm == null) return { status: "ukjent", tekst: "Legg inn dato montert og mønsterdybde." };
   let status = "ok";
   const grunner = [];
-  if (dekk_montert) {
-    const aar = Math.floor(aarMellom(dekk_montert, idag));
+  if (montert) {
+    const aar = Math.floor(aarMellom(montert, idag));
     if (aar >= DEKK_ALDER_AAR) {
       status = "sjekk";
       grunner.push(`Dekkene er ${aar} år gamle. Vurder bytte etter 5–6 år, selv om det er mønster igjen.`);
     }
   }
-  if (dekk_mm != null) {
-    const g = DEKK_GRENSER[dekk_type];
-    if (dekk_mm < g.kritisk) {
+  if (mm != null) {
+    const g = DEKK_GRENSER[sesong];
+    if (mm < g.kritisk) {
       status = "forfalt";
-      grunner.push(`Mønsterdybden er ${dekk_mm} mm, under lovlig minimum (${g.kritisk} mm).`);
-    } else if (dekk_mm < g.rad) {
+      grunner.push(`Mønsterdybden er ${mm} mm, under lovlig minimum (${g.kritisk} mm).`);
+    } else if (mm < g.rad) {
       if (status === "ok") status = "sjekk";
-      grunner.push(`Mønsterdybden er ${dekk_mm} mm, under NAF sitt råd (${g.rad} mm).`);
+      grunner.push(`Mønsterdybden er ${mm} mm, under NAF sitt råd (${g.rad} mm).`);
     }
   }
   return { status, tekst: grunner.join(" ") };
@@ -117,20 +126,28 @@ export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null
     });
   }
 
-  const dekk = beregnDekk({ ...bil, idag: iDag });
-  const dekkUtsatt = (dekk.status === "sjekk" || dekk.status === "forfalt")
-    && harAktivUtsettelse(utsettelser, "dekk", ctx);
-  linjer.push({
-    id: "dekk",
-    navn: "Dekk",
-    status: dekkUtsatt ? "utsatt" : dekk.status,
-    label: LABEL[dekkUtsatt ? "utsatt" : dekk.status],
-    frist: dekk.tekst,
-    kmIgjen: null,
-    kmIntervall: null,
-    kanUtsette: dekk.status === "sjekk" || dekk.status === "forfalt",
-    utsettTekst: "Utsett til neste sesong",
-  });
+  for (const { sesong, id, navn } of DEKK_SESONGER) {
+    const dekk = beregnDekk({
+      sesong,
+      montert: bil[`dekk_${sesong}_montert`] ?? null,
+      mm: bil[`dekk_${sesong}_mm`] ?? null,
+      idag: iDag,
+    });
+    const dekkUtsatt = (dekk.status === "sjekk" || dekk.status === "forfalt")
+      && harAktivUtsettelse(utsettelser, id, ctx);
+    const status = dekkUtsatt ? "utsatt" : dekk.status;
+    linjer.push({
+      id,
+      navn,
+      status,
+      label: LABEL[status],
+      frist: dekk.tekst,
+      kmIgjen: null,
+      kmIntervall: null,
+      kanUtsette: dekk.status === "sjekk" || dekk.status === "forfalt",
+      utsettTekst: "Utsett til neste sesong",
+    });
+  }
   return linjer;
 }
 
@@ -139,7 +156,7 @@ export function utsettelseFor(punktId, { kmNaa, idag }) {
   if (punktId === "registerreim") return null;
   if (punktId === "bremseklosser") return { punkt: punktId, til_km: (kmNaa ?? 0) + BREMSE_SNOOZE_KM };
   if (punktId === "luftfilter") return { punkt: punktId, ved_oljeskift: true };
-  if (punktId === "dekk") return { punkt: punktId, til_dato: leggTilMåneder(idag, DEKK_SNOOZE_MANEDER) };
+  if (punktId.startsWith("dekk-")) return { punkt: punktId, til_dato: leggTilMåneder(idag, DEKK_SNOOZE_MANEDER) };
   return null;
 }
 

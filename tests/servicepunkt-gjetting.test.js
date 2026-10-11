@@ -42,6 +42,12 @@ test("motorkategori uten nærmere tekst gir motorolje og oljefilter", () => {
   likt(gjettServicepunkter("motor", ""), ["motorolje", "oljefilter"]);
 });
 
+test("dieselfilter gjenkjennes og står ikke sammen med motorolje", () => {
+  likt(gjettServicepunkter("service", "Dieselfilter bytt"), ["dieselfilter"]);
+  likt(gjettServicepunkter("service", "Diesel-filter"), ["dieselfilter"]);
+  likt(gjettServicepunkter("service", "Motorolje og dieselfilter"), ["dieselfilter", "motorolje", "oljefilter"]);
+});
+
 test("ukjent gir tom liste", () => {
   likt(gjettServicepunkter("dekk", "Vinterdekk"), []);
   likt(gjettServicepunkter("service", "Årlig ettersyn"), []);

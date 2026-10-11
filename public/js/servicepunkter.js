@@ -11,6 +11,7 @@ export function punkterFor(bil) {
 export const LR3_2_7_TDV6 = [
   { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIntervall: 12 },
   { id: "oljefilter", navn: "Oljefilter", kmIntervall: 10000, manederIntervall: 12 },
+  { id: "dieselfilter", navn: "Dieselfilter", kmIntervall: 25000, manederIntervall: 36 },
   { id: "overforing", navn: "Overføringskasse", kmIntervall: 25000, manederIntervall: 24 },
   { id: "automatgir", navn: "Automatgir (og filter)", kmIntervall: 80000, manederIntervall: 60, gjelderFor: "automat" },
   { id: "manuelt-gir", navn: "Manuelt gir", kmIntervall: 80000, manederIntervall: 60, gjelderFor: "manuell" },

@@ -120,15 +120,24 @@
       <details class="seksjon-detaljer slitasje">
         <summary>Slitasjedeler</summary>
         <ul class="servicestatus slitasjeliste"></ul>
-        <form class="dekk-skjema" autocomplete="off">
-          <p class="liten">Dekk på bilen</p>
-          <label>Type
-            <select name="dekk_type"><option value="sommer">Sommerdekk</option><option value="vinter">Vinterdekk</option></select>
-          </label>
-          <label>Montert <input name="dekk_montert" type="date"></label>
-          <label>Mønsterdybde (mm) <input name="dekk_mm" type="number" min="0" step="0.1" inputmode="decimal"></label>
-          <button class="knapp sekundaer" type="submit">Lagre dekk</button>
-        </form>
+        <div class="dekk-seksjon" data-sesong="sommer">
+          <h4 class="dekk-tittel">Sommerdekk</h4>
+          <div class="dekk-status"></div>
+          <form class="dekk-skjema" autocomplete="off">
+            <label>Montert <input name="montert" type="date"></label>
+            <label>Mønsterdybde (mm) <input name="mm" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <button class="knapp sekundaer" type="submit">Lagre sommerdekk</button>
+          </form>
+        </div>
+        <div class="dekk-seksjon" data-sesong="vinter">
+          <h4 class="dekk-tittel">Vinterdekk</h4>
+          <div class="dekk-status"></div>
+          <form class="dekk-skjema" autocomplete="off">
+            <label>Montert <input name="montert" type="date"></label>
+            <label>Mønsterdybde (mm) <input name="mm" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <button class="knapp sekundaer" type="submit">Lagre vinterdekk</button>
+          </form>
+        </div>
       </details>
 
       <details class="seksjon-detaljer vedlikehold">
