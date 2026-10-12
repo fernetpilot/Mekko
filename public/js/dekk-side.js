@@ -229,6 +229,7 @@ async function lagreBytte(e) {
     const { error: feil3 } = await supabase.from("vedlikehold").insert({
       bil_id: bil.id,
       komponent: "dekk",
+      servicepunkter: ["dekkskift"], // id fra servicekatalog.js
       dato,
       kilometerstand: km,
       kostnad: tallEllerNull(f.kostnad.value),
