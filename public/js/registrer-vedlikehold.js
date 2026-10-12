@@ -2,8 +2,8 @@
 import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
-import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
-import { stilFor } from "./punktstil.js";
+import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { lagPunktvelger } from "./punktvelger.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -70,31 +70,19 @@ function visKmHint() {
 }
 valg.addEventListener("change", visKmHint);
 
-// Servicepunkt: vises for service og oljeskift. Foreløpig bare for LR3 2.7 TDV6.
-const punktBeholder = $("servicepunkt-valg");
-for (const p of alleServicepunkter()) {
-  const stil = stilFor(p.id);
-  const lab = document.createElement("label");
-  lab.className = `punkt-chip gruppe-${stil.gruppe}`;
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.name = "servicepunkt";
-  cb.value = p.id;
+// Deler: hele servicekatalogen, gruppert i kategorier. Skjules bare for EU-kontroll.
+let valgteDeler = [];
+const velger = lagPunktvelger({
+  klasse: "punkt-chip",
   // Motorolje og oljefilter følger hverandre
-  cb.addEventListener("change", () => {
-    if (!cb.checked) return;
-    for (const annen of utvidDeler([p.id])) {
-      const el = punktBeholder.querySelector(`input[value="${annen}"]`);
-      if (el) el.checked = true;
-    }
-  });
-  lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
-  punktBeholder.append(lab);
-}
-const valgteDeler = () => [...punktBeholder.querySelectorAll("input:checked")].map((i) => i.value);
+  vedEndring(id, valgt) {
+    valgteDeler = valgt ? utvidDeler([...valgteDeler, id]) : valgteDeler.filter((d) => d !== id);
+    velger.sett(valgteDeler);
+  },
+});
+$("servicepunkt-valg").append(velger.el);
 function visServicepunkt() {
-  const komp = skjema.komponent.value;
-  $("servicepunkt-felt").hidden = !(komp === "service" || komp === "motor" || komp === "bremser");
+  $("servicepunkt-felt").hidden = skjema.komponent.value === "eu_kontroll";
 }
 skjema.komponent.addEventListener("change", visServicepunkt);
 visServicepunkt();
@@ -158,7 +146,7 @@ skjema.addEventListener("submit", async (e) => {
     notat: skjema.notat.value.trim() || null,
     servicepunkter: $("servicepunkt-felt").hidden
       ? []
-      : (valgteDeler().length ? utvidDeler(valgteDeler()) : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
+      : (valgteDeler.length ? valgteDeler : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
   };
 
   if (valgteFiler.some((f) => erPdf(f) && f.size > MAKS_BYTES)) {

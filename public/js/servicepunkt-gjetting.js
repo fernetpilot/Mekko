@@ -1,22 +1,11 @@
 // Gjetter hvilke servicepunkter en vedlikeholdsregistrering gjelder, ut fra kategori og fritekst.
 // Ren logikk. Brukes ved import og registrering, og som forslag på historikklinjer.
 
-import { LR3_2_7_TDV6 } from "./servicepunkter.js";
-import { SLITASJE_PUNKTER } from "./slitasje.js";
+import { allePunkter } from "./servicekatalog.js";
 
-// Valg uten intervall. Brukes når besøket ikke passer et fast punkt.
-export const ANDRE_PUNKTER = [
-  { id: "ekstra-service", navn: "Ekstra service" },
-  { id: "annet-arbeid", navn: "Annet" },
-];
-
-/** Alle servicepunkter som kan velges, med norsk navn. */
+/** Alle servicepunkter som kan velges, med norsk navn (hele katalogen, se servicekatalog.js). */
 export function alleServicepunkter() {
-  return [
-    ...LR3_2_7_TDV6,
-    ...SLITASJE_PUNKTER,
-    ...ANDRE_PUNKTER,
-  ].map((p) => ({ id: p.id, navn: p.navn }));
+  return allePunkter().map((p) => ({ id: p.id, navn: p.navn }));
 }
 
 const vask = (s) => String(s ?? "").toLowerCase();
@@ -29,6 +18,7 @@ const REGLER = [
   [/servo/, "servostyring"],
   [/olje\s*-?\s*filter/, "oljefilter"],
   [/luft\s*-?\s*filter/, "luftfilter"],
+  [/multi\s*-?\s*reim|aggregatreim/, "multireim"],
   [/reim/, "registerreim"],
   [/klosse/, "bremseklosser"],
   [/overf[øo]ring|transfer/, "overforing"],

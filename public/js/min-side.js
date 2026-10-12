@@ -7,7 +7,9 @@ import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
-import { alleServicepunkter, gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { punktNavn } from "./servicekatalog.js";
+import { lagPunktvelger } from "./punktvelger.js";
 import { stilFor } from "./punktstil.js";
 
 const $ = (id) => document.getElementById(id);
@@ -516,7 +518,7 @@ function punktRad(h) {
 }
 
 function navnPå(id) {
-  return alleServicepunkter().find((p) => p.id === id)?.navn ?? id;
+  return punktNavn(id);
 }
 
 function tegnMerker(h, merker) {
@@ -560,28 +562,16 @@ function velgerMeny(h, merker) {
   panel.className = "punkt-panel";
   panel.hidden = true;
 
-  const avkryss = new Map();
-  for (const p of alleServicepunkter()) {
-    const stil = stilFor(p.id);
-    const lab = document.createElement("label");
-    lab.className = `punkt-option gruppe-${stil.gruppe}`;
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = p.id;
-    cb.addEventListener("change", () => {
+  const velger = lagPunktvelger({
+    klasse: "punkt-option",
+    vedEndring(id, valgt) {
       const gjeldende = h.servicepunkter ?? [];
-      const deler = cb.checked
-        ? utvidDeler([...gjeldende, p.id])
-        : gjeldende.filter((d) => d !== p.id);
+      const deler = valgt ? utvidDeler([...gjeldende, id]) : gjeldende.filter((d) => d !== id);
       endreDeler(h, deler, merker, synkroniser);
-    });
-    avkryss.set(p.id, cb);
-    lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
-    panel.append(lab);
-  }
-  const synkroniser = () => {
-    for (const [id, cb] of avkryss) cb.checked = (h.servicepunkter ?? []).includes(id);
-  };
+    },
+  });
+  panel.append(velger.el);
+  const synkroniser = () => velger.sett(h.servicepunkter ?? []);
   synkroniser();
 
   knapp.addEventListener("click", () => {

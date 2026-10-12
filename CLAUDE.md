@@ -72,6 +72,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/service-og-eu.html` + `public/js/service-og-eu.js` – EU-kontroll, service og slitasje de neste 12 mnd (`?bil=<id>`, ellers første bil). Krever innlogging.
 - `public/vedlikehold.html` + `public/js/vedlikehold-oversikt.js` – alt vedlikehold per år med kostnad og vedlegg. Felles: `public/js/dashboard-side.js`, `public/css/dashboard.css`; ren logikk i `public/js/dashboard.js` (testet).
+- Servicekatalog: `public/js/servicekatalog.js` – alle deler som kan registreres på et besøk, i 11 kategorier + Annet
+  (ren data, testet). Id-ene for punkter med intervall (`servicepunkter.js`, `slitasje.js`) er de samme.
+  Bærearmer registreres per hjul og lagres som `<id>@fv|fh|bv|bh`; bruk `punktNavn(id)` for visning.
+  Velgeren (sammenleggbar seksjon per kategori) er `public/js/punktvelger.js`, brukt på Registrer vedlikehold og i Mine biler.
 - `public/js/bilstatus.js` – rene hjelpefunksjoner: EU-status, datoer, km.
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
 - `netlify/functions/` – proxy mot Vegvesenet

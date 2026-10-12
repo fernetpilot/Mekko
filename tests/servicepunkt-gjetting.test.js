@@ -64,3 +64,8 @@ test("ekstra service alene gir ekstra service, men ikke når faste deler finnes"
   likt(gjettServicepunkter("bremser", "Type service: Ekstra Service, bremseklosser"), ["bremseklosser"]);
   likt(gjettServicepunkter("service", "Ekstra Service"), ["ekstra-service"]);
 });
+
+test("multireim er ikke registerreim", () => {
+  likt(gjettServicepunkter("motor", "Byttet multireim"), ["multireim"]);
+  likt(gjettServicepunkter("service", "Ny registerreim"), ["registerreim"]);
+});

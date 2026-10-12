@@ -542,6 +542,36 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .punkt-option.gruppe-vaeske { border-left-color: #1f6feb; }
 .punkt-option.gruppe-motor { border-left-color: #7c3aed; }
 
+/* Servicekatalogen: én sammenleggbar seksjon per kategori */
+.punktvelger { display: grid; gap: 6px; }
+.punkt-kategori { border: 1px solid var(--glass-kant); border-radius: 12px; background: var(--felt); }
+.punkt-kategori > summary { min-height: 44px; display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+.punkt-kategori > .punkt-valg { padding: 0 10px 10px; margin-top: 0; }
+.punkt-panel .punkt-kategori > .punkt-valg { display: grid; gap: 6px; }
+.punkt-antall { font-weight: 400; color: var(--tekst-dempet); font-size: 0.9rem; }
+.punkt-underkategori { flex: 1 1 100%; margin: 8px 0 0; font-weight: 600; font-size: 0.9rem; color: var(--tekst-dempet); }
+.punkt-posisjon { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 10px; border-left: 3px solid; border-radius: 8px; }
+.punkt-posisjon-navn { flex: 1 1 100%; }
+.punkt-posisjon label { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; cursor: pointer; }
+.gruppe-styring { border-color: #0e7490; }
+.gruppe-fjaering { border-color: #a16207; }
+.gruppe-drivlinje { border-color: #4b5563; }
+.gruppe-avgass { border-color: #6b7280; }
+.gruppe-elektrisk { border-color: #ca8a04; }
+.gruppe-dekk { border-color: #374151; }
+.gruppe-klima { border-color: #0284c7; }
+.gruppe-karosseri { border-color: #9d174d; }
+.punkt-option.gruppe-styring, .punkt-option.gruppe-fjaering, .punkt-option.gruppe-drivlinje, .punkt-option.gruppe-avgass,
+.punkt-option.gruppe-elektrisk, .punkt-option.gruppe-dekk, .punkt-option.gruppe-klima, .punkt-option.gruppe-karosseri { border-color: transparent; border-left: 3px solid; border-radius: 10px; }
+.punkt-option.gruppe-styring { border-left-color: #0e7490; }
+.punkt-option.gruppe-fjaering { border-left-color: #a16207; }
+.punkt-option.gruppe-drivlinje { border-left-color: #4b5563; }
+.punkt-option.gruppe-avgass { border-left-color: #6b7280; }
+.punkt-option.gruppe-elektrisk { border-left-color: #ca8a04; }
+.punkt-option.gruppe-dekk { border-left-color: #374151; }
+.punkt-option.gruppe-klima { border-left-color: #0284c7; }
+.punkt-option.gruppe-karosseri { border-left-color: #9d174d; }
+
 /* Avkrysning av deler: små bokser, og store, trykkvennlige merker på mobil */
 .punkt-valg input[type="checkbox"] { width: 18px; height: 18px; padding: 0; margin: 0; flex: none; }
 .punkt-valg .punkt-chip { min-height: 40px; padding: 8px 14px; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; width: auto; }
