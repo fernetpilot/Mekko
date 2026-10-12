@@ -24,6 +24,7 @@ function kmIgjenTekst(k) {
 function detaljer(f) {
   if (f.kilde === "eu") return [f.dato && formaterDato(f.dato), dagerTekst(f.dagerIgjen)].filter(Boolean).join(" · ");
   if (f.id === "dekk") return f.tekst || "Dekkene ser fine ut";
+  if (f.id === "dekkskift") return f.tekst;
   return [
     f.dato && formaterDato(f.dato),
     f.km != null && `ved ${formaterKm(f.km)}`,

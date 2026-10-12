@@ -36,9 +36,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Mine biler, Service og EU-kontroll, Vedlikehold). «Åpne bilen din» nederst på bilen åpner panelet «Bilen din»
   (`#bil-panel`, første bil) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
   eller trykke utenfor teksten.
-  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
-  foreløpig bare EU-kontroll; service og slitasje i % skal legges til der.
+  EU-kontroll, service og dekkskift; slitasje i % skal legges til der.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`. Lenkes ikke lenger fra forsiden,
   men brukes hvis JavaScript/3D ikke virker.
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.
@@ -72,6 +72,11 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - `public/service-og-eu.html` + `public/js/service-og-eu.js` – EU-kontroll, service og slitasje de neste 12 mnd (`?bil=<id>`, ellers første bil). Krever innlogging.
 - `public/vedlikehold.html` + `public/js/vedlikehold-oversikt.js` – alt vedlikehold per år med kostnad og vedlegg. Felles: `public/js/dashboard-side.js`, `public/css/dashboard.css`; ren logikk i `public/js/dashboard.js` (testet).
+- `public/dekk.html` + `public/js/dekk-side.js` – Dekk (`?bil=<id>`): sommer- og vinterdekksett (tabell `dekksett`,
+  se `supabase/07-dekksett.sql`), hvilket sett som står på, og «Registrer dekkskift» (lagres også som vedlikehold
+  med komponent `dekk`). Reglene ligger i `public/js/dekk.js` (ren, testet): piggdekkperioden (sør/nord, påske),
+  når det bør byttes (`dekkskift`) og alder/mønster per sett (`vurderSett`). Dekkskift vises i slitasjelisten,
+  årshjulet og varslene. `public/js/dekk-data.js` henter dekksettene og tåler at tabellen mangler.
 - Servicekatalog: `public/js/servicekatalog.js` – alle deler som kan registreres på et besøk, i 11 kategorier + Annet
   (ren data, testet). Id-ene for punkter med intervall (`servicepunkter.js`, `slitasje.js`) er de samme.
   Bærearmer registreres per hjul og lagres som `<id>@fv|fh|bv|bh`; bruk `punktNavn(id)` for visning.

@@ -4,18 +4,15 @@
 
 import { beregnServicefrist, leggTilMåneder, SNART_KM } from "./service.js";
 import { sisteUtfortPerPunkt, fristTekst } from "./servicevarsler.js";
+import { DEKK_ALDER_AAR, DEKK_GRENSER, dekkPaBilen, dekkskift, settNavn, vurderSett } from "./dekk.js";
 
 export const BREMSE_KM = 30000;
 export const BREMSE_SNOOZE_KM = 10000;
 export const LUFT_KM = 15000;
 export const LUFT_MANEDER = 12;
-export const DEKK_ALDER_AAR = 5;
 export const DEKK_SNOOZE_MANEDER = 6;
-// rad: NAF sitt råd. kritisk: lovlig minimum.
-export const DEKK_GRENSER = {
-  sommer: { rad: 3, kritisk: 1.6 },
-  vinter: { rad: 4, kritisk: 3 },
-};
+// Dekkgrensene ligger i dekk.js
+export { DEKK_ALDER_AAR, DEKK_GRENSER };
 
 // Registerreimer: 120 000 km eller 6 år, det som kommer først. Kan ikke utsettes.
 export const REGISTERREIM_KM = 120000;
@@ -60,7 +57,10 @@ function aarMellom(fraIso, tilIso) {
   return (Date.parse(tilIso) - Date.parse(fraIso)) / (365.25 * 24 * 60 * 60 * 1000);
 }
 
-/** Dekk: alder og mønsterdybde. Gir den verste statusen og en kort forklaring. */
+/**
+ * Dekk lagret direkte på bilen (før dekksett, se 07-dekksett.sql): alder og mønsterdybde.
+ * Gir den verste statusen og en kort forklaring.
+ */
 export function beregnDekk({ dekk_type, dekk_montert, dekk_mm, idag }) {
   if (!dekk_type) return { status: "ukjent", tekst: "Legg inn dekktype, dato og mønsterdybde." };
   let status = "ok";
@@ -87,7 +87,8 @@ export function beregnDekk({ dekk_type, dekk_montert, dekk_mm, idag }) {
 
 /**
  * Alle slitasjelinjer for en bil, klare til visning.
- * @returns {Array<{id, navn, status, label, frist, kmIgjen, kmIntervall, kanUtsette, utsettTekst}>}
+ * @returns {Array<{id, navn, status, label, frist, kmIgjen, kmIntervall, dato, kanUtsette, utsettTekst}>}
+ *   dato brukes bare av dekkskift (neste byttedato).
  */
 export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null, idag = new Date() }) {
   const iDag = idag.toISOString().slice(0, 10);
@@ -112,12 +113,17 @@ export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null
       frist: res.status === "ukjent" ? "" : fristTekst(res),
       kmIgjen: res.gjenstaar?.km ?? null,
       kmIntervall: punkt.kmIntervall,
+      dato: null,
       kanUtsette: (res.status === "snart" || res.status === "forfalt") && punkt.utsettbar !== false,
       utsettTekst: punkt.snoozeKm ? `Utsett ${punkt.snoozeKm.toLocaleString("no-NO").replace(/,/g, " ")} km` : "Utsett til neste oljeskift",
     });
   }
 
-  const dekk = beregnDekk({ ...bil, idag: iDag });
+  // Dekk: dekksettet på bilen hvis brukeren har dekksett, ellers de gamle feltene på bilen
+  const sett = bil?.dekksett?.length ? dekkPaBilen(bil.dekksett) : null;
+  const dekk = bil?.dekksett?.length
+    ? (sett ? vurderSett(sett, iDag) : { status: "ukjent", tekst: "Velg hvilke dekk som står på bilen." })
+    : beregnDekk({ ...bil, idag: iDag });
   const dekkUtsatt = (dekk.status === "sjekk" || dekk.status === "forfalt")
     && harAktivUtsettelse(utsettelser, "dekk", ctx);
   linjer.push({
@@ -125,11 +131,32 @@ export function slitasjeLinjer({ bil, rader = [], utsettelser = [], kmNaa = null
     navn: "Dekk",
     status: dekkUtsatt ? "utsatt" : dekk.status,
     label: LABEL[dekkUtsatt ? "utsatt" : dekk.status],
-    frist: dekk.tekst,
+    frist: dekk.tekst || (sett ? `${settNavn(sett)} på bilen` : ""),
     kmIgjen: null,
     kmIntervall: null,
+    dato: null,
     kanUtsette: dekk.status === "sjekk" || dekk.status === "forfalt",
     utsettTekst: "Utsett til neste sesong",
+  });
+
+  // Dekkskift: sommer ↔ vinter
+  const skift = dekkskift({
+    type: sett?.type ?? (bil?.dekksett?.length ? null : bil?.dekk_type ?? null),
+    pigg: sett?.pigg ?? false,
+    region: bil?.dekk_region ?? "sor",
+    idag: iDag,
+  });
+  linjer.push({
+    id: "dekkskift",
+    navn: skift.bytteTil === "vinter" ? "Dekkskift: vinterdekk" : skift.bytteTil === "sommer" ? "Dekkskift: sommerdekk" : "Dekkskift",
+    status: skift.status,
+    label: LABEL[skift.status],
+    frist: skift.tekst,
+    kmIgjen: null,
+    kmIntervall: null,
+    dato: skift.dato,
+    kanUtsette: false,
+    utsettTekst: "",
   });
   return linjer;
 }

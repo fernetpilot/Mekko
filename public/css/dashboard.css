@@ -1,12 +1,12 @@
-/* Mekkoo – oversiktssidene «Service og EU-kontroll» og «Vedlikehold».
+/* Mekkoo – oversiktssidene «Service og EU-kontroll», «Vedlikehold» og «Dekk».
    Bygger på min-side.css (farger, kort, knapper). Mobil først. */
 
 main.dash { max-width: 560px; }
 
-/* Bytte mellom de to oversiktene */
+/* Bytte mellom oversiktene */
 .dash-nav {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 4px;
   margin: 0 0 16px;
@@ -17,11 +17,11 @@ main.dash { max-width: 560px; }
 .dash-nav a {
   text-align: center;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tekst-dempet);
   border-radius: 10px;
-  padding: 10px;
+  padding: 10px 4px;
 }
 .dash-nav a[aria-current="page"] { background: var(--tekst); color: var(--bg); }
 
@@ -203,7 +203,7 @@ main.dash { max-width: 560px; }
 /* PC: bredere side, fliser på rad, måneder i to kolonner */
 @media (min-width: 760px) {
   main.dash { max-width: 920px; padding-left: 24px; padding-right: 24px; }
-  .dash-nav { max-width: 360px; }
+  .dash-nav { max-width: 480px; }
   .dash-bil { grid-template-columns: 1fr auto; align-items: end; }
   .fliser { grid-template-columns: repeat(3, 1fr); }
   .dash-knapper { grid-template-columns: repeat(auto-fit, minmax(0, 260px)); }

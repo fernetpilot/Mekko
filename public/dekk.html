@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0d">
+  <title>Mekkoo – dekk</title>
+  <!-- Krever innlogging: send til innlogging og tilbake hit etterpå -->
+  <script>
+    try {
+      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
+        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
+      }
+    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+  </script>
+  <link rel="stylesheet" href="css/min-side.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/dekk.css">
+  <script type="module" src="js/dekk-side.js"></script>
+</head>
+<body>
+  <header class="topp">
+    <a class="logo" href="/">MEKKOO</a>
+    <a class="topp-knapp" href="/min-side">Mine biler</a>
+  </header>
+
+  <main class="dash">
+    <nav class="dash-nav" aria-label="Oversikter">
+      <a href="/service-og-eu" data-bil-lenke="/service-og-eu">Service og EU</a>
+      <a href="/vedlikehold" data-bil-lenke="/vedlikehold">Vedlikehold</a>
+      <a href="/dekk" data-bil-lenke="/dekk" aria-current="page">Dekk</a>
+    </nav>
+
+    <p class="overline">Sommer- og vinterdekk</p>
+    <div class="dash-bil" id="bil-hode" hidden>
+      <div>
+        <span class="bil-skilt" id="bil-skilt"></span>
+        <h1 id="bil-navn"></h1>
+        <p class="ingress" id="bil-km"></p>
+      </div>
+      <label class="dash-bilvalg" id="bil-velger" hidden>Bytt bil
+        <select id="bil-valg"></select>
+      </label>
+    </div>
+
+    <p class="laster" id="laster">Laster …</p>
+
+    <section id="ingen-biler" class="kort" hidden>
+      <h2>Ingen biler ennå</h2>
+      <p class="liten">Legg til bilen din under Mine biler, så kan du holde oversikt over dekkene her.</p>
+      <a class="knapp sekundaer" href="/min-side">Gå til Mine biler</a>
+    </section>
+
+    <section id="mangler-tabell" class="kort" hidden>
+      <h2>Dekksett er ikke klart ennå</h2>
+      <p class="liten">Databasen mangler tabellen for dekksett. Kjør <code>supabase/07-dekksett.sql</code> i Supabase SQL Editor.</p>
+    </section>
+
+    <div id="innhold" hidden>
+      <section class="fliser" id="fliser" aria-label="Oppsummering"></section>
+
+      <div class="dash-knapper">
+        <button class="knapp" id="vis-bytte" type="button" hidden>Registrer dekkskift</button>
+        <button class="knapp sekundaer" id="vis-nytt-sett" type="button">+ Legg til dekksett</button>
+      </div>
+      <p class="melding" id="melding" role="status"></p>
+
+      <!-- Dekkskift -->
+      <form class="kort skjema" id="bytte-skjema" autocomplete="off" hidden>
+        <h2>Registrer dekkskift</h2>
+        <label>Dekk som settes på
+          <select name="sett" required></select>
+        </label>
+        <div class="to-kolonner">
+          <label>Dato <input name="dato" type="date" required></label>
+          <label>Kilometerstand <input name="km" type="number" min="0" step="1" inputmode="numeric"></label>
+        </div>
+        <label id="av-mm-felt">Mønsterdybde på dekkene som tas av (mm)
+          <input name="av_mm" type="number" min="0" max="20" step="0.1" inputmode="decimal" placeholder="Valgfritt">
+        </label>
+        <div class="to-kolonner">
+          <label>Kostnad (kr) <input name="kostnad" type="number" min="0" step="1" inputmode="numeric" placeholder="Valgfritt"></label>
+          <label>Utført av <input name="utfort_av" maxlength="100" placeholder="Selv, verksted …"></label>
+        </div>
+        <p class="liten">Dekkskiftet lagres også i vedlikeholdshistorikken.</p>
+        <button class="knapp" type="submit">Lagre dekkskift</button>
+        <button class="knapp sekundaer avbryt" type="button">Avbryt</button>
+      </form>
+
+      <!-- Nytt eller endre dekksett -->
+      <form class="kort skjema" id="sett-skjema" autocomplete="off" hidden>
+        <h2 id="sett-tittel">Legg til dekksett</h2>
+        <label>Type
+          <select name="valg">
+            <option value="sommer">Sommerdekk</option>
+            <option value="vinter">Vinterdekk (piggfrie)</option>
+            <option value="vinter-pigg">Vinterdekk med pigg</option>
+          </select>
+        </label>
+        <div class="to-kolonner">
+          <label>Dimensjon <input name="dimensjon" maxlength="40" placeholder="f.eks. 205/55R16"></label>
+          <label>Produksjonsår <input name="produksjonsaar" type="number" min="1980" max="2100" step="1" inputmode="numeric" placeholder="f.eks. 2021"></label>
+        </div>
+        <p class="liten">Produksjonsåret står i DOT-koden på dekksiden: de to siste sifrene, f.eks. 2321 = uke 23 i 2021.</p>
+        <div class="to-kolonner">
+          <label>Mønsterdybde (mm) <input name="monsterdybde_mm" type="number" min="0" max="20" step="0.1" inputmode="decimal"></label>
+          <label>Målt <input name="maalt" type="date"></label>
+        </div>
+        <label>Lagres hvor? <input name="lagring" maxlength="100" placeholder="Garasjen, dekkhotell hos …"></label>
+        <label class="avkrysning"><input name="pa_bilen" type="checkbox"> Står på bilen nå</label>
+        <label>Notat <textarea name="notat" rows="2" maxlength="300"></textarea></label>
+        <button class="knapp" type="submit">Lagre dekksett</button>
+        <button class="knapp sekundaer avbryt" type="button">Avbryt</button>
+      </form>
+
+      <h2 class="dash-tittel">Dekksettene dine</h2>
+      <p class="liten" id="ingen-sett" hidden>Ingen dekksett ennå. Legg inn sommer- og vinterdekkene, så sier vi fra når det er tid for å bytte.</p>
+      <ul class="sett-liste" id="sett-liste"></ul>
+
+      <section class="kort region-kort">
+        <label>Hvor kjører du mest?
+          <select id="region"></select>
+        </label>
+        <p class="liten">Piggdekksesongen er lengre i nord. Vi bruker den til å si fra om dekkskift.</p>
+      </section>
+
+      <p class="liten ansvar">Datoene er veiledende. Piggdekk er lov fra 1. november til og med første søndag etter 2. påskedag
+        (Nordland, Troms og Finnmark: 16. oktober til 1. mai), og ellers når føret krever det. Vinterdekk skal ha minst 3 mm
+        mønster om vinteren og sommerdekk minst 1,6 mm. Sjekk reglene på
+        <a href="https://www.vegvesen.no/" target="_blank" rel="noopener">vegvesen.no</a>.</p>
+    </div>
+  </main>
+</body>
+</html>

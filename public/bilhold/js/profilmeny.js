@@ -2,6 +2,7 @@
 import { lagVarsler } from "/js/varsler.js";
 import { sisteUtfortPerPunkt } from "/js/servicevarsler.js";
 import { LR3_2_7_TDV6 } from "/js/servicepunkter.js";
+import { leggPaDekksett } from "/js/dekk-data.js";
 
 const NOKKEL = "sb-pwihbhlnskaysbxzoqwu-auth-token"; // Supabase lagrer innloggingen her
 
@@ -112,8 +113,9 @@ async function hentVarsler() {
     const { supabase } = await import("/js/supabase.js");
     const { data: biler, error } = await supabase
       .from("biler")
-      .select("id, kjennemerke, kallenavn, merke, modell, eu_kontrollfrist, kilometerstand");
+      .select("*");
     if (error) throw error;
+    await leggPaDekksett(supabase, biler);
     const { data: rader, error: feil2 } = await supabase
       .from("vedlikehold")
       .select("bil_id, servicepunkter, dato, kilometerstand");

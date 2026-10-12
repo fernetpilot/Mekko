@@ -11,6 +11,7 @@ import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { punktNavn } from "./servicekatalog.js";
 import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
 import { stilFor } from "./punktstil.js";
+import { leggPaDekksett } from "./dekk-data.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -238,6 +239,7 @@ async function lastBiler() {
     return;
   }
 
+  await leggPaDekksett(supabase, biler);
   liste.replaceChildren(...biler.map(tegnBil));
   // Kom brukeren fra «Registrer vedlikehold»? Vis riktig bil.
   if (location.hash.startsWith("#bil-")) document.querySelector(location.hash)?.scrollIntoView({ block: "start" });
@@ -390,11 +392,7 @@ function tegnSlitasje(node, bil) {
     ul.append(li);
   }
 
-  const skjema = node.querySelector(".dekk-skjema");
-  skjema.dekk_type.value = bil.dekk_type ?? "sommer";
-  skjema.dekk_montert.value = bil.dekk_montert ?? "";
-  skjema.dekk_mm.value = bil.dekk_mm ?? "";
-  skjema.addEventListener("submit", (e) => lagreDekk(e, bil));
+  node.querySelector(".dekk-lenke").href = `/dekk?bil=${encodeURIComponent(bil.id)}`;
 }
 
 async function utsett(bil, punktId, kmNaa) {
@@ -405,21 +403,6 @@ async function utsett(bil, punktId, kmNaa) {
   if (!rad) return;
   const { error } = await supabase.from("utsettelser").insert({ ...rad, bil_id: bil.id });
   if (error) return alert("Kunne ikke utsette. Prøv igjen.");
-  lastBiler();
-}
-
-async function lagreDekk(e, bil) {
-  e.preventDefault();
-  const f = e.currentTarget;
-  const mm = f.dekk_mm.value === "" ? null : Number(f.dekk_mm.value);
-  const endring = {
-    dekk_type: f.dekk_type.value,
-    dekk_montert: f.dekk_montert.value || null,
-    dekk_mm: mm,
-  };
-  if (mm != null) endring.dekk_maalt = new Date().toISOString().slice(0, 10);
-  const { error } = await supabase.from("biler").update(endring).eq("id", bil.id);
-  if (error) return alert("Kunne ikke lagre dekkene. Prøv igjen.");
   lastBiler();
 }
 
