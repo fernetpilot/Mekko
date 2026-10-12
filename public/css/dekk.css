@@ -1,0 +1,48 @@
+/* Mekkoo – Dekk-siden. Bygger på min-side.css og dashboard.css. */
+
+.sett-liste { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; }
+.sett-kort {
+  position: relative;
+  background: var(--glass);
+  border: 1px solid var(--glass-kant);
+  border-radius: 16px;
+  padding: 14px 16px 14px 20px;
+  overflow: hidden;
+}
+.sett-kort::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  background: var(--glass-kant);
+}
+.sett-kort.ok::before { background: var(--ok); }
+.sett-kort.snart::before { background: var(--sjekk); }
+.sett-kort.forfalt::before { background: var(--kritisk); }
+.sett-hode { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sett-hode h3 { margin: 0; font-size: 17px; }
+.sett-kort.pa-bilen .merke { color: var(--tekst); border-color: var(--tekst); }
+.sett-fakta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: 14px; }
+.sett-fakta div { display: contents; }
+.sett-fakta dt { color: var(--tekst-dempet); }
+.sett-fakta dd { margin: 0; overflow-wrap: anywhere; }
+.sett-status { margin: 10px 0 0; font-size: 14px; }
+.sett-kort.snart .sett-status { color: var(--sjekk); }
+.sett-kort.forfalt .sett-status { color: var(--kritisk); }
+.sett-notat { margin: 8px 0 0; font-size: 14px; color: var(--tekst-dempet); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sett-knapper { display: flex; gap: 8px; margin-top: 12px; }
+.sett-knapper .knapp.sekundaer { margin: 0; padding: 8px 14px; font-size: 14px; }
+
+#bytte-skjema, #sett-skjema { margin-bottom: 16px; scroll-margin-top: 80px; }
+#bytte-skjema h2, #sett-skjema h2 { margin: 0 0 4px; }
+.skjema .knapp.sekundaer.avbryt { margin-top: 0; }
+.avkrysning { display: flex; align-items: center; gap: 10px; color: var(--tekst); }
+.avkrysning input { width: 20px; height: 20px; padding: 0; accent-color: var(--ok); }
+.region-kort { margin-top: 8px; }
+.region-kort .liten { margin: 8px 0 0; }
+
+@media (min-width: 760px) {
+  .fliser.fliser { grid-template-columns: repeat(2, 1fr); }
+  .sett-liste { grid-template-columns: 1fr 1fr; }
+  #bytte-skjema, #sett-skjema, .region-kort { max-width: 560px; }
+}

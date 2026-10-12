@@ -3,6 +3,7 @@
 import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { bilNavn, velgBil } from "./dashboard.js";
+import { leggPaDekksett } from "./dekk-data.js";
 
 export const $ = (id) => document.getElementById(id);
 
@@ -15,7 +16,8 @@ export function el(tag, klasse, tekst) {
 }
 
 /**
- * @returns {Promise<{ bil: object|null, biler: object[], supabase }|null>}
+ * @returns {Promise<{ bil: object|null, biler: object[], supabase, dekksettOk: boolean }|null>}
+ *   Hver bil har `dekksett` (tom liste hvis tabellen mangler, da er dekksettOk false).
  *   null betyr at siden sendes videre (ikke innlogget) eller at noe feilet (melding vises).
  */
 export async function lastBil() {
@@ -37,14 +39,15 @@ export async function lastBil() {
     $("laster").textContent = "Kunne ikke hente bilene dine. Last siden på nytt.";
     return null;
   }
+  const dekksettOk = await leggPaDekksett(supabase, biler);
   if (!biler.length) {
     $("ingen-biler").hidden = false;
-    return { bil: null, biler, supabase };
+    return { bil: null, biler, supabase, dekksettOk };
   }
 
   const bil = velgBil(biler, new URLSearchParams(location.search).get("bil"));
   tegnBilHode(bil, biler);
-  return { bil, biler, supabase };
+  return { bil, biler, supabase, dekksettOk };
 }
 
 function tegnBilHode(bil, biler) {

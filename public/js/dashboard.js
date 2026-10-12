@@ -111,9 +111,9 @@ export function alleFrister(bil, idag = new Date()) {
       kilde: "slitasje",
       navn: l.navn,
       status: normaliserStatus(l.status),
-      dato: res?.neste?.dato ?? null,
+      dato: res?.neste?.dato ?? l.dato ?? null,
       km: res?.neste?.km ?? null,
-      dagerIgjen: res?.gjenstaar?.dager ?? null,
+      dagerIgjen: res?.gjenstaar?.dager ?? (l.dato ? dagerTil(l.dato, idag) : null),
       kmIgjen: res?.gjenstaar?.km ?? null,
       tekst: l.status === "ukjent" && l.id !== "dekk" ? "Ingen registrering ennå" : (punkt ? fristTekst(res?.neste) : l.frist),
     });
@@ -136,6 +136,7 @@ export function sorterFrister(frister) {
  * - maaneder: én oppføring per måned fra og med denne (også tomme), sortert på dato
  * - senere: frister etter perioden
  * - utenDato: frister som bare har km-grense eller tekst (f.eks. bremseklosser, dekk), og utsatte
+ *   (dekkskift har dato og havner i riktig måned)
  * - ukjent: punkter uten registrering
  */
 export function aarshjul(frister, idag = new Date(), antallMaaneder = 12) {
