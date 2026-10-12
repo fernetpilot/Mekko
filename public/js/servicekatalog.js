@@ -3,7 +3,7 @@
 // Intervallene for de faste punktene ligger i servicepunkter.js og slitasje.js. Id-ene der brukes også her,
 // så gamle registreringer beholder navnet sitt.
 //
-// gjelderFor er foreløpig bare informasjon (alle punkter vises for alle biler).
+// gjelderFor: punktet vises bare for biler som passer (se passerBil). Uten gjelderFor vises det for alle.
 // perPosisjon: punktet registreres per hjul, lagres som "<id>@<posisjon>", f.eks. "ovre-kuleledd@fv".
 
 export const POSISJONER = [
@@ -19,23 +19,23 @@ export const KATALOG = [
   {
     id: "oljer", navn: "Oljer, væsker og filtre", ikon: "🛢️", gruppe: "olje",
     punkter: [
-      p("motorolje", "Motorolje", { gjelderFor: "forbrenningsmotor" }),
-      p("oljefilter", "Oljefilter", { gjelderFor: "forbrenningsmotor" }),
-      p("drivstoffilter-diesel", "Drivstoffilter (diesel)", { gjelderFor: "diesel" }),
-      p("drivstoffilter-bensin", "Drivstoffilter (bensin)", { gjelderFor: "bensin" }),
-      p("luftfilter", "Luftfilter", { gjelderFor: "forbrenningsmotor" }),
+      p("motorolje", "Motorolje", { gjelderFor: ["forbrenningsmotor"] }),
+      p("oljefilter", "Oljefilter", { gjelderFor: ["forbrenningsmotor"] }),
+      p("drivstoffilter-diesel", "Drivstoffilter (diesel)", { gjelderFor: ["diesel"] }),
+      p("drivstoffilter-bensin", "Drivstoffilter (bensin)", { gjelderFor: ["bensin"] }),
+      p("luftfilter", "Luftfilter", { gjelderFor: ["forbrenningsmotor"] }),
       p("pollenfilter", "Pollenfilter / kupéfilter"),
-      p("automatgir", "Automatgirolje", { gjelderFor: "automat" }),
-      p("automatgirfilter", "Automatgirfilter", { gjelderFor: "automat" }),
-      p("manuelt-gir", "Manuell girolje", { gjelderFor: "manuell" }),
-      p("overforing", "Overføringskasseolje", { gjelderFor: "4x4" }),
-      p("diff-foran", "Differensialolje foran", { gjelderFor: "4x4" }),
-      p("diff-bak", "Differensialolje bak", { gjelderFor: "bakhjulstrekk / 4x4" }),
-      p("servostyring", "Servoolje", { gjelderFor: "hydraulisk servo" }),
+      p("automatgir", "Automatgirolje", { gjelderFor: ["automat"] }),
+      p("automatgirfilter", "Automatgirfilter", { gjelderFor: ["automat"] }),
+      p("manuelt-gir", "Manuell girolje", { gjelderFor: ["manuell"] }),
+      p("overforing", "Overføringskasseolje", { gjelderFor: ["4x4"] }),
+      p("diff-foran", "Differensialolje foran", { gjelderFor: ["4x4"] }),
+      p("diff-bak", "Differensialolje bak", { gjelderFor: ["bakhjulstrekk"] }),
+      p("servostyring", "Servoolje"),
       p("kjolevaeske", "Kjølevæske"),
       p("bremsevaeske", "Bremsevæske"),
       p("spylervaeske", "Spylervæske"),
-      p("ac-gass", "AC-gass (påfylling)", { gjelderFor: "AC" }),
+      p("ac-gass", "AC-gass (påfylling)"),
     ],
   },
   {
@@ -80,14 +80,14 @@ export const KATALOG = [
       p("stotdemper", "Støtdemper foran/bak"),
       p("spiralfjaer", "Spiralfjær"),
       p("toppfeste", "Toppfeste / fjærbeinslager"),
-      p("luftfjaerbelg", "Luftfjærbelg / luftdemper", { gjelderFor: "luftfjæring" }),
-      p("nivasensor", "Nivåsensor", { gjelderFor: "luftfjæring" }),
-      p("luftkompressor", "Kompressor (luftfjæring)", { gjelderFor: "luftfjæring" }),
-      p("lufttorker", "Lufttørker i kompressor", { gjelderFor: "luftfjæring" }),
-      p("kompressorrele", "Kompressorrelé", { gjelderFor: "luftfjæring" }),
-      p("lufttank", "Lufttank", { gjelderFor: "luftfjæring" }),
-      p("ventilblokk", "Ventilblokk", { gjelderFor: "luftfjæring" }),
-      p("luftror", "Luftrør og koblinger", { gjelderFor: "luftfjæring" }),
+      p("luftfjaerbelg", "Luftfjærbelg / luftdemper", { gjelderFor: ["luftfjæring"] }),
+      p("nivasensor", "Nivåsensor", { gjelderFor: ["luftfjæring"] }),
+      p("luftkompressor", "Kompressor (luftfjæring)", { gjelderFor: ["luftfjæring"] }),
+      p("lufttorker", "Lufttørker i kompressor", { gjelderFor: ["luftfjæring"] }),
+      p("kompressorrele", "Kompressorrelé", { gjelderFor: ["luftfjæring"] }),
+      p("lufttank", "Lufttank", { gjelderFor: ["luftfjæring"] }),
+      p("ventilblokk", "Ventilblokk", { gjelderFor: ["luftfjæring"] }),
+      p("luftror", "Luftrør og koblinger", { gjelderFor: ["luftfjæring"] }),
     ],
   },
   {
@@ -97,43 +97,43 @@ export const KATALOG = [
       p("drivakselmansjett", "Drivakselmansjett"),
       p("mellomaksel", "Mellomaksel-oppheng"),
       p("kardanaksel", "Kardanaksel og kardanknuter"),
-      p("clutch", "Clutch og svinghjul", { gjelderFor: "manuell" }),
+      p("clutch", "Clutch og svinghjul", { gjelderFor: ["manuell"] }),
       p("girkassefester", "Girkassefester"),
     ],
   },
   {
     id: "motor", navn: "Motor", ikon: "🔩", gruppe: "motor",
     punkter: [
-      p("registerreim", "Registerreim (inkl. strammer og styrehjul)"),
-      p("hoytrykkspumpereim", "Reim til høytrykkspumpe"),
-      p("registerkjede", "Registerkjede"),
-      p("multireim", "Multireim (inkl. strammer)"),
+      p("registerreim", "Registerreim (inkl. strammer og styrehjul)", { gjelderFor: ["forbrenningsmotor"] }),
+      p("hoytrykkspumpereim", "Reim til høytrykkspumpe", { gjelderFor: ["diesel"] }),
+      p("registerkjede", "Registerkjede", { gjelderFor: ["forbrenningsmotor"] }),
+      p("multireim", "Multireim (inkl. strammer)", { gjelderFor: ["forbrenningsmotor"] }),
       p("servopumpe", "Servopumpe"),
       p("vannpumpe", "Vannpumpe"),
       p("termostat", "Termostat"),
-      p("oljepumpe", "Oljepumpe"),
-      p("oljekjoler", "Oljekjøler"),
+      p("oljepumpe", "Oljepumpe", { gjelderFor: ["forbrenningsmotor"] }),
+      p("oljekjoler", "Oljekjøler", { gjelderFor: ["forbrenningsmotor"] }),
       p("kjoler", "Kjøler og intercooler"),
       p("kjolevifte", "Viftekobling / kjølevifte"),
-      p("turbo", "Turbo"),
-      p("gloeplugger", "Glødeplugger", { gjelderFor: "diesel" }),
-      p("tennplugger", "Tennplugger", { gjelderFor: "bensin" }),
-      p("coil", "Coil (tennspole)", { gjelderFor: "bensin" }),
-      p("injektorer", "Dyser / injektorer"),
-      p("sveivhusventilasjon", "Sveivhusventilasjon / oljeutskiller"),
+      p("turbo", "Turbo", { gjelderFor: ["forbrenningsmotor"] }),
+      p("gloeplugger", "Glødeplugger", { gjelderFor: ["diesel"] }),
+      p("tennplugger", "Tennplugger", { gjelderFor: ["bensin"] }),
+      p("coil", "Coil (tennspole)", { gjelderFor: ["bensin"] }),
+      p("injektorer", "Dyser / injektorer", { gjelderFor: ["forbrenningsmotor"] }),
+      p("sveivhusventilasjon", "Sveivhusventilasjon / oljeutskiller", { gjelderFor: ["forbrenningsmotor"] }),
       p("motorfester", "Motorfester"),
-      p("ventildekselpakning", "Ventildekselpakning"),
+      p("ventildekselpakning", "Ventildekselpakning", { gjelderFor: ["forbrenningsmotor"] }),
     ],
   },
   {
     id: "avgass", navn: "Avgass og utslipp", ikon: "💨", gruppe: "avgass",
     punkter: [
-      p("egr", "EGR-ventil / EGR-kjøler"),
-      p("eksos", "Eksosanlegg / lyddemper"),
-      p("katalysator", "Katalysator"),
-      p("dpf", "Dieselpartikkelfilter (DPF)", { gjelderFor: "diesel" }),
-      p("lambdasonde", "Lambdasonde"),
-      p("adblue", "AdBlue-system", { gjelderFor: "diesel" }),
+      p("egr", "EGR-ventil / EGR-kjøler", { gjelderFor: ["forbrenningsmotor"] }),
+      p("eksos", "Eksosanlegg / lyddemper", { gjelderFor: ["forbrenningsmotor"] }),
+      p("katalysator", "Katalysator", { gjelderFor: ["forbrenningsmotor"] }),
+      p("dpf", "Dieselpartikkelfilter (DPF)", { gjelderFor: ["diesel"] }),
+      p("lambdasonde", "Lambdasonde", { gjelderFor: ["forbrenningsmotor"] }),
+      p("adblue", "AdBlue-system", { gjelderFor: ["diesel"] }),
     ],
   },
   {
@@ -209,4 +209,27 @@ export function punktNavn(id) {
 /** Alle punkter i katalogen, flatt, i katalogens rekkefølge. */
 export function allePunkter() {
   return [...PUNKT.values()];
+}
+
+/**
+ * Passer punktet bilen? Egenskapene kommer fra bilEgenskaper() i kjoretoy.js.
+ * Ukjent egenskap (null) gir ja, bortsett fra luftfjæring, som må være kjent.
+ * Uten egenskaper (oppslaget feilet) vises alt.
+ */
+export function passerBil(punkt, egenskaper) {
+  if (!egenskaper || !punkt?.gjelderFor) return true;
+  const { drivstoff, drift, girkasse, luftfjaering } = egenskaper;
+  return punkt.gjelderFor.every((krav) => {
+    switch (krav) {
+      case "forbrenningsmotor": return drivstoff !== "elektrisk";
+      case "diesel": return drivstoff === null || drivstoff === "diesel";
+      case "bensin": return drivstoff === null || drivstoff === "bensin";
+      case "automat": return girkasse === null || girkasse === "automat";
+      case "manuell": return girkasse === null || girkasse === "manuell";
+      case "4x4": return drift === null || drift === "4x4";
+      case "bakhjulstrekk": return drift === null || drift === "4x4" || drift === "bak";
+      case "luftfjæring": return luftfjaering === true;
+      default: return true;
+    }
+  });
 }

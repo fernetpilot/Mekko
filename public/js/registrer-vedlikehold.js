@@ -3,7 +3,7 @@ import { supabase } from "./supabase.js";
 import { formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
 import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
-import { lagPunktvelger } from "./punktvelger.js";
+import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -60,6 +60,7 @@ async function start() {
   skjema.dato.value = idagTekst();
   visKmHint();
   oppdaterImportLenke();
+  filtrerPaaBil();
   skjema.hidden = false;
 }
 
@@ -81,6 +82,14 @@ const velger = lagPunktvelger({
   },
 });
 $("servicepunkt-valg").append(velger.el);
+// Vis bare deler som passer valgt bil (drivstoff, drift, girkasse, luftfjæring)
+async function filtrerPaaBil() {
+  const bil = biler.find((b) => b.id === valg.value);
+  velger.settBil(null);
+  const egenskaper = await hentBilEgenskaper(bil?.kjennemerke);
+  if (valg.value === bil?.id) velger.settBil(egenskaper);
+}
+valg.addEventListener("change", filtrerPaaBil);
 function visServicepunkt() {
   $("servicepunkt-felt").hidden = skjema.komponent.value === "eu_kontroll";
 }

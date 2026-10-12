@@ -45,3 +45,41 @@ export function hentKjoretoy(apiSvar) {
     },
   };
 }
+
+// Modeller med luftfjæring fra fabrikk. Vognkortet sier ikke noe om fjæring, så dette er en liste vi utvider ved behov.
+const LUFTFJAERING = /DISCOVERY [345]|RANGE ROVER/i;
+
+/**
+ * Det servicekatalogen trenger for å vise bare deler som passer bilen.
+ * null betyr ukjent. Da vises alle deler for den egenskapen.
+ * Girkasse står ikke i feltoversikten vår, så den leses forsiktig og er ofte null.
+ * @param {object} apiSvar JSON fra /api/kjoretoy
+ * @returns {{ drivstoff: "diesel"|"bensin"|"elektrisk"|null, drift: "foran"|"bak"|"4x4"|null,
+ *             girkasse: "automat"|"manuell"|null, luftfjaering: true|null }}
+ */
+export function bilEgenskaper(apiSvar) {
+  const k = apiSvar?.kjoretoydataListe?.[0];
+  const td = k?.godkjenning?.tekniskGodkjenning?.tekniskeData ?? {};
+  const kodetekst = (kode) => `${kode?.kodeVerdi ?? ""} ${kode?.kodeNavn ?? ""}`.toLowerCase();
+
+  const drivstoffKoder = (td.motorOgDrivverk?.motor ?? [])
+    .flatMap((m) => m.drivstoff ?? []).map((d) => kodetekst(d.drivstoffKode));
+  const har = (ord) => drivstoffKoder.some((t) => t.includes(ord));
+  const drivstoff = har("diesel") ? "diesel" : har("bensin") ? "bensin" : har("elektr") ? "elektrisk" : null;
+
+  // Hvilke aksler som driver. Første aksel er foran.
+  const aksler = (td.akslinger?.akselGruppe ?? []).flatMap((g) => g.akselListe?.aksel ?? []);
+  const drevne = aksler.map((a) => a.drivAksel);
+  let drift = null;
+  if (drevne.length >= 2 && drevne.every((d) => typeof d === "boolean")) {
+    if (drevne[0] && drevne.slice(1).some(Boolean)) drift = "4x4";
+    else if (drevne[0]) drift = "foran";
+    else if (drevne.slice(1).some(Boolean)) drift = "bak";
+  }
+
+  const gir = kodetekst(td.motorOgDrivverk?.girkassetype);
+  const girkasse = gir.includes("automat") ? "automat" : gir.includes("manuell") ? "manuell" : null;
+
+  const modell = `${td.generelt?.merke?.[0]?.merke ?? ""} ${td.generelt?.handelsbetegnelse?.[0] ?? ""}`;
+  return { drivstoff, drift, girkasse, luftfjaering: LUFTFJAERING.test(modell) ? true : null };
+}

@@ -43,3 +43,55 @@ test("stil: egen stil, ellers kategoriens, også med posisjon", () => {
   assert.equal(stilFor("ovre-kuleledd@fv").gruppe, "styring");
   assert.equal(stilFor("finnes-ikke").gruppe, "annet");
 });
+
+import { passerBil } from "../public/js/servicekatalog.js";
+import { bilEgenskaper } from "../public/js/kjoretoy.js";
+
+const svar = ({ drivstoff = "Diesel", aksler = [true, true], gir, merke = "LAND ROVER", modell = "DISCOVERY 3" } = {}) => ({
+  kjoretoydataListe: [{
+    godkjenning: { tekniskGodkjenning: { tekniskeData: {
+      generelt: { merke: [{ merke }], handelsbetegnelse: [modell] },
+      motorOgDrivverk: {
+        motor: [{ drivstoff: [{ drivstoffKode: { kodeVerdi: drivstoff.slice(0, 1), kodeNavn: drivstoff } }] }],
+        ...(gir ? { girkassetype: { kodeNavn: gir } } : {}),
+      },
+      akslinger: { akselGruppe: [{ akselListe: { aksel: aksler.map((d) => ({ drivAksel: d })) } }] },
+    } } },
+  }],
+});
+
+test("bilEgenskaper leser drivstoff, drift, girkasse og luftfjæring", () => {
+  assert.deepEqual(bilEgenskaper(svar()), { drivstoff: "diesel", drift: "4x4", girkasse: null, luftfjaering: true });
+  assert.deepEqual(
+    bilEgenskaper(svar({ drivstoff: "Bensin", aksler: [true, false], gir: "Manuell", merke: "VOLKSWAGEN", modell: "GOLF" })),
+    { drivstoff: "bensin", drift: "foran", girkasse: "manuell", luftfjaering: null });
+  assert.equal(bilEgenskaper(svar({ drivstoff: "Elektrisitet", aksler: [false, true] })).drivstoff, "elektrisk");
+  assert.equal(bilEgenskaper(svar({ aksler: [false, true] })).drift, "bak");
+  assert.equal(bilEgenskaper(svar({ aksler: [{}, {}].map(() => undefined) })).drift, null);
+  assert.deepEqual(bilEgenskaper({}), { drivstoff: null, drift: null, girkasse: null, luftfjaering: null });
+});
+
+test("passerBil: Discovery 3 (diesel, 4x4, luftfjæring)", () => {
+  const e = bilEgenskaper(svar());
+  const ok = (id) => passerBil(finnPunkt(id), e);
+  assert.ok(ok("motorolje") && ok("gloeplugger") && ok("overforing") && ok("luftkompressor") && ok("automatgir"));
+  assert.ok(!ok("tennplugger") && !ok("coil") && !ok("drivstoffilter-bensin"));
+});
+
+test("passerBil: forhjulsdrevet bensin med manuelt gir", () => {
+  const e = { drivstoff: "bensin", drift: "foran", girkasse: "manuell", luftfjaering: null };
+  const ok = (id) => passerBil(finnPunkt(id), e);
+  assert.ok(ok("tennplugger") && ok("clutch") && ok("manuelt-gir") && ok("bremseklosser"));
+  assert.ok(!ok("gloeplugger") && !ok("automatgir") && !ok("overforing") && !ok("diff-bak") && !ok("luftkompressor"));
+});
+
+test("passerBil: elbil skjuler motorolje og eksos", () => {
+  const e = { drivstoff: "elektrisk", drift: "bak", girkasse: null, luftfjaering: null };
+  const ok = (id) => passerBil(finnPunkt(id), e);
+  assert.ok(!ok("motorolje") && !ok("eksos") && !ok("registerreim"));
+  assert.ok(ok("bremseklosser") && ok("diff-bak") && ok("pollenfilter"));
+});
+
+test("passerBil uten egenskaper viser alt", () => {
+  for (const p of allePunkter()) assert.ok(passerBil(p, null), p.id);
+});

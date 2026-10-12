@@ -9,7 +9,7 @@ import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
 import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { punktNavn } from "./servicekatalog.js";
-import { lagPunktvelger } from "./punktvelger.js";
+import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
 import { stilFor } from "./punktstil.js";
 
 const $ = (id) => document.getElementById(id);
@@ -322,7 +322,7 @@ function tegnBil(bil) {
     li.textContent = "Ingenting registrert ennå.";
     ul.append(li);
   }
-  for (const h of hendelser) ul.append(tegnHendelse(h));
+  for (const h of hendelser) ul.append(tegnHendelse(h, bil));
   node.querySelector(".vedlikehold").open = hendelser.length > 0;
 
   node.id = `bil-${bil.id}`;
@@ -462,7 +462,7 @@ async function visKjoretoydata(skilt, mal) {
   }
 }
 
-function tegnHendelse(h) {
+function tegnHendelse(h, bil) {
   const li = document.createElement("li");
   const tekst = document.createElement("div");
   const tittel = document.createElement("div");
@@ -491,12 +491,12 @@ function tegnHendelse(h) {
     lastBiler();
   });
 
-  li.append(tekst, punktRad(h), slett);
+  li.append(tekst, punktRad(h, bil), slett);
   return li;
 }
 
 // Deler på besøket: fargede merker (kan fjernes med ×), og en liste som åpnes under knappen.
-function punktRad(h) {
+function punktRad(h, bil) {
   const wrap = document.createElement("div");
   wrap.className = "punkt-rad";
   const merker = document.createElement("div");
@@ -513,7 +513,7 @@ function punktRad(h) {
     knapp.addEventListener("click", () => bekreftGjettet(h, gjettet));
     wrap.append(knapp);
   }
-  wrap.append(velgerMeny(h, merker));
+  wrap.append(velgerMeny(h, merker, bil));
   return wrap;
 }
 
@@ -550,7 +550,7 @@ function punktMerke(id, h, merker) {
 
 // Listen åpnes under knappen (full bredde, større knapper for mobil).
 // Hver avkryssing lagres med én gang, uten å tegne historikken på nytt.
-function velgerMeny(h, merker) {
+function velgerMeny(h, merker, bil) {
   const dd = document.createElement("div");
   dd.className = "punkt-dropdown";
   const knapp = document.createElement("button");
@@ -574,7 +574,13 @@ function velgerMeny(h, merker) {
   const synkroniser = () => velger.sett(h.servicepunkter ?? []);
   synkroniser();
 
+  let filtrert = false;
   knapp.addEventListener("click", () => {
+    // Deler som ikke passer bilen skjules (hentes første gang listen åpnes)
+    if (!filtrert) {
+      filtrert = true;
+      hentBilEgenskaper(bil?.kjennemerke).then(velger.settBil);
+    }
     panel.hidden = !panel.hidden;
     knapp.setAttribute("aria-expanded", String(!panel.hidden));
   });
