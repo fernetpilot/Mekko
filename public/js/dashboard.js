@@ -7,7 +7,7 @@ import { sisteUtfortPerPunkt } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, SLITASJE_PUNKTER } from "./slitasje.js";
 import { euStatus, dagerTil, KOMPONENT_NAVN } from "./bilstatus.js";
-import { alleServicepunkter } from "./servicepunkt-gjetting.js";
+import { punktNavn } from "./servicekatalog.js";
 
 export const MANEDSNAVN = ["januar", "februar", "mars", "april", "mai", "juni",
   "juli", "august", "september", "oktober", "november", "desember"];
@@ -193,12 +193,10 @@ export function slitasjeOppsummering(frister) {
 // Vedlikeholdshistorikk
 // ---------------------------------------------------------------------------
 
-const PUNKTNAVN = Object.fromEntries(alleServicepunkter().map((p) => [p.id, p.navn]));
-
 /** Tittel på en hendelse: «Service» eller «Service: motorolje, oljefilter». */
 export function hendelseTittel(rad) {
   const type = KOMPONENT_NAVN[rad.komponent] ?? rad.komponent ?? "Vedlikehold";
-  const deler = (rad.servicepunkter ?? []).map((id) => PUNKTNAVN[id] ?? id);
+  const deler = (rad.servicepunkter ?? []).map(punktNavn);
   if (!deler.length) return type;
   return `${type}: ${deler.map((d) => d.toLowerCase()).join(", ")}`;
 }

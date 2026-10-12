@@ -7,7 +7,9 @@ import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
 import { punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, utsettelseFor, BREMSE_SNOOZE_KM } from "./slitasje.js";
-import { alleServicepunkter, gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
+import { punktNavn } from "./servicekatalog.js";
+import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
 import { stilFor } from "./punktstil.js";
 import { leggPaDekksett } from "./dekk-data.js";
 
@@ -322,7 +324,7 @@ function tegnBil(bil) {
     li.textContent = "Ingenting registrert ennå.";
     ul.append(li);
   }
-  for (const h of hendelser) ul.append(tegnHendelse(h));
+  for (const h of hendelser) ul.append(tegnHendelse(h, bil));
   node.querySelector(".vedlikehold").open = hendelser.length > 0;
 
   node.id = `bil-${bil.id}`;
@@ -443,7 +445,7 @@ async function visKjoretoydata(skilt, mal) {
   }
 }
 
-function tegnHendelse(h) {
+function tegnHendelse(h, bil) {
   const li = document.createElement("li");
   const tekst = document.createElement("div");
   const tittel = document.createElement("div");
@@ -472,12 +474,12 @@ function tegnHendelse(h) {
     lastBiler();
   });
 
-  li.append(tekst, punktRad(h), slett);
+  li.append(tekst, punktRad(h, bil), slett);
   return li;
 }
 
 // Deler på besøket: fargede merker (kan fjernes med ×), og en liste som åpnes under knappen.
-function punktRad(h) {
+function punktRad(h, bil) {
   const wrap = document.createElement("div");
   wrap.className = "punkt-rad";
   const merker = document.createElement("div");
@@ -494,12 +496,12 @@ function punktRad(h) {
     knapp.addEventListener("click", () => bekreftGjettet(h, gjettet));
     wrap.append(knapp);
   }
-  wrap.append(velgerMeny(h, merker));
+  wrap.append(velgerMeny(h, merker, bil));
   return wrap;
 }
 
 function navnPå(id) {
-  return alleServicepunkter().find((p) => p.id === id)?.navn ?? id;
+  return punktNavn(id);
 }
 
 function tegnMerker(h, merker) {
@@ -531,7 +533,7 @@ function punktMerke(id, h, merker) {
 
 // Listen åpnes under knappen (full bredde, større knapper for mobil).
 // Hver avkryssing lagres med én gang, uten å tegne historikken på nytt.
-function velgerMeny(h, merker) {
+function velgerMeny(h, merker, bil) {
   const dd = document.createElement("div");
   dd.className = "punkt-dropdown";
   const knapp = document.createElement("button");
@@ -543,31 +545,25 @@ function velgerMeny(h, merker) {
   panel.className = "punkt-panel";
   panel.hidden = true;
 
-  const avkryss = new Map();
-  for (const p of alleServicepunkter()) {
-    const stil = stilFor(p.id);
-    const lab = document.createElement("label");
-    lab.className = `punkt-option gruppe-${stil.gruppe}`;
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = p.id;
-    cb.addEventListener("change", () => {
+  const velger = lagPunktvelger({
+    klasse: "punkt-option",
+    vedEndring(id, valgt) {
       const gjeldende = h.servicepunkter ?? [];
-      const deler = cb.checked
-        ? utvidDeler([...gjeldende, p.id])
-        : gjeldende.filter((d) => d !== p.id);
+      const deler = valgt ? utvidDeler([...gjeldende, id]) : gjeldende.filter((d) => d !== id);
       endreDeler(h, deler, merker, synkroniser);
-    });
-    avkryss.set(p.id, cb);
-    lab.append(cb, document.createTextNode(` ${stil.ikon} ${p.navn}`));
-    panel.append(lab);
-  }
-  const synkroniser = () => {
-    for (const [id, cb] of avkryss) cb.checked = (h.servicepunkter ?? []).includes(id);
-  };
+    },
+  });
+  panel.append(velger.el);
+  const synkroniser = () => velger.sett(h.servicepunkter ?? []);
   synkroniser();
 
+  let filtrert = false;
   knapp.addEventListener("click", () => {
+    // Deler som ikke passer bilen skjules (hentes første gang listen åpnes)
+    if (!filtrert) {
+      filtrert = true;
+      hentBilEgenskaper(bil?.kjennemerke).then(velger.settBil);
+    }
     panel.hidden = !panel.hidden;
     knapp.setAttribute("aria-expanded", String(!panel.hidden));
   });
