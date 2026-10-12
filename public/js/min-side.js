@@ -325,7 +325,6 @@ function tegnBil(bil) {
     ul.append(li);
   }
   for (const h of hendelser) ul.append(tegnHendelse(h, bil));
-  node.querySelector(".vedlikehold").open = hendelser.length > 0;
 
   node.id = `bil-${bil.id}`;
   node.querySelector(".registrer-lenke").href = `/registrer-vedlikehold?bil=${encodeURIComponent(bil.id)}`;
@@ -474,7 +473,23 @@ function tegnHendelse(h, bil) {
     lastBiler();
   });
 
-  li.append(tekst, punktRad(h, bil), slett);
+  // Delene vises først når man trykker på oppføringen
+  const rad = punktRad(h, bil);
+  rad.hidden = true;
+  tekst.className = "hendelse-tekst";
+  tekst.setAttribute("role", "button");
+  tekst.tabIndex = 0;
+  tekst.setAttribute("aria-expanded", "false");
+  const veksle = () => {
+    rad.hidden = !rad.hidden;
+    tekst.setAttribute("aria-expanded", String(!rad.hidden));
+  };
+  tekst.addEventListener("click", veksle);
+  tekst.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); veksle(); }
+  });
+
+  li.append(tekst, rad, slett);
   return li;
 }
 
