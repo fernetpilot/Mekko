@@ -3,12 +3,13 @@
 // All beregning ligger i de rene modulene (dashboard.js, dekk.js, bilstatus.js). Her tegnes bare panelet.
 import { supabase } from '/js/supabase.js';
 import { euStatus, formaterDato, formaterKm } from '/js/bilstatus.js';
-import {
-  alleFrister, aarshjul, bilNavn, formaterKr, hendelseTittel, nesteService,
-  slitasjeOppsummering, sorterFrister, velgBil, vedlikeholdOversikt,
-} from '/js/dashboard.js';
+import { alleFrister, aarshjul, bilNavn, normaliserStatus, velgBil } from '/js/dashboard.js';
 import { leggPaDekksett } from '/js/dekk-data.js';
-import { dekkPaBilen, settNavn } from '/js/dekk.js';
+import { dekkPaBilen, dekkskift, settNavn, settType, vurderSett } from '/js/dekk.js';
+import { el, flis, fliser, fristListe, lenkekort, liten } from './bil-visning.js';
+import { serviceFane, serviceFliser } from './fane-service.js';
+import { vedlikeholdFane } from './fane-vedlikehold.js';
+import { okonomiFane } from './fane-okonomi.js';
 
 export const FANER = [
   { id: 'oversikt', navn: 'Oversikt' },
@@ -18,16 +19,9 @@ export const FANER = [
   { id: 'okonomi', navn: 'Økonomi' },
   { id: 'bildata', navn: 'Bildata' },
 ];
-const STATUS_TEKST = { ok: 'OK', snart: 'Snart', forfalt: 'Bør gjøres', utsatt: 'Utsatt', ukjent: 'Ukjent' };
 const LAGRET_BIL = 'mekko-valgt-bil';
 
 const $ = (id) => document.getElementById(id);
-function el(tag, klasse, tekst) {
-  const e = document.createElement(tag);
-  if (klasse) e.className = klasse;
-  if (tekst != null) e.textContent = tekst;
-  return e;
-}
 
 let biler = null;        // hentet én gang per sidevisning
 let henter = null;
@@ -40,7 +34,7 @@ let fane = 'oversikt';
 async function hentBiler() {
   const { data, error } = await supabase
     .from('biler')
-    .select('*, vedlikehold(*, dokumenter(id)), utsettelser(*)')
+    .select('*, vedlikehold(*, dokumenter(*)), utsettelser(*)')
     .order('opprettet')
     .order('dato', { referencedTable: 'vedlikehold', ascending: false });
   if (error) throw error;
@@ -183,83 +177,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Byggeklosser
-// ---------------------------------------------------------------------------
-function flis(etikett, verdi, under, status = 'noytral') {
-  const d = el('div', `bil-flis ${status}`);
-  d.append(el('p', 'flis-etikett', etikett), el('p', 'flis-verdi', verdi));
-  if (under) d.append(el('p', 'flis-under', under));
-  return d;
-}
-
-function fliser(...barn) {
-  const d = el('div', 'bil-fliser');
-  d.append(...barn);
-  return d;
-}
-
-function kmIgjen(k) {
-  if (k == null) return '';
-  return k > 0 ? `${formaterKm(k)} igjen` : `${formaterKm(-k)} over`;
-}
-
-function fristLinje(f) {
-  if (f.id === 'dekk' || f.id === 'dekkskift') return f.tekst ?? '';
-  return [f.dato && formaterDato(f.dato), f.km != null && `ved ${formaterKm(f.km)}`, kmIgjen(f.kmIgjen)]
-    .filter(Boolean).join(' · ');
-}
-
-function fristListe(tittel, frister, klasse = '') {
-  const s = el('section', `bil-kort ${klasse}`);
-  s.append(el('h3', null, tittel));
-  const ul = el('ul', 'bil-liste');
-  for (const f of frister) {
-    const li = el('li', `frist ${f.status}`);
-    li.append(el('span', 'prikk'));
-    const t = el('div', 'liste-tekst');
-    t.append(el('strong', null, f.navn), el('span', 'liste-under', fristLinje(f)));
-    li.append(t, el('span', 'merke', STATUS_TEKST[f.status]));
-    ul.append(li);
-  }
-  s.append(ul);
-  return s;
-}
-
-/** Lenke til en underside, med valgt bil. */
-function lenkekort(tittel, tekst, href) {
-  const a = el('a', 'glasskort bil-lenkekort');
-  const url = new URL(href, location.origin);
-  url.searchParams.set('bil', bil.id);
-  a.href = url.pathname + url.search;
-  const inn = el('span', 'kort-innhold');
-  inn.append(el('span', 'kort-tittel', tittel), el('span', 'kort-tekst', tekst));
-  const pil = el('span', 'kort-pil', '›');
-  pil.setAttribute('aria-hidden', 'true');
-  a.append(inn, pil);
-  return a;
-}
-
-function liten(tekst) { return el('p', 'bil-liten', tekst); }
-
-// ---------------------------------------------------------------------------
 // Fanene
 // ---------------------------------------------------------------------------
 function oversikt(b, idag) {
   const frister = alleFrister(b, idag);
   const hjul = aarshjul(frister, idag);
-  const service = nesteService(frister);
-  const slitasje = slitasjeOppsummering(frister);
-  const ut = [fliser(
-    service
-      ? flis('Neste service', service.navn,
-        [service.dato && formaterDato(service.dato), kmIgjen(service.kmIgjen)].filter(Boolean).join(' · '), service.status)
-      : flis('Neste service', 'Ingen plan ennå', 'Registrer siste service', 'ukjent'),
-    flis('Dekk og slitasje',
-      slitasje.status === 'ukjent' ? 'Ikke registrert'
-        : slitasje.deler.length ? slitasje.deler.map((d) => d.navn).join(', ') : 'Alt ser bra ut',
-      slitasje.status === 'ukjent' ? 'Legg inn dekk og bremser' : STATUS_TEKST[slitasje.status],
-      slitasje.status),
-  )];
+  const ut = [serviceFliser(frister)];
   if (hjul.forfalt.length) ut.push(fristListe('Bør gjøres nå', hjul.forfalt, 'forfalt-kort'));
   const snart = hjul.maaneder.flatMap((m) => m.frister).slice(0, 3);
   if (snart.length) ut.push(fristListe('Kommer snart', snart));
@@ -269,74 +192,52 @@ function oversikt(b, idag) {
   return ut;
 }
 
-function serviceFane(b, idag) {
-  const frister = alleFrister(b, idag);
-  const kjente = sorterFrister(frister.filter((f) => f.status !== 'ukjent'));
-  const ut = [];
-  if (kjente.length) ut.push(fristListe('Neste frister', kjente.slice(0, 6)));
-  else ut.push(liten('Ingen frister ennå. Registrer siste service, så regner vi ut neste.'));
-  const ukjente = frister.filter((f) => f.status === 'ukjent');
-  if (ukjente.length) ut.push(liten(`Mangler registrering: ${ukjente.map((f) => f.navn).join(' · ')}`));
-  ut.push(lenkekort('Hele årshjulet', 'EU-kontroll, service og slitasje måned for måned.', '/service-og-eu'));
-  ut.push(el('p', 'bil-ansvar', 'Fristene er veiledende og bygger på det du har registrert. Sjekk servicehefte og vognkort, og vegvesen.no for EU-kontroll.'));
-  return ut;
-}
-
-function vedlikeholdFane(b) {
-  const o = vedlikeholdOversikt(b.vedlikehold ?? []);
-  const ut = [fliser(
-    flis('Jobber registrert', String(o.antall), o.aar.length ? `Fra ${o.aar.at(-1).aar} til ${o.aar[0].aar}` : 'Ingen ennå'),
-    flis('Totalt brukt', formaterKr(o.totalKostnad), o.medKostnad < o.antall ? `${o.antall - o.medKostnad} uten beløp` : null),
-  )];
-  const siste = o.aar.flatMap((a) => a.hendelser).slice(0, 5);
-  if (siste.length) {
-    const s = el('section', 'bil-kort');
-    s.append(el('h3', null, 'Sist gjort'));
-    const ul = el('ul', 'bil-liste');
-    for (const h of siste) {
-      const li = el('li', 'jobb');
-      const t = el('div', 'liste-tekst');
-      t.append(el('strong', null, hendelseTittel(h)),
-        el('span', 'liste-under', [formaterDato(h.dato), h.kilometerstand != null && formaterKm(h.kilometerstand)].filter(Boolean).join(' · ')));
-      li.append(t);
-      if (h.kostnad != null) li.append(el('span', 'liste-belop', formaterKr(h.kostnad)));
-      ul.append(li);
-    }
-    s.append(ul);
-    ut.push(s);
-  }
-  ut.push(
-    lenkekort('Alt vedlikehold', 'Hele historikken per år, med kvitteringer.', '/vedlikehold'),
-    lenkekort('Servicehefte', 'Historikk med vedlegg, og last ned som PDF.', '/servicehefte'),
-    lenkekort('Importer historikk', 'Fra regneark eller PDF, mange hendelser på én gang.', '/importer-historikk'),
-  );
-  return ut;
+function dagTekst(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function dekkFane(b, idag) {
-  const pa = dekkPaBilen(b.dekksett);
-  const skift = alleFrister(b, idag).find((f) => f.id === 'dekkskift');
+  const iDag = dagTekst(idag);
+  const sett = b.dekksett ?? [];
+  const pa = dekkPaBilen(sett);
+  const tilstand = pa ? vurderSett(pa, iDag) : null;
+  const skift = dekkskift({ type: pa?.type ?? null, pigg: pa?.pigg, region: b.dekk_region ?? 'sor', idag: iDag });
   const ut = [fliser(
-    flis('På bilen nå', pa ? settNavn(pa) : 'Ikke valgt', b.dekksett?.length ? `${b.dekksett.length} dekksett registrert` : 'Ingen dekksett ennå'),
-    flis('Dekkskift', skift ? STATUS_TEKST[skift.status] : 'Ukjent', skift?.tekst ?? null, skift?.status ?? 'ukjent'),
+    flis('Neste dekkskift', skift.bytteTil === 'vinter' ? 'Vinterdekk' : skift.bytteTil === 'sommer' ? 'Sommerdekk' : 'Ukjent',
+      skift.tekst, skift.status),
+    pa
+      ? flis('På bilen nå', settType(pa),
+        tilstand.tekst || [pa.dimensjon, pa.montert && `Montert ${formaterDato(pa.montert)}`].filter(Boolean).join(' · ') || 'Mønster og alder ser bra ut',
+        normaliserStatus(tilstand.status))
+      : flis('På bilen nå', 'Ikke valgt', 'Legg til dekksett og kryss av for det som står på', 'ukjent'),
   )];
-  ut.push(lenkekort('Dekk og dekkskift', 'Sommer- og vinterdekk, mønster, alder og registrer dekkskift.', '/dekk'));
-  return ut;
-}
 
-function okonomiFane(b, idag) {
-  const o = vedlikeholdOversikt(b.vedlikehold ?? []);
-  const iAar = o.aar.find((a) => a.aar === String(idag.getFullYear()));
-  const ut = [fliser(
-    flis('Vedlikehold totalt', formaterKr(o.totalKostnad), o.antall ? `${o.antall} jobber` : 'Ingen ennå'),
-    flis(`Brukt i ${idag.getFullYear()}`, formaterKr(iAar?.sum ?? 0)),
-  )];
-  if (b.kjopspris != null) {
-    ut.push(fliser(flis('Kjøpspris', formaterKr(b.kjopspris), b.kjopsdato ? `Kjøpt ${formaterDato(b.kjopsdato)}` : null)));
+  if (sett.length) {
+    const k = el('section', 'bil-kort');
+    k.append(el('h3', null, 'Dekksettene dine'));
+    const ul = el('ul', 'bil-liste');
+    // På bilen først, så sommer før vinter
+    for (const s of [...sett].sort((x, y) => Number(y.pa_bilen) - Number(x.pa_bilen) || x.type.localeCompare(y.type))) {
+      const v = vurderSett(s, iDag);
+      const status = normaliserStatus(v.status);
+      const li = el('li', `frist ${status}`);
+      li.append(el('span', 'prikk'));
+      const t = el('div', 'liste-tekst');
+      t.append(el('strong', null, settNavn(s)), el('span', 'liste-under', v.tekst || [
+        s.monsterdybde_mm != null && `${String(s.monsterdybde_mm).replace('.', ',')} mm`,
+        s.produksjonsaar && `fra ${s.produksjonsaar}`,
+        !s.pa_bilen && s.lagring,
+      ].filter(Boolean).join(' · ')));
+      li.append(t, el('span', 'merke', s.pa_bilen ? 'På bilen' : 'Lagret'));
+      ul.append(li);
+    }
+    k.append(ul);
+    ut.push(k);
   } else {
-    ut.push(liten('Legg inn kjøpspris og kjøpsdato, så får du totalkostnad og et grovt verdianslag.'));
+    ut.push(liten('Ingen dekksett ennå. Legg inn sommer- og vinterdekkene, så sier vi fra når det er tid for å bytte.'));
   }
-  ut.push(lenkekort('Biløkonomi', 'Utgifter per post og per år, totalkostnad og verdianslag.', '/bilokonomi'));
+  ut.push(lenkekort(b, sett.some((s) => !s.pa_bilen) ? 'Registrer dekkskift og endre dekk' : 'Legg til dekksett',
+    'Sommer- og vinterdekk, mønster, alder og hvor du kjører.', '/dekk'));
   return ut;
 }
 
@@ -361,7 +262,7 @@ function bildataFane(b) {
   s.append(dl);
   return [
     s,
-    lenkekort('Alle kjøretøydata fra Statens vegvesen', 'Vekter, motor, dimensjoner og mer. Her endrer eller fjerner du også bilen.', '/min-side'),
+    lenkekort(b, 'Alle kjøretøydata fra Statens vegvesen', 'Vekter, motor, dimensjoner og mer. Her endrer eller fjerner du også bilen.', '/min-side'),
   ];
 }
 

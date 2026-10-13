@@ -1028,3 +1028,110 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 @media (max-width: 360px) {
   .bil-fliser { grid-template-columns: 1fr; }
 }
+
+/* Fanene i «Bilen din»: årshjul, vedlikehold per år, økonomi */
+#bil-panel {
+  /* Samme kategorifarger som Biløkonomi (public/css/bilokonomi.css) */
+  --serie-service: #3987e5;
+  --serie-motor: #d95926;
+  --serie-bremser: #199e70;
+  --serie-dekk: #c98500;
+  --serie-eu_kontroll: #d55181;
+  --serie-annet: #9085e9;
+}
+.bil-overskrift { margin: 6px 0 8px; font-size: 17px; }
+.bil-maaneder { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--glass-kant); display: grid; gap: 10px; }
+.bil-maaneder .maaned { position: relative; }
+.bil-maaneder .maaned::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--glass-kant);
+}
+.bil-maaneder .maaned.denne::before { background: #9cc8ff; }
+.bil-maaneder .maaned:not(.tom) {
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+}
+.bil-maaneder .maaned.tom { font-size: 13px; color: var(--tekst-dempet); }
+.bil-maaneder .maaned.tom .bil-liten { margin: 0; }
+.maaned-hode { display: flex; align-items: center; gap: 8px; }
+.maaned-hode h4 { margin: 0; font-size: 15px; }
+.maaned-naa { padding: 1px 8px; border-radius: 999px; border: 1px solid #9cc8ff; color: #9cc8ff; font-size: 11px; font-weight: 600; }
+.bil-ukjente { margin: 6px 0 0; font-size: 14px; line-height: 1.5; }
+
+.bil-knapperad { display: flex; flex-wrap: wrap; gap: 8px; }
+.bil-knapp {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bil-aar { display: grid; gap: 10px; }
+.bil-aar .jobb-melding:empty { display: none; }
+.bil-aar-gruppe { border-radius: 20px; border: 1px solid var(--glass-kant); background: var(--glass); }
+.bil-aar-gruppe summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.bil-aar-gruppe summary::-webkit-details-marker { display: none; }
+.bil-aar-gruppe summary::after { content: "›"; color: var(--tekst-dempet); transition: transform 200ms; }
+.bil-aar-gruppe[open] summary::after { transform: rotate(90deg); }
+.aar-tall { font-size: 20px; font-weight: 700; }
+.aar-sum { flex: 1; text-align: right; font-size: 13px; color: var(--tekst-dempet); }
+.bil-jobber { list-style: none; margin: 0; padding: 0 16px 8px; }
+.bil-jobb { padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.jobb-hode { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--tekst-dempet); }
+.jobb-kost { color: var(--tekst); font-weight: 600; white-space: nowrap; }
+.jobb-tittel { display: block; margin: 3px 0 2px; font-size: 15px; overflow-wrap: anywhere; }
+.jobb-info { margin: 0; font-size: 13px; color: var(--tekst-dempet); overflow-wrap: anywhere; }
+.jobb-notat {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jobb-vedlegg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.vedlegg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--tekst);
+  text-decoration: none;
+  font-size: 12px;
+}
+.vedlegg-chip[aria-disabled="true"] { opacity: 0.5; }
+.chip-ikon { font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 999px; background: var(--tekst); color: var(--bg); }
+.chip-navn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bil-poster { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.post-linje { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.post-belop { color: var(--tekst-dempet); white-space: nowrap; }
+.post-stolpe { height: 8px; margin-top: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.post-stolpe span { display: block; height: 100%; border-radius: 999px; }
