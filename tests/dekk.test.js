@@ -129,7 +129,7 @@ test("varsler: dekkskift varsles når det nærmer seg", () => {
   const [v] = dekkVarsler(bil, new Date(2026, 9, 12));
   assert.equal(v.niva, "sjekk");
   assert.equal(v.tittel, "Snart tid for vinterdekk");
-  assert.equal(v.lenke, "/dekk?bil=1");
+  assert.equal(v.lenke, "/?bil=1&fane=dekk#bilen-din");
   assert.equal(dekkVarsler(bil, new Date(2026, 10, 5))[0].niva, "kritisk");
   assert.deepEqual(dekkVarsler(bil, new Date(2026, 7, 1)), []);
   assert.deepEqual(dekkVarsler({ ...bil, dekksett: [] }, new Date(2026, 9, 12)), []);

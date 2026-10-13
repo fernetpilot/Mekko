@@ -48,3 +48,15 @@ export const KOMPONENT_NAVN = {
   eu_kontroll: "EU-kontroll",
   annet: "Annet",
 };
+
+/**
+ * Lenke til «Bilen din» på forsiden, på en bestemt fane.
+ * bilLenke({ id: "b1" }, "dekk") → «/?bil=b1&fane=dekk#bilen-din»
+ */
+export function bilLenke(bil, fane = "oversikt") {
+  const p = new URLSearchParams();
+  if (bil?.id) p.set("bil", bil.id);
+  if (fane && fane !== "oversikt") p.set("fane", fane);
+  const q = p.toString();
+  return `/${q ? `?${q}` : ""}#bilen-din`;
+}

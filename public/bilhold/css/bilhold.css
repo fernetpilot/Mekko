@@ -885,5 +885,146 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 .fakta-verdi.ok { color: #34c759; }
 .fakta-verdi.sjekk { color: #ffcc00; }
 .fakta-verdi.forfalt, .fakta-verdi.kritisk { color: #ff3b30; }
-.bil-valg { display: grid; gap: 10px; }
-.bil-valg .glasskort { opacity: 1; transform: none; margin: 0; max-width: none; }
+.fakta-verdi.snart { color: #ffcc00; }
+
+/* «Bilen din»: alt om bilen på ett sted. Mobil først: én kolonne, faner man kan dra sideveis,
+   og «Registrer vedlikehold» står fast nederst. */
+#bil-panel .kalk-innhold { max-width: 36rem; }
+
+.bil-bytte {
+  display: flex;
+  gap: 8px;
+  margin: 0 -16px 12px;
+  padding: 2px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bil-bytte::-webkit-scrollbar { display: none; }
+.bil-chip {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst-dempet);
+  font: 700 13px var(--font);
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  cursor: pointer;
+}
+.bil-chip[aria-pressed="true"] { color: var(--tekst); border-color: #9cc8ff; background: rgba(156, 200, 255, 0.16); }
+.bil-chip.legg-til { border-style: dashed; font-weight: 600; letter-spacing: 0; }
+
+.bil-faner {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  margin: 4px -16px 14px;
+  padding: 6px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(10, 11, 13, 0.5);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid var(--glass-kant);
+  border-radius: 0 0 16px 16px;
+}
+.bil-faner::-webkit-scrollbar { display: none; }
+.bil-fane {
+  flex: none;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--tekst-dempet);
+  font: 600 14px var(--font);
+  cursor: pointer;
+}
+.bil-fane[aria-selected="true"] { color: var(--bg); background: var(--tekst); }
+
+.bil-fane-innhold { display: grid; align-content: start; gap: 12px; min-height: 40vh; }
+.bil-fliser { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bil-flis {
+  --status: var(--glass-kant);
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-kant);
+  border-left: 4px solid var(--status);
+  background: var(--glass);
+  min-width: 0;
+}
+.bil-flis.ok { --status: var(--ok); }
+.bil-flis.snart { --status: var(--sjekk); }
+.bil-flis.forfalt { --status: var(--kritisk); }
+.bil-flis p { margin: 0; }
+.flis-etikett { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tekst-dempet); }
+.flis-verdi { margin-top: 4px !important; font-size: 17px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.flis-under { margin-top: 2px !important; font-size: 13px; color: var(--tekst-dempet); }
+.bil-flis.forfalt .flis-under { color: #ff6b62; }
+
+.bil-kort {
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+}
+.bil-kort h3 { margin: 0 0 6px; font-size: 15px; }
+.bil-kort.forfalt-kort { border-color: rgba(255, 59, 48, 0.55); background: rgba(255, 59, 48, 0.1); }
+.bil-kort.forfalt-kort h3 { color: #ff6b62; }
+.bil-liste { list-style: none; margin: 0; padding: 0; }
+.bil-liste li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.bil-liste li:first-child { border-top: 0; }
+.bil-liste .prikk { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--tekst-dempet); }
+.bil-liste .ok .prikk { background: var(--ok); }
+.bil-liste .snart .prikk { background: var(--sjekk); }
+.bil-liste .forfalt .prikk { background: var(--kritisk); }
+.liste-tekst { display: grid; flex: 1; min-width: 0; }
+.liste-tekst strong { font-size: 15px; overflow-wrap: anywhere; }
+.liste-under { font-size: 13px; color: var(--tekst-dempet); }
+.liste-belop { font-weight: 600; white-space: nowrap; }
+.bil-liste .merke {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tekst-dempet);
+}
+.bil-liste .snart .merke { color: #ffcc00; }
+.bil-liste .forfalt .merke { color: #ff6b62; }
+.bil-liste .ok .merke { color: #34c759; }
+
+.bil-lenkekort.glasskort { opacity: 1; transform: none; margin: 0; max-width: none; padding: 14px 16px; }
+.bil-lenkekort .kort-tittel { font-size: 16px; }
+.bil-liten, .bil-ansvar { margin: 0; font-size: 13px; line-height: 1.5; color: var(--tekst-dempet); }
+.bil-ansvar { font-size: 12px; }
+
+.bil-data { display: grid; gap: 0; margin: 0; }
+.bil-data div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.bil-data div:first-child { border-top: 0; }
+.bil-data dt { color: var(--tekst-dempet); font-size: 14px; }
+.bil-data dd { margin: 0; font-weight: 600; text-align: right; }
+
+.bil-registrer {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  z-index: 2;
+  display: block;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f2f3f5;
+  color: #0a0b0d;
+  font: 700 16px var(--font);
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.bil-registrer:active { transform: scale(0.98); }
+
+@media (max-width: 360px) {
+  .bil-fliser { grid-template-columns: 1fr; }
+}
