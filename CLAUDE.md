@@ -85,6 +85,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - Service og EU-fanen (`fane-service.js`): EU-kontroll, service og slitasje de neste 12 mnd. Vedlikehold-fanen
   (`fane-vedlikehold.js`): alt vedlikehold per år med kostnad og vedlegg. Ren logikk i `public/js/dashboard.js` (testet).
+  Nederst i Service og EU: «Fulgt etter boka?» – per del alle utførte jobber mot anbefalt intervall (stolper i % av
+  intervallet). Trykk på en del i listene over åpner den. Ren logikk i `public/js/etter-boka.js` (testet).
 - Dekk-fanen (`fane-dekk.js`): sommer- og vinterdekksett (tabell `dekksett`,
   se `supabase/07-dekksett.sql`), hvilket sett som står på, og «Registrer dekkskift» (lagres også som vedlikehold
   med komponent `dekk`). Reglene ligger i `public/js/dekk.js` (ren, testet): piggdekkperioden (sør/nord, påske),

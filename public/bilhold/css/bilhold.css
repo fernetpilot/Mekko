@@ -1264,3 +1264,27 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
   cursor: pointer;
 }
 .bil-utsett:disabled { opacity: 0.5; }
+
+/* Service og EU: «Fulgt etter boka?» – hver jobb mot anbefalt intervall */
+.bil-etter-boka { display: grid; gap: 10px; }
+.bil-etter-boka .bil-overskrift { margin-bottom: 0; }
+.boka-punkt > * + * { margin-top: 8px; }
+.boka-punkt summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+.boka-punkt summary::-webkit-details-marker { display: none; }
+.boka-punkt summary::after { content: "›"; color: var(--tekst-dempet); transition: transform 0.2s; }
+.boka-punkt[open] summary::after { transform: rotate(90deg); }
+.boka-punkt summary strong { flex: 1; }
+.boka-punkt .merke { font-size: 12px; font-weight: 600; color: var(--tekst-dempet); }
+.boka-punkt .merke.ok { color: #34c759; }
+.boka-punkt .merke.over { color: #ff6b62; }
+.boka-stolper { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.boka-tekst { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.boka-tall { color: var(--tekst-dempet); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.boka-spor { position: relative; height: 10px; margin-top: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+/* Streken for anbefalt intervall (100 %) */
+.boka-spor::after { content: ""; position: absolute; left: var(--grense); top: -3px; bottom: -3px; width: 2px; background: #f2f3f5; border-radius: 1px; }
+.boka-fyll { display: block; height: 100%; border-radius: 999px; background: var(--tekst-dempet); }
+.boka-rad.ok .boka-fyll { background: var(--ok); }
+.boka-rad.over .boka-fyll { background: var(--kritisk); }
+.boka-rad.apen .boka-fyll { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 6px, transparent 6px 10px); }
+.bil-liste li.har-boka { cursor: pointer; }
