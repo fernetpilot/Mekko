@@ -136,7 +136,7 @@ function kake(o) {
   oppsett.append(s, liste);
   k.append(oppsett);
   if (o.kategorier.length > 1) {
-    k.append(liten('Besøk som gjelder flere kategorier, er fordelt likt mellom dem.'));
+    k.append(liten('Vedlikehold som berører flere kategorier, er fordelt likt mellom dem.'));
   }
   return k;
 }
