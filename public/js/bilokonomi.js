@@ -1,11 +1,17 @@
 // Biløkonomi: oppsummering av kostnader og et grovt anslag på markedsverdi.
 // Ren logikk: ingen DOM, ingen nettverk. Brukes av public/bilhold/js/fane-okonomi.js.
 
-import { ALLE_KATEGORIER, kostnadPerKategori } from "./kategorier.js";
+import { ALLE_KATEGORIER, hendelseTittel, kategorierFor, kostnadPerKategori } from "./kategorier.js";
 
 // Utgiftspostene er de samme kategoriene som på hver hendelse (kategorier.js),
 // så fordelingen her henger sammen med historikken og serviceheftet.
 export const KATEGORIER = ALLE_KATEGORIER.map((k) => k.id);
+
+// Notatet uten merkelapper fra importen («– Type service: …»), kort nok til en liste
+const kortNotat = (t) => {
+  const n = String(t ?? "").split(/\s+[–·]\s+type service:/i)[0].trim();
+  return n.length > 90 ? `${n.slice(0, 88)}…` : n;
+};
 
 const DAG_MS = 24 * 60 * 60 * 1000;
 const iDato = (tekst) => { const [a, m, d] = tekst.split("-").map(Number); return new Date(a, m - 1, d); };
@@ -51,8 +57,20 @@ export function oppsummer(hendelser, { periode = null, kjopsdato = null, kjopsKm
     .sort((a, b) => a.dato.localeCompare(b.dato));
 
   const perKategori = Object.fromEntries(KATEGORIER.map((k) => [k, 0]));
+  // Hvilke hendelser som inngår i hver post, så summen kan sjekkes
+  const iPost = Object.fromEntries(KATEGORIER.map((k) => [k, []]));
   for (const h of medKostnad) {
-    for (const { id, belop } of kostnadPerKategori(h)) perKategori[id] += belop;
+    const andeler = kostnadPerKategori(h);
+    for (const { id, belop } of andeler) {
+      perKategori[id] += belop;
+      iPost[id].push({ id: h.id, dato: h.dato, tittel: hendelseTittel(h), notat: kortNotat(h.notat), kostnad: Number(h.kostnad), belop, delt: andeler.length });
+    }
+  }
+  // Kategorier i historikken uten registrert kostnad i perioden
+  const utenKostnad = new Map();
+  for (const h of iPerioden) {
+    if (medKostnad.includes(h)) continue;
+    for (const k of kategorierFor(h)) utenKostnad.set(k.id, (utenKostnad.get(k.id) ?? 0) + 1);
   }
   const total = medKostnad.reduce((n, h) => n + Number(h.kostnad), 0);
 
@@ -99,8 +117,12 @@ export function oppsummer(hendelser, { periode = null, kjopsdato = null, kjopsKm
     perKategori,
     // Største post først. Hver post har samme navn og ikon som på hendelsene.
     kategorier: ALLE_KATEGORIER.filter((k) => perKategori[k.id] > 0.005)
-      .map((k) => ({ nokkel: k.id, navn: k.navn, ikon: k.ikon, sum: perKategori[k.id], andel: total ? perKategori[k.id] / total : 0 }))
+      .map((k) => ({ nokkel: k.id, navn: k.navn, ikon: k.ikon, sum: perKategori[k.id], andel: total ? perKategori[k.id] / total : 0,
+        hendelser: iPost[k.id].sort((a, b) => b.dato.localeCompare(a.dato)) }))
       .sort((a, b) => b.sum - a.sum),
+    // Kategorier som finnes i historikken i perioden, men uten kostnad: vises i tegnforklaringen med 0 kr
+    kategorierUtenKostnad: ALLE_KATEGORIER.filter((k) => utenKostnad.has(k.id) && !(perKategori[k.id] > 0.005))
+      .map((k) => ({ nokkel: k.id, navn: k.navn, ikon: k.ikon, antall: utenKostnad.get(k.id) })),
     perAr,
     perManed,
     akkumulert,

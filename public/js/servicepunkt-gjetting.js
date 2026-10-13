@@ -173,7 +173,7 @@ export function gjettServicepunkter(komponent, tekst) {
       t = t.replace(new RegExp(moenster.source, "g"), " ");
     }
   }
-  if (/olje/.test(t) && (komponent === "motor" || komponent === "service")) funnet.push("motorolje");
+  if (/\bolje(?:skift)?\b|motorolje/.test(t) && (komponent === "motor" || komponent === "service")) funnet.push("motorolje");
   if (komponent === "motor" && funnet.length === 0) funnet.push("motorolje");
   // «Ekstra service» alene er bare en merkelapp, så det tas bare når ingen av de faste delene er funnet
   if (funnet.length === 0 && /ekstra service/.test(vask(tekst))) return ["ekstra-service"];

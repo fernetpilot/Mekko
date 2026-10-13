@@ -124,20 +124,39 @@ function kake(o) {
 
   // Tegnforklaring: alle postene. De som er samlet i «Øvrige», får grå prikk.
   const fargeFor = new Map(biter.filter((b) => !b.del).map((b) => [b.nokkel, b.farge]));
+  // Hver post kan åpnes for å se hendelsene som inngår i summen
   const liste = el('ul', 'tegnforklaring');
   for (const x of o.kategorier) {
     const li = el('li');
+    const d = el('details', 'post-detaljer');
+    const rad = el('summary', 'post-rad');
     const prikk = el('span', 'prikk');
     prikk.style.background = fargeFor.get(x.nokkel) ?? 'var(--serie-ovrige)';
     const prosent = Math.round(x.andel * 100);
-    li.append(prikk, el('span', null, `${x.ikon} ${x.navn}`), el('span', 'belop', `${kr(x.sum)} · ${prosent < 1 ? '<1' : prosent} %`));
+    rad.append(prikk, el('span', null, `${x.ikon} ${x.navn}`), el('span', 'belop', `${kr(x.sum)} · ${prosent < 1 ? '<1' : prosent} %`));
+    const ul = el('ul', 'post-hendelser');
+    for (const h of x.hendelser) {
+      const hl = el('li');
+      hl.append(el('span', 'post-dato', formaterDato(h.dato)), el('span', 'post-tittel', h.notat ? `${h.tittel}: ${h.notat}` : h.tittel),
+        el('span', 'post-belop', h.delt > 1 ? `${kr(h.belop)} (1/${h.delt} av ${kr(h.kostnad)})` : kr(h.belop)));
+      ul.append(hl);
+    }
+    d.append(rad, ul);
+    li.append(d);
+    liste.append(li);
+  }
+  // Kategorier i historikken uten registrert kostnad, så alle kategoriene er med
+  for (const x of o.kategorierUtenKostnad) {
+    const li = el('li', 'uten-kostnad');
+    const rad = el('div', 'post-rad');
+    rad.append(el('span', 'prikk'), el('span', null, `${x.ikon} ${x.navn}`),
+      el('span', 'belop', `0 kr · ${x.antall} ${x.antall === 1 ? 'hendelse' : 'hendelser'} uten kostnad`));
+    li.append(rad);
     liste.append(li);
   }
   oppsett.append(s, liste);
   k.append(oppsett);
-  if (o.kategorier.length > 1) {
-    k.append(liten('Vedlikehold som berører flere kategorier, er fordelt likt mellom dem.'));
-  }
+  k.append(liten('Trykk på en post for å se hendelsene som inngår. Vedlikehold som berører flere kategorier, er fordelt likt mellom dem.'));
   return k;
 }
 

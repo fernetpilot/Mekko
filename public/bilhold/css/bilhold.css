@@ -1258,7 +1258,18 @@ button.bil-knapp { font-family: var(--font); cursor: pointer; }
 .diagram svg text { font-family: var(--font); fill: var(--tekst-dempet); font-size: 11px; }
 .kake-oppsett { display: grid; grid-template-columns: minmax(110px, 150px) 1fr; gap: 14px; align-items: center; }
 .tegnforklaring { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
-.tegnforklaring li { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; }
+.tegnforklaring .post-rad { display: grid; grid-template-columns: 10px 1fr auto auto; gap: 8px; align-items: center; }
+.tegnforklaring summary.post-rad { cursor: pointer; list-style: none; }
+.tegnforklaring summary.post-rad::-webkit-details-marker { display: none; }
+.tegnforklaring summary.post-rad::after { content: "›"; color: var(--tekst-dempet); transition: transform .15s; }
+.tegnforklaring details[open] > summary.post-rad::after { transform: rotate(90deg); }
+.tegnforklaring div.post-rad { grid-template-columns: 10px 1fr auto; }
+.tegnforklaring .uten-kostnad { color: var(--tekst-dempet); }
+.tegnforklaring .uten-kostnad .prikk { background: transparent; border: 1px solid var(--akse); }
+.post-hendelser { list-style: none; margin: 6px 0 4px 18px; padding: 0 0 0 10px; border-left: 1px solid var(--glass-kant); display: grid; gap: 6px; font-size: 12px; }
+.post-hendelser li { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; }
+.post-dato { color: var(--tekst-dempet); white-space: nowrap; }
+.post-belop { grid-column: 2; color: var(--tekst-dempet); font-variant-numeric: tabular-nums; }
 .tegnforklaring .prikk { width: 10px; height: 10px; border-radius: 3px; }
 .tegnforklaring .belop { font-variant-numeric: tabular-nums; color: var(--tekst-dempet); white-space: nowrap; }
 .kake-midt-tall { fill: var(--tekst) !important; font-size: 18px !important; font-weight: 700; }

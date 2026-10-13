@@ -47,9 +47,9 @@ test("tittel er lik overalt", () => {
   assert.equal(hendelseTittel({ komponent: "annet", servicepunkter: ["ekstra-service"] }), "Annet");
 });
 
-test("kostnad fordeles likt på kategoriene, Annet bare når den står alene", () => {
+test("kostnad fordeles likt på alle kategoriene, også Annet (samme som i historikken)", () => {
   assert.deepEqual(kostnadPerKategori({ komponent: "service", kostnad: 3000, servicepunkter: ["motorolje", "bremseklosser", "ekstra-service"] }),
-    [{ id: "oljer", belop: 1500 }, { id: "bremser", belop: 1500 }]);
+    [{ id: "oljer", belop: 1000 }, { id: "bremser", belop: 1000 }, { id: "annet", belop: 1000 }]);
   assert.deepEqual(kostnadPerKategori({ komponent: "annet", kostnad: "990" }), [{ id: "annet", belop: 990 }]);
   assert.deepEqual(kostnadPerKategori({ komponent: "service", kostnad: null }), []);
   const sum = kostnadPerKategori({ komponent: "eu_kontroll", kostnad: 1000, servicepunkter: ["lyspaerer", "bremseskiver"] })

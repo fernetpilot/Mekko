@@ -80,14 +80,12 @@ export function hendelseTittel(h) {
 
 /**
  * Hvordan kostnaden på én hendelse fordeles på kategorier.
- * Lik andel per kategori. «Annet» får bare andel når det er eneste kategori
- * (ellers er det som regel en merkelapp som «Ekstra service»).
+ * Lik andel per kategori, også «Annet», så biløkonomien viser de samme kategoriene som historikken.
  * @returns {Array<{ id: string, belop: number }>}
  */
 export function kostnadPerKategori(h) {
   const belop = Number(h?.kostnad);
   if (!belop || belop < 0) return [];
   const alle = kategorierFor(h);
-  const bruk = alle.length > 1 ? alle.filter((k) => k.id !== "annet") : alle;
-  return bruk.map((k) => ({ id: k.id, belop: belop / bruk.length }));
+  return alle.map((k) => ({ id: k.id, belop: belop / alle.length }));
 }

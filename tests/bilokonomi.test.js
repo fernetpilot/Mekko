@@ -135,3 +135,18 @@ test("oppsummer med periode: byttet om fra og til, og slutt ikke etter i dag", (
   assert.equal(o.total, 2000);
   assert.equal(o.slutt, "2026-10-11");
 });
+
+test("oppsummer: hver post viser hendelsene som inngår, og poster uten kostnad listes for seg", () => {
+  const h = [
+    { id: "1", dato: "2024-01-10", komponent: "bremser", kostnad: 4000, servicepunkter: ["bremseklosser", "hjullager"] },
+    { id: "2", dato: "2024-03-01", komponent: "bremser", kostnad: 1000, servicepunkter: ["bremseror"] },
+    { id: "3", dato: "2024-05-01", komponent: "annet", kostnad: null, notat: "Godkjent som 5-seter" },
+  ];
+  const o = oppsummer(h, { periode: { fra: "2024-01", til: "2024-12" }, idag });
+  const bremser = o.kategorier.find((k) => k.nokkel === "bremser");
+  assert.equal(bremser.sum, 3000);
+  assert.deepEqual(bremser.hendelser.map((x) => [x.id, x.belop, x.delt]), [["2", 1000, 1], ["1", 2000, 2]]);
+  // Summen av postene er lik totalen
+  assert.equal(o.kategorier.reduce((n, k) => n + k.sum, 0), o.total);
+  assert.deepEqual(o.kategorierUtenKostnad.map((k) => [k.nokkel, k.antall]), [["annet", 1]]);
+});
