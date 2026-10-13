@@ -948,7 +948,7 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 
 .bil-faner {
   position: sticky;
-  top: 0;
+  top: var(--vei-bunn, 0px);   /* stopper rett under veien når man har blart ned */
   z-index: 2;
   display: flex;
   gap: 4px;
@@ -1279,9 +1279,13 @@ button.bil-knapp { font-family: var(--font); cursor: pointer; }
 .treff { cursor: pointer; }
 .treff:focus-visible { outline: 2px solid #f2f3f5; outline-offset: 2px; }
 
-/* «Bilen din»: luft øverst der bilen vises, og bilen glir opp og ut når man blar */
-#bil-panel .bil-luft { height: var(--bil-luft, 0px); }
-#bil-panel { -webkit-mask-image: none; mask-image: none; }
+/* Panelene: luft øverst der vogntoget vises. Når man blar, zoomer kameraet ut (main.js), og teksten
+   forsvinner i underkanten av veien i stedet for å legge seg oppå den. */
+.kalk-panel .bil-luft { height: var(--bil-luft, 0px); }
+.kalk-panel {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--vei-bunn, 0px), #000 calc(var(--vei-bunn, 0px) + 6px));
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--vei-bunn, 0px), #000 calc(var(--vei-bunn, 0px) + 6px));
+}
 /* Det som kommer til syne under 3D-scenen når den glir opp: samme farge som gresset nederst */
 html.kalkulator-modus body { background: rgb(62, 79, 65); }
 
