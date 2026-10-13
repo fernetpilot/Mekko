@@ -34,8 +34,13 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
   Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, tre svevende knapper:
   Mine biler, Service og EU-kontroll, Vedlikehold). «Åpne bilen din» nederst på bilen åpner panelet «Bilen din»
-  (`#bil-panel`, første bil) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
+  (`#bil-panel`) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
   eller trykke utenfor teksten.
+  «Bilen din» er stedet der alt om bilen samles (`public/bilhold/js/bilen-din.js`): bilbytte (skilt øverst),
+  nøkkeltall og faner Oversikt, Service og EU, Vedlikehold, Dekk, Økonomi og Bildata. Adressen er
+  `/?bil=<id>&fane=<fane>#bilen-din` (lag den med `bilLenke` i `bilstatus.js`); alle lenker dit åpner panelet
+  uten å laste siden på nytt. «Mine biler» (profilmenyen, svevende knapp, toppknappen på undersidene) og varslene
+  leder hit. Fanene viser foreløpig et sammendrag med lenker til de fulle sidene; innholdet flyttes inn steg for steg.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   EU-kontroll, service og dekkskift; slitasje i % skal legges til der.

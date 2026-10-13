@@ -160,6 +160,9 @@ const bilSkilt = document.getElementById('bil-skilt');
 const bilKnapper = [...document.querySelectorAll('.bil-svev')];
 const PANELER = { kalkulator: document.getElementById('kalk-panel'), bil: document.getElementById('bil-panel') };
 const panel = PANELER.kalkulator;
+// «Bilen din»: alt om bilen, tegnes av bilen-din.js (hentes først når panelet åpnes)
+let bilenDinModul = null;
+const bilenDin = () => (bilenDinModul ??= import('./bilen-din.js'));
 let aapen = null;                 // 'kalkulator', 'bil' eller null
 let iKalkulator = false;          // true når en sidevisning er åpen (navnet er beholdt fra før)
 let skiltVises = false;
@@ -264,9 +267,16 @@ for (const k of bilKnapper) {
 bilSkilt.addEventListener('pointerenter', () => { if (bilVises) visBil(true); });
 bilSkilt.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') skjulBilSnart(); });
 
-function apneSide(navn, { historikk = true } = {}) {
-  if (aapen === navn) return;
-  if (navn === 'bil' && !innlogget()) return;
+let pushet = false;               // true når apneSide la til en historikk-oppføring
+function apneSide(navn, { historikk = true, fane, bilId } = {}) {
+  if (navn === 'bil' && !innlogget()) {
+    location.href = `/min-side?neste=${encodeURIComponent('/#bilen-din')}`;
+    return;
+  }
+  if (aapen === navn) {
+    if (navn === 'bil') bilenDin().then((m) => m.visBilenDin({ fane, bilId }));
+    return;
+  }
   if (aapen) lukkSide({ historikk: false, umiddelbart: true });
   aapen = navn;
   iKalkulator = true;
@@ -286,8 +296,9 @@ function apneSide(navn, { historikk = true } = {}) {
     p.classList.add('apen');
   });
   header.classList.remove('skjult');
-  if (historikk) history.pushState({ side: navn }, '', `#${navn === 'bil' ? 'bilen-din' : 'kalkulator'}`);
-  if (navn === 'bil') lastBilenDin();
+  if (historikk) history.pushState({ side: navn }, '', `${navn === 'bil' ? location.search : ''}#${navn === 'bil' ? 'bilen-din' : 'kalkulator'}`);
+  pushet = historikk;
+  if (navn === 'bil') bilenDin().then((m) => m.visBilenDin({ fane, bilId }));
   // Tastaturet på mobil ville dekket vogntoget, så bare fokuser med mus/tastatur
   if (navn === 'kalkulator' && !window.matchMedia('(pointer: coarse)').matches) {
     setTimeout(() => document.getElementById('last-bil').focus({ preventScroll: true }), 1100);
@@ -308,7 +319,11 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
     vedScroll();
   }
   setTimeout(() => { if (!p.classList.contains('apen')) p.hidden = true; }, 900);
-  if (historikk && /^#(kalkulator|bilen-din)$/.test(location.hash)) history.back();
+  if (!historikk || !/^#(kalkulator|bilen-din)$/.test(location.hash)) return;
+  // Åpnet vi panelet her, går vi tilbake. Kom man rett inn på adressen, blir forsiden stående.
+  if (pushet) history.back();
+  else history.replaceState(null, '', '/');
+  pushet = false;
 }
 const lukkKalkulator = (o) => lukkSide(o);
 
@@ -363,44 +378,20 @@ toppKnapp?.addEventListener('click', (e) => {
 if (location.hash === '#kalkulator') apneSide('kalkulator', { historikk: false });
 if (location.hash === '#bilen-din') apneSide('bil', { historikk: false });
 
-// «Bilen din»: henter den første bilen brukeren har registrert
-let bilLastet = false;
-async function lastBilenDin() {
-  if (bilLastet) return;
-  bilLastet = true;
-  const $ = (id) => document.getElementById(id);
-  try {
-    const [{ supabase }, { euStatus, formaterKm }] = await Promise.all([
-      import('/js/supabase.js'),
-      import('/js/bilstatus.js'),
-    ]);
-    const { data: biler, error } = await supabase.from('biler').select('*').order('opprettet').limit(1);
-    if (error) throw error;
-    const bil = biler?.[0];
-    if (!bil) {
-      $('bil-navn').textContent = 'Ingen bil registrert ennå';
-      $('bil-kjennemerke').textContent = 'Legg til bilen din på Min side.';
-      return;
-    }
-    $('bil-navn').textContent = bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(' ') || 'Bilen din';
-    $('bil-kjennemerke').textContent = bil.kjennemerke ?? '';
-    const eu = euStatus(bil.eu_kontrollfrist);
-    const euEl = $('bil-eu');
-    euEl.textContent = eu.tekst;
-    euEl.className = `fakta-verdi ${eu.status}`;
-    $('bil-km').textContent = formaterKm(bil.kilometerstand);
-    for (const a of document.querySelectorAll('[data-bil-lenke]')) {
-      const url = new URL(a.getAttribute('href'), location.origin);
-      url.searchParams.set('bil', bil.id);
-      a.href = url.pathname + url.search;
-    }
-  } catch (feil) {
-    console.warn('Kunne ikke hente bilen:', feil);
-    bilLastet = false;
-    $('bil-navn').textContent = 'Kunne ikke hente bilen';
-    $('bil-kjennemerke').textContent = 'Prøv igjen litt senere.';
+// Lenker til «Bilen din» (profilmenyen, varslene, de svevende knappene) åpner panelet her,
+// på riktig bil og fane (/?bil=…&fane=…#bilen-din). Uten JavaScript er de vanlige lenker.
+document.addEventListener('click', (e) => {
+  const lenke = e.target.closest('a[href*="#bilen-din"]');
+  if (!lenke || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  const url = new URL(lenke.href);
+  if (url.pathname !== '/') return;
+  e.preventDefault();
+  for (const [meny, knapp] of [['profil-meny', 'profil-knapp'], ['varsel-panel', 'varsel-knapp']]) {
+    document.getElementById(meny).hidden = true;
+    document.getElementById(knapp).setAttribute('aria-expanded', 'false');
   }
-}
+  apneSide('bil', { fane: url.searchParams.get('fane') ?? 'oversikt', bilId: url.searchParams.get('bil') });
+});
 
 // ---------- Selve kalkulatoren: oppslag på skilt (lastkalkulator.js) ----------
 import('./lastkalkulator.js');

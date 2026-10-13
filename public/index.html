@@ -53,10 +53,10 @@
         <div class="profil-meny" id="profil-meny" role="menu" hidden>
           <p class="profil-tittel">Min profil</p>
           <p class="profil-epost" id="profil-epost"></p>
-          <a role="menuitem" href="/min-side">Mine biler</a>
+          <a role="menuitem" href="/#bilen-din">Mine biler</a>
           <a role="menuitem" href="/registrer-vedlikehold">Registrer vedlikehold</a>
-          <a role="menuitem" href="/dekk">Dekk og dekkskift</a>
-          <a role="menuitem" href="/bilokonomi">Biløkonomi</a>
+          <a role="menuitem" href="/?fane=dekk#bilen-din">Dekk og dekkskift</a>
+          <a role="menuitem" href="/?fane=okonomi#bilen-din">Biløkonomi</a>
           <a role="menuitem" href="/min-side#kvitteringer" aria-disabled="true" class="kommer">
             Mine kvitteringer <span class="merke">Kommer snart</span>
           </a>
@@ -82,9 +82,9 @@
 
   <!-- Innlogget: knapper som svever over bilen når man peker på den, og et skilt nederst på bilen -->
   <nav class="bil-knapper" aria-label="Bilen din">
-    <a class="bil-svev" href="/min-side"><span class="bil-svev-ikon" aria-hidden="true">🚙</span>Mine biler</a>
-    <a class="bil-svev" href="/service-og-eu" data-bil-lenke><span class="bil-svev-ikon" aria-hidden="true">🗓️</span>Service og EU-kontroll</a>
-    <a class="bil-svev" href="/vedlikehold" data-bil-lenke><span class="bil-svev-ikon" aria-hidden="true">🔧</span>Vedlikehold</a>
+    <a class="bil-svev" href="/#bilen-din"><span class="bil-svev-ikon" aria-hidden="true">🚙</span>Mine biler</a>
+    <a class="bil-svev" href="/?fane=service#bilen-din"><span class="bil-svev-ikon" aria-hidden="true">🗓️</span>Service og EU-kontroll</a>
+    <a class="bil-svev" href="/?fane=vedlikehold#bilen-din"><span class="bil-svev-ikon" aria-hidden="true">🔧</span>Vedlikehold</a>
   </nav>
   <button class="tilhenger-skilt bil-skilt" id="bil-skilt" type="button" tabindex="-1">
     Åpne bilen din <span aria-hidden="true">➔</span>
@@ -256,9 +256,11 @@
     </div>
   </section>
 
-  <!-- «Bilen din» (innlogget): glir inn under bilen, på samme måte som kalkulatoren -->
+  <!-- «Bilen din» (innlogget): alt om bilen på ett sted. Glir inn under bilen, på samme måte som kalkulatoren.
+       Innholdet tegnes av bilhold/js/bilen-din.js. -->
   <section class="kalk-panel" id="bil-panel" aria-labelledby="bil-navn" hidden>
     <div class="kalk-innhold">
+      <nav class="bil-bytte" id="bil-bytte" aria-label="Bytt bil" hidden></nav>
       <div class="kalk-hode"><p class="overline">Bilen din</p></div>
       <h2 id="bil-navn">Henter bilen …</h2>
       <p class="ingress" id="bil-kjennemerke"></p>
@@ -268,20 +270,10 @@
         <div class="glassfelt"><dt>Kilometerstand</dt><dd class="fakta-verdi" id="bil-km">–</dd></div>
       </dl>
 
-      <div class="bil-valg">
-        <a class="glasskort bil-valg-kort" href="/min-side">
-          <span class="kort-innhold"><span class="kort-tittel">Mine biler</span><span class="kort-tekst">Alle bilene dine og kjøretøydata fra Statens vegvesen.</span></span>
-          <span class="kort-pil" aria-hidden="true">›</span>
-        </a>
-        <a class="glasskort bil-valg-kort" href="/service-og-eu" data-bil-lenke>
-          <span class="kort-innhold"><span class="kort-tittel">Service og EU-kontroll</span><span class="kort-tekst">Når er neste service, EU-kontroll og dekkskift?</span></span>
-          <span class="kort-pil" aria-hidden="true">›</span>
-        </a>
-        <a class="glasskort bil-valg-kort" href="/vedlikehold" data-bil-lenke>
-          <span class="kort-innhold"><span class="kort-tittel">Vedlikehold</span><span class="kort-tekst">Alt som er gjort på bilen, med kvitteringer.</span></span>
-          <span class="kort-pil" aria-hidden="true">›</span>
-        </a>
-      </div>
+      <div class="bil-faner" id="bil-faner" role="tablist" aria-label="Om bilen"></div>
+      <div class="bil-fane-innhold" id="bil-fane-innhold" role="tabpanel"></div>
+
+      <a class="bil-registrer" href="/registrer-vedlikehold" data-bil-lenke>+ Registrer vedlikehold</a>
     </div>
   </section>
 

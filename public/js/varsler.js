@@ -5,7 +5,7 @@
 // TODO (Anders): slitasje i % på deler kommer her.
 //   Legg til en ny funksjon per type og kall den i lagVarsler().
 
-import { euStatus } from "./bilstatus.js";
+import { bilLenke, euStatus } from "./bilstatus.js";
 import { serviceVarsler } from "./servicevarsler.js";
 import { dekkPaBilen, dekkskift } from "./dekk.js";
 
@@ -33,7 +33,7 @@ export function euVarsler(bil, idag = new Date()) {
     niva: eu.status,
     tittel: eu.status === "kritisk" ? "EU-kontrollen har gått ut" : "EU-kontroll nærmer seg",
     tekst: `${bilNavn(bil)} (${bil.kjennemerke}): ${eu.tekst}`,
-    lenke: "/min-side",
+    lenke: bilLenke(bil, "service"),
   }];
 }
 
@@ -50,7 +50,7 @@ export function dekkVarsler(bil, idag = new Date()) {
     niva: skift.status === "forfalt" ? "kritisk" : "sjekk",
     tittel: skift.status === "forfalt" ? `Bytt til ${til}` : `Snart tid for ${til}`,
     tekst: `${bilNavn(bil)} (${bil.kjennemerke}): ${skift.tekst}`,
-    lenke: `/dekk?bil=${encodeURIComponent(bil.id)}`,
+    lenke: bilLenke(bil, "dekk"),
   }];
 }
 

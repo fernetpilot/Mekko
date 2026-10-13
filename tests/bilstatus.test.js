@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dagerTil, euStatus, formaterDato, formaterKm } from "../public/js/bilstatus.js";
+import { bilLenke, dagerTil, euStatus, formaterDato, formaterKm } from "../public/js/bilstatus.js";
 
 const idag = new Date(2026, 9, 10); // 10. oktober 2026
 
@@ -22,4 +22,11 @@ test("formatering på norsk", () => {
   assert.equal(formaterDato("2028-06-03"), "3. juni 2028");
   assert.equal(formaterKm(214300), "214 300 km");
   assert.equal(formaterKm(null), "–");
+});
+
+test("bilLenke peker på «Bilen din» med bil og fane", () => {
+  assert.equal(bilLenke({ id: "b1" }, "dekk"), "/?bil=b1&fane=dekk#bilen-din");
+  assert.equal(bilLenke({ id: "b1" }), "/?bil=b1#bilen-din");
+  assert.equal(bilLenke(null, "service"), "/?fane=service#bilen-din");
+  assert.equal(bilLenke(null), "/#bilen-din");
 });

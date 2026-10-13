@@ -2,6 +2,7 @@
 // Ukjent status (ingen registrering ennå) gir ikke varsel, for å unngå støy.
 
 import { beregnServicefrist, fmtDato, fmtKm } from "./service.js";
+import { bilLenke } from "./bilstatus.js";
 
 export function fristTekst(res) {
   const deler = [];
@@ -36,7 +37,7 @@ export function serviceVarsler(bil, { punkter = [], sisteUtfort = {}, kmNaa = nu
       niva: "sjekk",
       tittel: res.status === "forfalt" ? `Service: ${punkt.navn.toLowerCase()} er forfalt` : `Service: ${punkt.navn.toLowerCase()} snart`,
       tekst: `${bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(" ") || bil.kjennemerke} (${bil.kjennemerke}): ${tekstFor(res, punkt)}`,
-      lenke: "/min-side",
+      lenke: bilLenke(bil, "service"),
     });
   }
   return varsler;
