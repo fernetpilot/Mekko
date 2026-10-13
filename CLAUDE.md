@@ -40,7 +40,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   nøkkeltall og faner Oversikt, Service og EU, Vedlikehold, Dekk, Økonomi og Bildata. Adressen er
   `/?bil=<id>&fane=<fane>#bilen-din` (lag den med `bilLenke` i `bilstatus.js`); alle lenker dit åpner panelet
   uten å laste siden på nytt. «Mine biler» (profilmenyen, svevende knapp, toppknappen på undersidene) og varslene
-  leder hit. Fanene viser foreløpig et sammendrag med lenker til de fulle sidene; innholdet flyttes inn steg for steg.
+  leder hit. Fanene ligger i egne filer (`fane-service.js`, `fane-vedlikehold.js`, `fane-okonomi.js`; felles byggeklosser i
+  `bil-visning.js`). Service og Vedlikehold har alt innholdet; Dekk viser dekksettene og Økonomi nøkkeltall og fordeling,
+  mens skjemaene (dekk, kjøpsopplysninger) og diagrammene foreløpig ligger på `/dekk` og `/bilokonomi`.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   EU-kontroll, service og dekkskift; slitasje i % skal legges til der.
