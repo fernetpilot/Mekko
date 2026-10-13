@@ -3,10 +3,10 @@
 // All beregning ligger i de rene modulene (dashboard.js, dekk.js, bilstatus.js). Her tegnes bare panelet.
 import { supabase } from '/js/supabase.js';
 import { euStatus, formaterDato, formaterKm } from '/js/bilstatus.js';
-import { alleFrister, aarshjul, bilNavn, normaliserStatus, velgBil } from '/js/dashboard.js';
+import { alleFrister, aarshjul, bilNavn, velgBil } from '/js/dashboard.js';
 import { leggPaDekksett } from '/js/dekk-data.js';
-import { dekkPaBilen, dekkskift, settNavn, settType, vurderSett } from '/js/dekk.js';
-import { el, flis, fliser, fristListe, lenkekort, liten } from './bil-visning.js';
+import { el, fristListe, lenkekort, liten } from './bil-visning.js';
+import { dekkFane } from './fane-dekk.js';
 import { serviceFane, serviceFliser } from './fane-service.js';
 import { vedlikeholdFane } from './fane-vedlikehold.js';
 import { okonomiFane } from './fane-okonomi.js';
@@ -27,6 +27,7 @@ let biler = null;        // hentet én gang per sidevisning
 let henter = null;
 let bil = null;
 let fane = 'oversikt';
+let dekksettOk = true;
 
 // ---------------------------------------------------------------------------
 // Data
@@ -38,7 +39,7 @@ async function hentBiler() {
     .order('opprettet')
     .order('dato', { referencedTable: 'vedlikehold', ascending: false });
   if (error) throw error;
-  await leggPaDekksett(supabase, data);
+  dekksettOk = await leggPaDekksett(supabase, data);
   return data;
 }
 
@@ -153,7 +154,17 @@ function tegnFaner() {
 
   const innhold = $('bil-fane-innhold');
   innhold.setAttribute('aria-labelledby', `bil-fane-${fane}`);
-  innhold.replaceChildren(...TEGNERE[fane](bil, new Date()));
+  innhold.replaceChildren(...TEGNERE[fane](bil, new Date(), { oppdater: lastPaNytt, dekksettOk }));
+}
+
+/** Henter bilene på nytt etter en endring (dekkskift, kjøpsopplysninger …) og tegner valgt fane igjen. */
+async function lastPaNytt() {
+  const panel = $('bil-panel');
+  const scroll = panel.scrollTop;
+  biler = null;
+  henter = null;
+  await visBilenDin({ bilId: bil.id, fane });
+  panel.scrollTop = scroll;
 }
 
 export function velgFane(id) {
@@ -189,55 +200,6 @@ function oversikt(b, idag) {
   if (!hjul.forfalt.length && !snart.length) {
     ut.push(liten('Ingen kjente frister de neste 12 månedene. Registrer vedlikehold, så fyller oversikten seg.'));
   }
-  return ut;
-}
-
-function dagTekst(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function dekkFane(b, idag) {
-  const iDag = dagTekst(idag);
-  const sett = b.dekksett ?? [];
-  const pa = dekkPaBilen(sett);
-  const tilstand = pa ? vurderSett(pa, iDag) : null;
-  const skift = dekkskift({ type: pa?.type ?? null, pigg: pa?.pigg, region: b.dekk_region ?? 'sor', idag: iDag });
-  const ut = [fliser(
-    flis('Neste dekkskift', skift.bytteTil === 'vinter' ? 'Vinterdekk' : skift.bytteTil === 'sommer' ? 'Sommerdekk' : 'Ukjent',
-      skift.tekst, skift.status),
-    pa
-      ? flis('På bilen nå', settType(pa),
-        tilstand.tekst || [pa.dimensjon, pa.montert && `Montert ${formaterDato(pa.montert)}`].filter(Boolean).join(' · ') || 'Mønster og alder ser bra ut',
-        normaliserStatus(tilstand.status))
-      : flis('På bilen nå', 'Ikke valgt', 'Legg til dekksett og kryss av for det som står på', 'ukjent'),
-  )];
-
-  if (sett.length) {
-    const k = el('section', 'bil-kort');
-    k.append(el('h3', null, 'Dekksettene dine'));
-    const ul = el('ul', 'bil-liste');
-    // På bilen først, så sommer før vinter
-    for (const s of [...sett].sort((x, y) => Number(y.pa_bilen) - Number(x.pa_bilen) || x.type.localeCompare(y.type))) {
-      const v = vurderSett(s, iDag);
-      const status = normaliserStatus(v.status);
-      const li = el('li', `frist ${status}`);
-      li.append(el('span', 'prikk'));
-      const t = el('div', 'liste-tekst');
-      t.append(el('strong', null, settNavn(s)), el('span', 'liste-under', v.tekst || [
-        s.monsterdybde_mm != null && `${String(s.monsterdybde_mm).replace('.', ',')} mm`,
-        s.produksjonsaar && `fra ${s.produksjonsaar}`,
-        !s.pa_bilen && s.lagring,
-      ].filter(Boolean).join(' · ')));
-      li.append(t, el('span', 'merke', s.pa_bilen ? 'På bilen' : 'Lagret'));
-      ul.append(li);
-    }
-    k.append(ul);
-    ut.push(k);
-  } else {
-    ut.push(liten('Ingen dekksett ennå. Legg inn sommer- og vinterdekkene, så sier vi fra når det er tid for å bytte.'));
-  }
-  ut.push(lenkekort(b, sett.some((s) => !s.pa_bilen) ? 'Registrer dekkskift og endre dekk' : 'Legg til dekksett',
-    'Sommer- og vinterdekk, mønster, alder og hvor du kjører.', '/dekk'));
   return ut;
 }
 

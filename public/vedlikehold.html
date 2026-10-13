@@ -2,71 +2,17 @@
 <html lang="no">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0b0d">
-  <title>Mekkoo – vedlikehold</title>
-  <!-- Krever innlogging: send til innlogging og tilbake hit etterpå -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mekkoo – Vedlikehold</title>
+  <!-- Flyttet: alt om bilen ligger nå under «Bilen din» på forsiden, i fanen «Vedlikehold». -->
   <script>
-    try {
-      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
-        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
-      }
-    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+    (function () {
+      var bil = new URLSearchParams(location.search).get("bil");
+      location.replace("/?" + (bil ? "bil=" + encodeURIComponent(bil) + "&" : "") + "fane=vedlikehold#bilen-din");
+    })();
   </script>
-  <link rel="stylesheet" href="css/min-side.css">
-  <link rel="stylesheet" href="css/dashboard.css">
-  <script type="module" src="js/vedlikehold-oversikt.js"></script>
 </head>
 <body>
-  <header class="topp">
-    <a class="logo" href="/">MEKKOO</a>
-    <a class="topp-knapp" href="/#bilen-din">Mine biler</a>
-  </header>
-
-  <main class="dash">
-    <nav class="dash-nav" aria-label="Oversikter">
-      <a href="/service-og-eu" data-bil-lenke="/service-og-eu">Service og EU</a>
-      <a href="/vedlikehold" data-bil-lenke="/vedlikehold" aria-current="page">Vedlikehold</a>
-      <a href="/dekk" data-bil-lenke="/dekk">Dekk</a>
-    </nav>
-
-    <p class="overline">Vedlikehold</p>
-    <div class="dash-bil" id="bil-hode" hidden>
-      <div>
-        <span class="bil-skilt" id="bil-skilt"></span>
-        <h1 id="bil-navn"></h1>
-        <p class="ingress" id="bil-km"></p>
-      </div>
-      <label class="dash-bilvalg" id="bil-velger" hidden>Bytt bil
-        <select id="bil-valg"></select>
-      </label>
-    </div>
-
-    <p class="laster" id="laster">Laster …</p>
-
-    <section id="ingen-biler" class="kort" hidden>
-      <h2>Ingen biler ennå</h2>
-      <p class="liten">Legg til bilen din under Mine biler, så kan du samle alt som er gjort med den her.</p>
-      <a class="knapp sekundaer" href="/min-side">Gå til Mine biler</a>
-    </section>
-
-    <div id="innhold" hidden>
-      <section class="fliser" id="fliser" aria-label="Oppsummering"></section>
-
-      <div class="dash-knapper">
-        <a class="knapp" href="/registrer-vedlikehold" data-bil-lenke="/registrer-vedlikehold">+ Registrer vedlikehold</a>
-        <a class="knapp sekundaer" href="/servicehefte" data-bil-lenke="/servicehefte">Servicehefte (PDF)</a>
-      </div>
-      <p class="melding" id="melding" role="status"></p>
-
-      <section class="kort tom-kort" id="tom" hidden>
-        <h2>Ingen vedlikehold ennå</h2>
-        <p class="liten">Registrer service, dekkskift og reparasjoner etter hvert, eller importer historikken du har fra før.</p>
-        <a class="knapp sekundaer" href="/importer-historikk">Importer historikk</a>
-      </section>
-
-      <ol class="aar-liste" id="aar-liste"></ol>
-    </div>
-  </main>
+  <p><a href="/?fane=vedlikehold#bilen-din">Vedlikehold har flyttet til «Bilen din». Trykk her hvis du ikke blir sendt videre.</a></p>
 </body>
 </html>

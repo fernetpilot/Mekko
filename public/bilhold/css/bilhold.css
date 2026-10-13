@@ -1031,7 +1031,7 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 
 /* Fanene i «Bilen din»: årshjul, vedlikehold per år, økonomi */
 #bil-panel {
-  /* Samme kategorifarger som Biløkonomi (public/css/bilokonomi.css) */
+  /* Kategorifarger for Økonomi-fanen (validert mot mørk bakgrunn) */
   --serie-service: #3987e5;
   --serie-motor: #d95926;
   --serie-bremser: #199e70;
@@ -1135,3 +1135,92 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 .post-belop { color: var(--tekst-dempet); white-space: nowrap; }
 .post-stolpe { height: 8px; margin-top: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .post-stolpe span { display: block; height: 100%; border-radius: 999px; }
+
+/* Skjemaer i fanene (dekk, kjøpsopplysninger) */
+#bil-panel { --serie-hoved: #3987e5; --rutenett: rgba(255, 255, 255, 0.10); --akse: rgba(255, 255, 255, 0.28); }
+.bil-skjema { display: grid; gap: 10px; }
+.bil-skjema h3 { margin: 0; }
+.bil-skjema label { display: grid; gap: 6px; font-size: 14px; color: var(--tekst-dempet); }
+.bil-skjema input, .bil-skjema select, .bil-skjema textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-kant);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--tekst);
+  font: 16px var(--font); /* 16px hindrer zoom på iPhone */
+}
+.bil-skjema select option { color: #111; }
+.bil-skjema input:focus, .bil-skjema select:focus, .bil-skjema textarea:focus { outline: 2px solid #9cc8ff; outline-offset: 1px; }
+.bil-skjema .to-kolonner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bil-skjema label.avkrysning { display: flex; align-items: center; gap: 10px; color: var(--tekst); }
+.bil-skjema label.avkrysning input { width: 22px; height: 22px; }
+.bil-hovedknapp {
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #f2f3f5;
+  color: #0a0b0d;
+  font: 700 15px var(--font);
+  cursor: pointer;
+}
+.bil-hovedknapp:disabled { opacity: 0.5; cursor: wait; }
+button.bil-knapp { font-family: var(--font); cursor: pointer; }
+.bil-melding { margin: 0; font-size: 14px; }
+.bil-melding:empty { display: none; }
+.bil-melding.feil { color: #ff6b62; }
+.bil-melding.ok { color: #34c759; }
+
+.bil-sett { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bil-kort.sett { border-left: 4px solid var(--glass-kant); }
+.bil-kort.sett.ok { border-left-color: var(--ok); }
+.bil-kort.sett.snart { border-left-color: var(--sjekk); }
+.bil-kort.sett.forfalt { border-left-color: var(--kritisk); }
+.sett-hode { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sett-hode h3 { margin: 0; }
+.sett-hode .merke { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--glass-kant); font-size: 11px; font-weight: 600; color: var(--tekst-dempet); }
+.sett-status { margin: 8px 0; font-size: 14px; }
+.bil-kort.sett .bil-knapperad { margin-top: 10px; }
+
+.bil-kjop summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; cursor: pointer; font-weight: 600; list-style: none; }
+.bil-kjop summary::-webkit-details-marker { display: none; }
+.bil-kjop[open] summary { margin-bottom: 10px; }
+
+/* Økonomi: verdianslag og diagrammer */
+.bil-flis.hoved { grid-column: 1 / -1; }
+.bil-flis.hoved .flis-verdi { font-size: 26px; }
+.bil-flis details summary { margin-top: 6px; font-size: 13px; color: var(--tekst-dempet); cursor: pointer; }
+.verdisteg { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.verdisteg li { display: flex; justify-content: space-between; gap: 10px; }
+.verdisteg li span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.verdisteg li.sum { border-top: 1px solid var(--glass-kant); padding-top: 4px; font-weight: 600; }
+.diagram svg { width: 100%; height: auto; display: block; margin-top: 8px; overflow: visible; }
+.diagram svg text { font-family: var(--font); fill: var(--tekst-dempet); font-size: 11px; }
+.kake-oppsett { display: grid; grid-template-columns: minmax(110px, 150px) 1fr; gap: 14px; align-items: center; }
+.tegnforklaring { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.tegnforklaring li { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; }
+.tegnforklaring .prikk { width: 10px; height: 10px; border-radius: 3px; }
+.tegnforklaring .belop { font-variant-numeric: tabular-nums; color: var(--tekst-dempet); white-space: nowrap; }
+.kake-midt-tall { fill: var(--tekst) !important; font-size: 18px !important; font-weight: 700; }
+.tabellvisning summary { font-weight: 600; cursor: pointer; }
+.tabellvisning table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+.tabellvisning caption { text-align: left; font-size: 13px; color: var(--tekst-dempet); padding: 6px 0; }
+.tabellvisning th, .tabellvisning td { padding: 6px 4px; border-bottom: 1px solid var(--glass-kant); text-align: left; }
+.tabellvisning td:last-child, .tabellvisning th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.viz-tips {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #1c1d21;
+  border: 1px solid var(--glass-kant);
+  color: #f2f3f5;
+  font: 13px/1.35 var(--font);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  max-width: 220px;
+}
+.viz-tips strong { display: block; }
+.treff { cursor: pointer; }
+.treff:focus-visible { outline: 2px solid #f2f3f5; outline-offset: 2px; }

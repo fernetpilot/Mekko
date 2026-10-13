@@ -1,5 +1,5 @@
 // Fanen «Vedlikehold» i «Bilen din»: alt som er gjort med bilen, per år, med vedlegg.
-// Gruppering og summer ligger i dashboard.js (ren og testet). Samme innhold som /vedlikehold.
+// Gruppering og summer ligger i dashboard.js (ren og testet).
 import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { signerteLenker } from '/js/dokumenter.js';
