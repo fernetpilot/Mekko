@@ -1,7 +1,7 @@
 // Min side: innlogging med e-postlenke, mine biler og vedlikehold.
 import { supabase } from "./supabase.js";
 import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
-import { euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
+import { bilLenke, euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
@@ -391,7 +391,7 @@ function tegnSlitasje(node, bil) {
     ul.append(li);
   }
 
-  node.querySelector(".dekk-lenke").href = `/dekk?bil=${encodeURIComponent(bil.id)}`;
+  node.querySelector(".dekk-lenke").href = bilLenke(bil, "dekk");
 }
 
 async function utsett(bil, punktId, kmNaa) {

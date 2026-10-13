@@ -2,92 +2,17 @@
 <html lang="no">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0b0d">
-  <title>Mekkoo – biløkonomi</title>
-  <!-- Krever innlogging: send til innlogging og tilbake hit etterpå -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mekkoo – Biløkonomi</title>
+  <!-- Flyttet: alt om bilen ligger nå under «Bilen din» på forsiden, i fanen «Biløkonomi». -->
   <script>
-    try {
-      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
-        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
-      }
-    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+    (function () {
+      var bil = new URLSearchParams(location.search).get("bil");
+      location.replace("/?" + (bil ? "bil=" + encodeURIComponent(bil) + "&" : "") + "fane=okonomi#bilen-din");
+    })();
   </script>
-  <link rel="stylesheet" href="css/min-side.css">
-  <link rel="stylesheet" href="css/bilokonomi.css">
-  <script type="module" src="js/bilokonomi-side.js"></script>
 </head>
 <body>
-  <header class="topp">
-    <a class="logo" href="/">MEKKOO</a>
-    <a class="topp-knapp" href="/#bilen-din">Mine biler</a>
-  </header>
-
-  <main class="okonomi">
-    <a class="tilbake" href="/"><span aria-hidden="true">‹</span> Tilbake</a>
-    <p class="overline">Min profil</p>
-    <h1>Biløkonomi</h1>
-
-    <p class="laster" id="laster">Laster …</p>
-
-    <section id="ingen-biler" class="kort" hidden>
-      <p>Legg til en bil under Mine biler for å se biløkonomien.</p>
-      <a class="knapp sekundaer" href="/min-side">Gå til Mine biler</a>
-    </section>
-
-    <div id="innhold" hidden>
-      <label class="kort bilvalg" id="bilvalg-felt">Bil
-        <select id="bil-valg"></select>
-      </label>
-
-      <details class="kort kjop" id="kjop">
-        <summary><span>Kjøpsopplysninger</span> <span class="liten" id="kjop-sammendrag"></span></summary>
-        <form id="kjop-skjema" class="skjema">
-          <p class="liten">Brukes til å regne kostnader siden kjøp og et grovt anslag på verdien i dag.</p>
-          <label>Kjøpspris (kr) <input name="kjopspris" type="number" min="0" step="1" inputmode="numeric" required></label>
-          <div class="to-kolonner">
-            <label>Kjøpsdato <input name="kjopsdato" type="date" required></label>
-            <label>Km ved kjøp <input name="kjops_km" type="number" min="0" inputmode="numeric"></label>
-          </div>
-          <button class="knapp" type="submit">Lagre</button>
-          <p class="melding" id="kjop-melding" role="status"></p>
-        </form>
-      </details>
-
-      <section class="nokkeltall" id="nokkeltall" aria-label="Nøkkeltall"></section>
-
-      <section class="kort diagram" id="fordeling-kort">
-        <h2>Fordeling per utgiftspost</h2>
-        <p class="liten" id="fordeling-undertittel"></p>
-        <div class="kake-oppsett">
-          <svg id="kake" viewBox="0 0 200 200" role="img"></svg>
-          <ul class="tegnforklaring" id="tegnforklaring"></ul>
-        </div>
-      </section>
-
-      <section class="kort diagram">
-        <h2>Kostnader per år</h2>
-        <svg id="stolper" viewBox="0 0 340 200" role="img"></svg>
-      </section>
-
-      <section class="kort diagram">
-        <h2>Akkumulerte kostnader siden kjøp</h2>
-        <p class="liten" id="akkumulert-undertittel"></p>
-        <svg id="kurve" viewBox="0 0 340 200" role="img"></svg>
-      </section>
-
-      <p class="liten datakvalitet" id="datakvalitet"></p>
-
-      <details class="kort tabellvisning">
-        <summary>Vis tallene som tabell</summary>
-        <div id="tabeller"></div>
-      </details>
-
-      <p class="liten ansvar">Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer – ikke en takst.
-        Faktisk pris avhenger av tilstand, utstyr og etterspørsel. Kostnadene bygger på det som er registrert i historikken.</p>
-    </div>
-  </main>
-
-  <div class="viz-tips" id="tips" role="status" hidden></div>
+  <p><a href="/?fane=okonomi#bilen-din">Biløkonomi har flyttet til «Bilen din». Trykk her hvis du ikke blir sendt videre.</a></p>
 </body>
 </html>

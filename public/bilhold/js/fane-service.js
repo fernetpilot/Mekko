@@ -1,5 +1,5 @@
 // Fanen «Service og EU» i «Bilen din»: alt som kommer de neste 12 månedene.
-// Beregningen ligger i dashboard.js (ren og testet). Samme innhold som /service-og-eu.
+// Beregningen ligger i dashboard.js (ren og testet).
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { alleFrister, aarshjul, nesteService, slitasjeOppsummering } from '/js/dashboard.js';
 import {

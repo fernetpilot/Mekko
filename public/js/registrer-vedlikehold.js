@@ -1,6 +1,6 @@
 // Registrer vedlikehold: egen side, nås fra Min profil-menyen og fra hver bil under Mine biler.
 import { supabase } from "./supabase.js";
-import { formaterKm } from "./bilstatus.js";
+import { bilLenke, formaterKm } from "./bilstatus.js";
 import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
 import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
@@ -193,7 +193,7 @@ skjema.addEventListener("submit", async (e) => {
     alert(`Vedlikeholdet er lagret, men noen filer ble ikke lastet opp:\n\n${opplastingsfeil.join("\n")}`);
   }
   melding("Lagret!", "ok");
-  location.assign(`/min-side#bil-${rad.bil_id}`);
+  location.assign(bilLenke({ id: rad.bil_id }, "vedlikehold"));
 });
 
 start();

@@ -40,9 +40,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   nøkkeltall og faner Oversikt, Service og EU, Vedlikehold, Dekk, Økonomi og Bildata. Adressen er
   `/?bil=<id>&fane=<fane>#bilen-din` (lag den med `bilLenke` i `bilstatus.js`); alle lenker dit åpner panelet
   uten å laste siden på nytt. «Mine biler» (profilmenyen, svevende knapp, toppknappen på undersidene) og varslene
-  leder hit. Fanene ligger i egne filer (`fane-service.js`, `fane-vedlikehold.js`, `fane-okonomi.js`; felles byggeklosser i
-  `bil-visning.js`). Service og Vedlikehold har alt innholdet; Dekk viser dekksettene og Økonomi nøkkeltall og fordeling,
-  mens skjemaene (dekk, kjøpsopplysninger) og diagrammene foreløpig ligger på `/dekk` og `/bilokonomi`.
+  leder hit. Fanene ligger i egne filer i `public/bilhold/js/` (`fane-service.js`, `fane-vedlikehold.js`, `fane-dekk.js`,
+  `fane-okonomi.js`; felles byggeklosser i `bil-visning.js`). Etter en lagring kaller fanen `ctx.oppdater()`, som henter
+  bilene på nytt. De gamle sidene `/service-og-eu`, `/vedlikehold`, `/dekk` og `/bilokonomi` sender bare videre til riktig fane.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   EU-kontroll, service og dekkskift; slitasje i % skal legges til der.
@@ -72,14 +72,14 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
   Hendelser og enkeltvedlegg kan slettes der. PDF lages i nettleseren med pdf-lib fra CDN:
   `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
-- `public/bilokonomi.html` + `public/js/bilokonomi-side.js` – Biløkonomi: kjøpspris/-dato/-km (felt på `biler`,
-  se `supabase/06-bilokonomi.sql`), nøkkeltall, kakediagram per utgiftspost, stolper per år, akkumulert kurve
-  og grovt verdianslag. Beregningene ligger i `public/js/bilokonomi.js` (ren, testet); antakelsene for
-  verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der. Diagramfarger i `public/css/bilokonomi.css`.
+- Økonomi-fanen (`fane-okonomi.js`): kjøpspris/-dato/-km (felt på `biler`, se `supabase/06-bilokonomi.sql`), nøkkeltall,
+  kakediagram per utgiftspost, stolper per år, akkumulert kurve og grovt verdianslag. Beregningene ligger i
+  `public/js/bilokonomi.js` (ren, testet); antakelsene for verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der.
+  Diagramfarger (`--serie-*`) står på `#bil-panel` i `public/bilhold/css/bilhold.css`.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
-- `public/service-og-eu.html` + `public/js/service-og-eu.js` – EU-kontroll, service og slitasje de neste 12 mnd (`?bil=<id>`, ellers første bil). Krever innlogging.
-- `public/vedlikehold.html` + `public/js/vedlikehold-oversikt.js` – alt vedlikehold per år med kostnad og vedlegg. Felles: `public/js/dashboard-side.js`, `public/css/dashboard.css`; ren logikk i `public/js/dashboard.js` (testet).
-- `public/dekk.html` + `public/js/dekk-side.js` – Dekk (`?bil=<id>`): sommer- og vinterdekksett (tabell `dekksett`,
+- Service og EU-fanen (`fane-service.js`): EU-kontroll, service og slitasje de neste 12 mnd. Vedlikehold-fanen
+  (`fane-vedlikehold.js`): alt vedlikehold per år med kostnad og vedlegg. Ren logikk i `public/js/dashboard.js` (testet).
+- Dekk-fanen (`fane-dekk.js`): sommer- og vinterdekksett (tabell `dekksett`,
   se `supabase/07-dekksett.sql`), hvilket sett som står på, og «Registrer dekkskift» (lagres også som vedlikehold
   med komponent `dekk`). Reglene ligger i `public/js/dekk.js` (ren, testet): piggdekkperioden (sør/nord, påske),
   når det bør byttes (`dekkskift`) og alder/mønster per sett (`vurderSett`). Dekkskift vises i slitasjelisten,

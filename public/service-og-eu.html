@@ -2,85 +2,17 @@
 <html lang="no">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0b0d">
-  <title>Mekkoo – service og EU-kontroll</title>
-  <!-- Krever innlogging: send til innlogging og tilbake hit etterpå -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mekkoo – Service og EU-kontroll</title>
+  <!-- Flyttet: alt om bilen ligger nå under «Bilen din» på forsiden, i fanen «Service og EU-kontroll». -->
   <script>
-    try {
-      if (!localStorage.getItem("sb-pwihbhlnskaysbxzoqwu-auth-token")) {
-        location.replace("/min-side?neste=" + encodeURIComponent(location.pathname + location.search));
-      }
-    } catch (e) { /* lagring blokkert: vis siden som vanlig */ }
+    (function () {
+      var bil = new URLSearchParams(location.search).get("bil");
+      location.replace("/?" + (bil ? "bil=" + encodeURIComponent(bil) + "&" : "") + "fane=service#bilen-din");
+    })();
   </script>
-  <link rel="stylesheet" href="css/min-side.css">
-  <link rel="stylesheet" href="css/dashboard.css">
-  <script type="module" src="js/service-og-eu.js"></script>
 </head>
 <body>
-  <header class="topp">
-    <a class="logo" href="/">MEKKOO</a>
-    <a class="topp-knapp" href="/#bilen-din">Mine biler</a>
-  </header>
-
-  <main class="dash">
-    <nav class="dash-nav" aria-label="Oversikter">
-      <a href="/service-og-eu" data-bil-lenke="/service-og-eu" aria-current="page">Service og EU</a>
-      <a href="/vedlikehold" data-bil-lenke="/vedlikehold">Vedlikehold</a>
-      <a href="/dekk" data-bil-lenke="/dekk">Dekk</a>
-    </nav>
-
-    <p class="overline">Service og EU-kontroll</p>
-    <div class="dash-bil" id="bil-hode" hidden>
-      <div>
-        <span class="bil-skilt" id="bil-skilt"></span>
-        <h1 id="bil-navn"></h1>
-        <p class="ingress" id="bil-km"></p>
-      </div>
-      <label class="dash-bilvalg" id="bil-velger" hidden>Bytt bil
-        <select id="bil-valg"></select>
-      </label>
-    </div>
-
-    <p class="laster" id="laster">Laster …</p>
-
-    <section id="ingen-biler" class="kort" hidden>
-      <h2>Ingen biler ennå</h2>
-      <p class="liten">Legg til bilen din under Mine biler, så ser du EU-kontroll og service her.</p>
-      <a class="knapp sekundaer" href="/min-side">Gå til Mine biler</a>
-    </section>
-
-    <div id="innhold" hidden>
-      <section class="fliser" id="fliser" aria-label="Oppsummering"></section>
-
-      <div class="dash-knapper">
-        <a class="knapp" href="/registrer-vedlikehold" data-bil-lenke="/registrer-vedlikehold">+ Registrer vedlikehold</a>
-      </div>
-
-      <h2 class="dash-tittel">De neste 12 månedene</h2>
-      <section class="kort forfalt-kort" id="forfalt" hidden>
-        <h3>Bør gjøres nå</h3>
-        <ul class="frist-liste" id="forfalt-liste"></ul>
-      </section>
-      <ol class="aarshjul" id="aarshjul"></ol>
-
-      <section class="kort" id="km-frister" hidden>
-        <h3>Etter kilometerstand og slitasje</h3>
-        <ul class="frist-liste" id="km-liste"></ul>
-      </section>
-      <section class="kort" id="senere" hidden>
-        <h3>Senere</h3>
-        <ul class="frist-liste" id="senere-liste"></ul>
-      </section>
-      <section class="kort" id="ukjent" hidden>
-        <h3>Mangler registrering</h3>
-        <p class="liten">Vi vet ikke når disse sist ble gjort. Registrer dem, så kommer de med i oversikten.</p>
-        <p class="ukjent-navn" id="ukjent-liste"></p>
-      </section>
-
-      <p class="liten ansvar">Fristene er veiledende og bygger på det du har registrert. Sjekk servicehefte og vognkort,
-        og se <a href="https://www.vegvesen.no/kjoretoy/eie-og-vedlikeholde/eu-kontroll/" target="_blank" rel="noopener">vegvesen.no</a> for EU-kontroll.</p>
-    </div>
-  </main>
+  <p><a href="/?fane=service#bilen-din">Service og EU-kontroll har flyttet til «Bilen din». Trykk her hvis du ikke blir sendt videre.</a></p>
 </body>
 </html>

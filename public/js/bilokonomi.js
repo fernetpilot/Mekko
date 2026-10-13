@@ -1,5 +1,5 @@
 // Biløkonomi: oppsummering av kostnader og et grovt anslag på markedsverdi.
-// Ren logikk: ingen DOM, ingen nettverk. Brukes av public/js/bilokonomi-side.js.
+// Ren logikk: ingen DOM, ingen nettverk. Brukes av public/bilhold/js/fane-okonomi.js.
 
 import { KOMPONENT_NAVN } from "./bilstatus.js";
 
