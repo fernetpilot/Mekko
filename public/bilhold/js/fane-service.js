@@ -65,10 +65,12 @@ const aar = (iso) => iso.slice(0, 4);
 function stolpeRad(x, skala) {
   // Siden siste bytte: stiplet, men i samme farge som om jobben ble gjort i dag
   const li = el('li', `boka-rad ${x.status}${x.apen ? ' apen' : ''}`);
-  const tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})` : `${aar(x.fra)} – ${aar(x.til)}`;
+  let tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})`
+    : x.fraNy ? `Fra ny (${aar(x.fra)}) – ${aar(x.til)}` : `${aar(x.fra)} – ${aar(x.til)}`;
   const pst = (a) => (a == null ? '' : ` (${Math.round(a * 100)} %)`);
   const tall = [x.km != null && formaterKm(x.km) + pst(x.andelKm), mnd(x.maneder) + pst(x.andelTid)]
     .filter(Boolean).join(' · ');
+  if (x.fraNy && x.andel > 2) tittel += ' · kan skyldes manglende historikk';
   const tekst = el('div', 'boka-tekst');
   tekst.append(el('span', null, tittel), el('span', 'boka-tall', x.andel == null ? `${tall} · mangler km` : tall));
   const spor = el('div', 'boka-spor');
@@ -114,11 +116,12 @@ function etterBokaSeksjon(bil, idag) {
     if (h.manederIntervall != null) tall.append(snittFlis('Snitt tid mellom bytter', h.snittManeder != null ? mnd(h.snittManeder) : '–',
       `Anbefalt ${h.manederIntervall} mnd`, h.snittStatusTid));
     d.append(tall);
-    if (!h.intervaller.length) d.append(liten('Snittet kommer når delen er registrert byttet minst to ganger.'));
+    if (h.snittKm == null && h.snittManeder == null) d.append(liten('Snittet kommer når delen er registrert byttet minst to ganger.'));
     const rader = [...h.intervaller, ...(h.naa ? [h.naa] : [])];
     if (rader.length) {
       // Skalaen går minst til 150 %, så streken for anbefalt intervall står på samme sted
-      const skala = Math.max(1.5, ...rader.map((x) => x.andel ?? 0));
+      // og høyst til 250 %, så én veldig lang stolpe ikke klemmer de andre (den fyller da hele bredden)
+      const skala = Math.min(2.5, Math.max(1.5, ...rader.map((x) => x.andel ?? 0)));
       const ol = el('ol', 'boka-stolper');
       ol.setAttribute('aria-label', `${h.navn}: tid mellom hver jobb, i prosent av anbefalt intervall`);
       ol.append(...rader.map((x) => stolpeRad(x, skala)));
