@@ -133,3 +133,9 @@ test("servicelinjer gir km igjen og intervall for stolpen", () => {
   assert.equal(olje.kmIgjen, 6000);
   assert.equal(olje.kmIntervall, 10000);
 });
+
+test("drivstoffilter (diesel): 20 000 km eller 24 måneder", () => {
+  const p = LR3_2_7_TDV6.find((x) => x.id === "drivstoffilter-diesel");
+  assert.equal(p.kmIntervall, 20000);
+  assert.equal(p.manederIntervall, 24);
+});

@@ -30,4 +30,7 @@ export const LR3_2_7_TDV6 = [
   { id: "servostyring", navn: "Servoolje", kmIntervall: 80000, manederIntervall: 60 },
   { id: "kjolevaeske", navn: "Kjølevæske", kmIntervall: null, manederIntervall: 60 },
   { id: "bremsevaeske", navn: "Bremsevæske", kmIntervall: null, manederIntervall: 60 },
+  // Ikke i LR Time-tabellen. Anders' erfaring: annethvert til hvert tredje oljeskift (20–30 000 km).
+  // Vi bruker det strengeste: 20 000 km eller 24 måneder (to oljeskift).
+  { id: "drivstoffilter-diesel", navn: "Drivstoffilter (diesel)", kmIntervall: 20000, manederIntervall: 24 },
 ];
