@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="no" data-theme="dark">
+<html lang="nb" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -28,6 +28,7 @@
   <script type="module" src="bilhold/js/profilmeny.js"></script>
 </head>
 <body>
+  <a class="hopp-til" href="#innhold">Hopp til innholdet</a>
   <header class="topp" id="topp">
     <a class="logo" href="/">MEKKOO</a>
     <nav class="topp-meny">
@@ -75,7 +76,7 @@
   <svg class="styrelinjer" id="styrelinjer" aria-hidden="true">
     <path id="styrelinje" d="" />
   </svg>
-  <a class="hotspot" id="hotspot" href="#" aria-label="Åpne detaljer"></a>
+  <a class="hotspot" id="hotspot" href="#" aria-label="Åpne detaljer" tabindex="-1"></a>
 
   <!-- Skilt som dukker opp når man peker på eller trykker på tilhengeren -->
   <button class="tilhenger-skilt" id="tilhenger-skilt" type="button" tabindex="-1">
@@ -94,7 +95,7 @@
     Åpne bilen din <span aria-hidden="true">➔</span>
   </button>
 
-  <main>
+  <main id="innhold">
     <section class="seksjon hero" data-theme="dark" data-del="hero">
       <div class="hero-tekst">
         <h1>Alt om bilen din, på ett sted.</h1>
@@ -162,7 +163,7 @@
       <div class="kalk-hode">
         <p class="overline">Tilhengerkalkulator</p>
       </div>
-      <h2 id="kalk-tittel">Hvor mye kan du laste hengeren?</h2>
+      <h2 id="kalk-tittel" tabindex="-1">Hvor mye kan du laste hengeren?</h2>
       <p class="ingress">Skriv inn skiltnummer for bil og henger. Vi henter vektene fra Statens vegvesen og viser hvilken grense som begrenser.</p>
 
       <form class="kalk-felter" id="last-skjema" autocomplete="off" novalidate>
@@ -272,7 +273,7 @@
       <nav class="bil-bytte" id="bil-bytte" aria-label="Bytt bil" hidden></nav>
       <p class="bil-ny-melding" id="bil-ny-melding" role="status" hidden></p>
       <div class="kalk-hode"><p class="overline">Bilen din</p></div>
-      <h2 id="bil-navn">Henter bilen …</h2>
+      <h2 id="bil-navn" tabindex="-1">Henter bilen …</h2>
       <p class="ingress" id="bil-kjennemerke"></p>
 
       <dl class="bil-fakta">

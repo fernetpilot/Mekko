@@ -20,6 +20,8 @@ const VOGNTOG = { midtZ: -1.8, lengde: 10.2, hoyde: 3.4, midtY: 1.5 };
 // Bare bilen, brukt når man åpner «bilen din» (innlogget)
 const BILRAMME = { midtZ: 0.03, lengde: 5.9, hoyde: 2.4, midtY: 1.15 };
 const VEIKANT_NAER_X = 1.9 + 7.5 / 2;    // veikanten nærmest kameraet i kalkulator-modus (se lagOmgivelser)
+const KANTLINJE_NAER_X = 1.9 + 3.6;   // hvit kantlinje på samme side
+const MIDTLINJE_X = 1.9;
 const SIDE_TOPP = 64 + 4;                  // vogntoget står rett under headeren i sidevisningene
 
 // Fargen delen lyser med når kameraet zoomer inn: samme som statusen på kortet
@@ -30,6 +32,8 @@ const FARGE_FOR_STATUS = {
   tom: new THREE.Color('#9cc8ff'),
 };
 // Eksempeldataene (utlogget): motor i orden, bremser bør sjekkes, dekk må byttes
+// Eksempeldataene har samme status; innlogget kommer den fra kortene
+const delStatus = { motor: 'ok', bremser: 'sjekk', dekk: 'kritisk' };
 const STATUSFARGER = {
   motor: FARGE_FOR_STATUS.ok.clone(),
   bremser: FARGE_FOR_STATUS.sjekk.clone(),
@@ -130,8 +134,9 @@ export function lagScene(canvas) {
   const beroring = window.matchMedia('(pointer: coarse)').matches;
 
   const lakkMal = new THREE.Color(LAKK);   // bilens farge glir over til registrert farge
-  let sideBunnMal = null;            // ønsket underkant av veien (px) når man har blart ned i panelet
-  let sideAvstandEkstra = 0;         // hvor mye lenger unna kameraet står enn i full visning (m)
+  let sideForskyv = 0;               // px bildet er flyttet opp når man har blart ned i et panel
+  let stillbilde = false;            // helt nede: alt står stille, bare veien og kantlinjen synes
+  let bevegelsestid = 0;             // klokke som stopper når stillbilde er på (sjiraffer, skanning)
 
   function tilpassStorrelse() {
     const b = window.innerWidth;
@@ -146,29 +151,11 @@ export function lagScene(canvas) {
   }
   function velgSide(navn) {
     sideValg = navn;
-    oppdaterSidezoom();
-  }
-  // Panelene: når man blar ned, zoomer kameraet ut så veien hele tiden slutter der teksten begynner,
-  // til vogntoget bare er en smal stripe rett under logoen og tilbakeknappen.
-  function oppdaterSidezoom() {
-    const k = sidekamera[sideValg];
-    const mal = sideBunnMal == null ? k.bunnPx : THREE.MathUtils.clamp(sideBunnMal, k.miniBunnPx, k.bunnPx);
-    const avstand = mal >= k.bunnPx ? k.avstand : avstandForBunn(k.ramme, mal, k.avstand, k.miniAvstand);
-    const r = sideRamme(window.innerWidth, window.innerHeight, k.ramme, avstand);
-    kalkPos.copy(r.pos);
-    kalkMal.copy(r.mal);
-    kalkSenterAndel = r.senterAndel;
-    kalkBunnPx = r.bunnPx;
-    sideAvstandEkstra = avstand - k.avstand;
-  }
-  function avstandForBunn(ramme, bunn, fra, til) {
-    const b = window.innerWidth, h = window.innerHeight;
-    let lo = fra, hi = til;
-    for (let i = 0; i < 28; i++) {
-      const m = (lo + hi) / 2;
-      if (sideRamme(b, h, ramme, m).bunnPx > bunn) lo = m; else hi = m;
-    }
-    return (lo + hi) / 2;
+    const k = sidekamera[navn];
+    kalkPos.copy(k.pos);
+    kalkMal.copy(k.mal);
+    kalkSenterAndel = k.senterAndel;
+    kalkBunnPx = k.bunnPx;
   }
 
   // Kalkulator-modus: kameraet står ute på siden, så bil og henger kjører fra høyre mot venstre,
@@ -178,28 +165,27 @@ export function lagScene(canvas) {
     const forBredde = ramme.lengde / 2 / (tan * (b / h));
     const forHoyde = ramme.hoyde / (2 * tan * maksAndel); // høyst maksAndel av skjermhøyden
     const avstand = Math.max(forBredde, forHoyde);
-    const full = sideRamme(b, h, ramme, avstand);
-    // Helt utzoomet: veien slutter rett under headeren
-    const miniBunnPx = SIDE_TOPP + (b < 600 ? 46 : 58);
-    const miniAvstand = avstandForBunn(ramme, miniBunnPx, avstand, avstand * 30);
-    return { ...full, ramme, avstand, miniAvstand, miniBunnPx: Math.min(miniBunnPx, full.bunnPx) };
-  }
-  // Kameraet ute på siden i en gitt avstand: posisjon, hvor høyt vogntoget står og hvor veien slutter (px)
-  function sideRamme(b, h, ramme, avstand) {
-    const tan = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2);
     // Lav vinkel: veien blir et smalt bånd, så teksten under får rolig bakgrunn
     const pos = new THREE.Vector3(avstand, ramme.midtY + avstand * 0.035, ramme.midtZ);
     const mal = new THREE.Vector3(0, ramme.midtY, ramme.midtZ);
     const synlig = 2 * avstand * tan;                     // meter som får plass i høyden
     const halvPx = (ramme.hoyde / 2 / synlig) * h;
     const senterAndel = (SIDE_TOPP + halvPx) / h;
-    // Panelet starter under veikanten nærmest kameraet, så teksten aldri ligger oppå veien
+    // Hvor et punkt på bakken (x, avstand fra midten av veien) havner på skjermen, i px fra toppen
     const fx = -avstand, fy = ramme.midtY - pos.y, fl = Math.hypot(fx, fy);
-    const vx = VEIKANT_NAER_X - avstand, vy = -pos.y;
-    const dybde = (vx * fx + vy * fy) / fl;
-    const opp = (vx * fy - vy * fx) / fl;                 // høyde over midten av bildet, i meter
-    const veikantPx = senterAndel * h - (opp / (dybde * tan)) * (h / 2);
-    return { pos, mal, senterAndel, bunnPx: Math.max(SIDE_TOPP + halvPx * 2, veikantPx + 10) };
+    const bakkePx = (x) => {
+      const vx = x - avstand, vy = -pos.y;
+      const dybde = (vx * fx + vy * fy) / fl;
+      const opp = (vx * fy - vy * fx) / fl;               // høyde over midten av bildet, i meter
+      return senterAndel * h - (opp / (dybde * tan)) * (h / 2);
+    };
+    return {
+      pos, mal, senterAndel,
+      // Panelet starter under veikanten nærmest kameraet, så teksten aldri ligger oppå veien
+      bunnPx: Math.max(SIDE_TOPP + halvPx * 2, bakkePx(VEIKANT_NAER_X) + 10),
+      kantlinjePx: bakkePx(KANTLINJE_NAER_X),            // den hvite linjen langs veikanten
+      midtlinjePx: bakkePx(MIDTLINJE_X),                 // midtstripen: over den skjules alt
+    };
   }
   tilpassStorrelse();
   window.addEventListener('resize', tilpassStorrelse);
@@ -221,11 +207,11 @@ export function lagScene(canvas) {
   function oppdaterProjeksjon(t) {
     const b = window.innerWidth;
     const h = window.innerHeight;
-    const ekstra = h / 2;
+    const ekstra = h;                                    // plass til å flytte bildet både opp og ned
     const helH = h + 2 * ekstra;
     kamera.aspect = b / helH;
     kamera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(baseFov) / 2) * (helH / h)));
-    const y = ekstra + t * (h / 2 - kalkSenterAndel * h);
+    const y = ekstra + t * (h / 2 - kalkSenterAndel * h + sideForskyv);
     kamera.setViewOffset(b, helH, 0, y, b, h);
   }
 
@@ -271,8 +257,8 @@ export function lagScene(canvas) {
     oppdaterProjeksjon(THREE.MathUtils.smoothstep(kalkBlend, 0.35, 1));
 
     // Tåken trekkes bakover når kameraet står langt unna
-    scene.fog.near = 18 + kalkBlend * (22 + sideAvstandEkstra);
-    scene.fog.far = 60 + kalkBlend * (50 + sideAvstandEkstra * 1.3);
+    scene.fog.near = 18 + kalkBlend * 22;
+    scene.fog.far = 60 + kalkBlend * 50;
     // ... og trekkes helt inn rundt sjiraffen, så bare hodet står igjen mot mørk bakgrunn
     scene.fog.near = THREE.MathUtils.lerp(scene.fog.near, 1.2, sj);
     scene.fog.far = THREE.MathUtils.lerp(scene.fog.far, 6, sj);
@@ -284,9 +270,11 @@ export function lagScene(canvas) {
 
     // Kjøring
     const fart = redusertBevegelse ? FART * 0.15 : FART;
-    veistrekning += fart * dt;
+    const dtB = stillbilde ? 0 : dt;                   // helt nede i et panel står alt stille
+    bevegelsestid += dtB;
+    veistrekning += fart * dtB;
     omgivelser.oppdater(veistrekning);
-    hjulvinkel += dt * Math.PI * 2 * HJUL_OMDR_PER_SEK * (redusertBevegelse ? 0.3 : 1);
+    hjulvinkel += dtB * Math.PI * 2 * HJUL_OMDR_PER_SEK * (redusertBevegelse ? 0.3 : 1);
     for (const hjul of bil.hjul) hjul.rotation.x = hjulvinkel;
     hover = THREE.MathUtils.damp(hover, modus === 'scroll' ? hoverMal : 0, 10, dt);
     // På mobil blinker en tynn kant rundt hengeren sakte, så man skjønner at den kan trykkes på
@@ -296,8 +284,8 @@ export function lagScene(canvas) {
     bilSkann = THREE.MathUtils.damp(bilSkann, modus === 'bil' ? 1 : modus === 'scroll' ? bilSkannMal : 0, 10, dt);
     if (bilSkann < 0.005) bilSkann = 0;
     bilHover = THREE.MathUtils.damp(bilHover, modus === 'scroll' ? bilSkannMal : 0, 10, dt);
-    bil.skann(bilSkann, klokke.elapsedTime, bilHover);
-    tilhenger.oppdater({ strekning: veistrekning, hjulvinkel, tid: klokke.elapsedTime, hover, blink });
+    bil.skann(bilSkann, bevegelsestid, bilHover);
+    tilhenger.oppdater({ strekning: veistrekning, hjulvinkel, tid: bevegelsestid, hover, blink });
     // Litt liv i karosseriet
     bil.karosseri.position.y = veiHump(veistrekning);
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
@@ -306,7 +294,7 @@ export function lagScene(canvas) {
     const naer = (k) => THREE.MathUtils.clamp(1 - Math.abs(fremdrift - k) * 1.6, 0, 1);
     for (const [navn, k] of [['motor', 1], ['bremser', 2], ['dekk', 3]]) {
       aktivitet[navn] = THREE.MathUtils.lerp(aktivitet[navn], naer(k), demp);
-      bil.marker(navn, aktivitet[navn], STATUSFARGER[navn], klokke.elapsedTime);
+      bil.marker(navn, aktivitet[navn], STATUSFARGER[navn], klokke.elapsedTime, delStatus[navn] === 'kritisk');
     }
     // Panseret åpnes i motorrom-seksjonen
     bil.panser.rotation.x = -1.05 * THREE.MathUtils.smoothstep(aktivitet.motor, 0.05, 0.9);
@@ -390,15 +378,15 @@ export function lagScene(canvas) {
     settDelStatus(status) {
       for (const del of Object.keys(STATUSFARGER)) {
         const f = FARGE_FOR_STATUS[status?.[del]];
-        if (f) STATUSFARGER[del].copy(f);
+        if (f) { STATUSFARGER[del].copy(f); delStatus[del] = status[del]; }
       }
     },
     // Lakkfarge på bilen (0xRRGGBB), null = standardfargen
     settLakk(farge) { lakkMal.setHex(farge ?? LAKK); },
-    // Sidevisningene: underkanten av veien uten zoom og helt utzoomet (px)
-    sideBunn() { const k = sidekamera[sideValg]; return { full: k.bunnPx, mini: k.miniBunnPx }; },
-    // Ønsket underkant av veien (px); kameraet zoomer ut til veien slutter der. null = full visning.
-    settSideBunn(px) { sideBunnMal = px; oppdaterSidezoom(); },
+    // Sidevisningene: hvor veien slutter, hvor den hvite kantlinjen og midtstripen ligger (px, uten forskyvning)
+    sideLinjer() { const k = sidekamera[sideValg]; return { bunn: k.bunnPx, kantlinje: k.kantlinjePx, midtlinje: k.midtlinjePx }; },
+    // Flytter bildet opp (px) når man blar ned i et panel. stille = alt stopper opp (som et stillbilde).
+    settSideForskyvning(px, stille = false) { sideForskyv = Math.max(0, px); stillbilde = stille; },
     settTema(t) { temaMal = t === 'light' ? 'light' : 'dark'; },
     // Skjermposisjon (px) for en bildel, brukt til hotspot og styrelinje
     skjermpunkt(navn) {
@@ -721,7 +709,7 @@ function lagBil() {
       gruppe.add(spinn, stille);
       hjul.push(spinn);
       if (s === 1 && z === FORAKSEL_Z) {
-        hotspots.bremser = stille.getObjectByName('caliper');
+        hotspots.bremser = stille.getObjectByName('bremsepunkt');
         hotspots.dekk = mønsterpunkt;
       }
     }
@@ -742,17 +730,18 @@ function lagBil() {
   // Statusmarkering: delene er nøytrale til kameraet zoomer inn
   const markerbare = {
     motor: [oljeMat],
-    bremser: [klossMat],
+    bremser: [klossMat, caliperMat],   // hele bremsen: klosser og kaliper
     dekk: [dekkMat],
   };
   const grunnfarge = new Map();
   for (const liste of Object.values(markerbare)) for (const m of liste) grunnfarge.set(m, m.color.clone());
 
-  function marker(navn, styrke, farge, tid) {
-    const puls = 0.75 + 0.25 * Math.sin(tid * 4);
+  // kritisk: delen blinker rolig i rødt, i stedet for den svake pulsen
+  function marker(navn, styrke, farge, tid, kritisk = false) {
+    const puls = kritisk ? 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(tid * 3.4)) : 0.75 + 0.25 * Math.sin(tid * 4);
     for (const m of markerbare[navn]) {
       m.color.copy(grunnfarge.get(m)).lerp(farge, styrke * (navn === 'dekk' ? 0.2 : 0.8));
-      m.emissive.copy(farge).multiplyScalar(styrke * puls * (navn === 'dekk' ? 0.22 : 0.9));
+      m.emissive.copy(farge).multiplyScalar(styrke * puls * (navn === 'dekk' ? (kritisk ? 0.4 : 0.22) : 0.9));
     }
   }
 
@@ -941,7 +930,12 @@ function lagHjul(mat, side) {
   const halv = 0.034;
   const kx = skiveH + 0.018 + halv / 2;
   // Den ytre halvdelen er lav, så klossene synes over den
-  for (const x of [-1, 1]) bue(0.105, x === side ? 0.15 : 0.168, 0.5, halv, mat.caliperMat, x * kx, x === side ? 'caliper' : null);
+  for (const x of [-1, 1]) bue(0.105, x === side ? 0.15 : 0.168, 0.5, halv, mat.caliperMat, x * kx);
+  // Punktet hotspoten peker på: midt på bremsen, på utsiden
+  const bremsepunkt = new THREE.Object3D();
+  bremsepunkt.name = 'bremsepunkt';
+  bremsepunkt.position.set(side * (kx + halv / 2), Math.cos(MIDT) * 0.16, Math.sin(MIDT) * 0.16);
+  stille.add(bremsepunkt);
   for (const a of [-1, 1]) bue(0.196, 0.222, 0.075, kx * 2 + halv, mat.caliperMat, 0, null, MIDT + a * 0.43);
   // Holdepinner og fjærklemme over klossene
   for (const a of [MIDT - 0.17, MIDT + 0.17]) {

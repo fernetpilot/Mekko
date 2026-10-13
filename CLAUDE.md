@@ -45,12 +45,14 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   leder hit. Fanene ligger i egne filer i `public/bilhold/js/` (`fane-service.js`, `fane-vedlikehold.js`, `fane-dekk.js`,
   `fane-okonomi.js`; felles byggeklosser i `bil-visning.js`). Etter en lagring kaller fanen `ctx.oppdater()`, som henter
   bilene på nytt. De gamle sidene `/service-og-eu`, `/vedlikehold`, `/dekk` og `/bilokonomi` sender bare videre til riktig fane.
-  Panelene («Bilen din» og kalkulatoren) går opp til headeren med luft øverst (`.bil-luft`). Når man blar ned,
-  zoomer kameraet ut (`scene.settSideBunn`) så veien alltid slutter der teksten begynner, til vogntoget er en smal
-  stripe under headeren; fanene i «Bilen din» stopper rett under veien (`--vei-bunn`). «+ Legg til bil» blir en
-  tekstboks i bilraden (skiltoppslag og lagring i `public/js/ny-bil.js`, brukt også av Min side).
+  Panelene («Bilen din» og kalkulatoren) starter rett under headeren med luft øverst (`.bil-luft`). Når man blar ned,
+  glir bildet opp med teksten (`scene.settSideForskyvning`) til bare nærmeste kjørebane og den hvite kantlinjen står
+  igjen som en strek under headeren; da står alt stille, og `.vei-skygge` dekker resten. Blar man opp, kjører bilen
+  videre. Fanene i «Bilen din» sitter rett under linjen og har tett bakgrunn, så teksten forsvinner bak dem.
+  «+ Legg til bil» blir en tekstboks i bilraden (skiltoppslag og lagring i `public/js/ny-bil.js`, brukt også av Min side).
   Innlogget får 3D-bilen fargen den er registrert med hos Vegvesenet (`public/js/bilfarge.js`, testet; huskes i
-  nettleseren per skilt), og motor/bremser/dekk lyser i kortets statusfarge når kameraet zoomer inn.
+  nettleseren per skilt), og motor/bremser/dekk lyser i kortets statusfarge når kameraet zoomer inn
+  (hele bremsen farges; kritisk status blinker rolig rødt, også på kortet og punktet).
   Svake telefoner får en lett 3D-versjon (lav oppløsning, ingen skygger, 30 fps): slås på av lite minne/datasparing
   eller hvis de første sekundene går tregt. `?lett` i adressen tvinger den på.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
@@ -122,6 +124,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `tests/` – tester for beregningen, basert på testcasene i regelverksdokumentet
 - `netlify/functions/` – proxy mot Vegvesenet
 - `docs/eksempeldata/` – ekte JSON-svar fra Vegvesenet (uten personopplysninger)
+- `docs/venteliste.md` – ting vi har bestemt å vente med (domene, deling, statistikk, feilvarsling, påminnelser …)
 
 ## Regler som alltid gjelder
 - **API-nøkkelen skal ALDRI inn i koden eller repoet.** Den ligger som miljøvariabel `SVV_API_KEY`

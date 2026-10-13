@@ -587,3 +587,9 @@ main.import { padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
 .punkt-rad .bekreft { width: auto; margin: 0; padding: 8px 12px; font-size: 0.95rem; justify-self: start; }
 .punkt-rad .punkt-knapp { font-size: 0.95rem; }
 .merke-dublett.oppdater { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+
+/* Synlig fokus for tastaturbrukere */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #9cc8ff;
+  outline-offset: 2px;
+}
