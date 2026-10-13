@@ -99,6 +99,8 @@ export const KATALOG = [
       p("kardanaksel", "Kardanaksel og kardanknuter"),
       p("clutch", "Clutch og svinghjul", { gjelderFor: ["manuell"] }),
       p("girkassefester", "Girkassefester"),
+      p("girkasse", "Girkasse / momentomformer (bytte, reparasjon)"),
+      p("girvelger", "Girvelger og girkabel"),
     ],
   },
   {
@@ -146,6 +148,7 @@ export const KATALOG = [
       p("lyktjustering", "Lyktjustering"),
       p("sikringer", "Sikringer og releer"),
       p("hengerkontakt", "Tilhengerkontakt (elektrisk)"),
+      p("motorvarmer", "Motorvarmer"),
     ],
   },
   {
@@ -171,6 +174,7 @@ export const KATALOG = [
     id: "karosseri", navn: "Karosseri og understell", ikon: "🚗", gruppe: "karosseri",
     punkter: [
       p("rustbehandling", "Rustkontroll / understellsbehandling"),
+      p("rustreparasjon", "Rustreparasjon / sveising (ramme, terskler)"),
       p("smoring-dorer", "Smøring av dørhengsler og låser"),
       p("avlop", "Avløp for soltak og vannkanaler"),
       p("hengerfeste", "Hengerfeste (mekanisk)"),

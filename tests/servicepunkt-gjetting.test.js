@@ -7,7 +7,7 @@ import { gjettServicepunkter, alleServicepunkter, utvidDeler } from "../public/j
 const likt = (a, b) => assert.deepEqual([...a].sort(), [...b].sort());
 
 test("bremseklosser fra fritekst, som i importen fra 2021", () => {
-  likt(gjettServicepunkter("bremser", "Bremseklosser og -skriver, Calipere begge bak, v forran"), ["bremseklosser"]);
+  likt(gjettServicepunkter("bremser", "Bremseklosser og -skriver, Calipere begge bak, v forran"), ["bremseklosser", "bremseskiver", "bremsecaliper"]);
 });
 
 test("oljeskift og oljefilter følger hverandre", () => {
@@ -72,5 +72,33 @@ test("multireim er ikke registerreim", () => {
 
 test("dieselfilter gjenkjennes og blandes ikke med oljefilter", () => {
   likt(gjettServicepunkter("service", "Oljefilter, Olje, Dieselfilter og Pollenfilter").sort(),
-    ["drivstoffilter-diesel", "motorolje", "oljefilter"]);
+    ["drivstoffilter-diesel", "motorolje", "oljefilter", "pollenfilter"]);
+});
+
+test("deler fra ekte historikk havner i riktig kategori, ikke «Annet»", () => {
+  const ekte = [
+    ["Hjullager høyre bak", ["hjullager"]],
+    ["Styreledd indre og ytre høyre", ["indre-styreledd", "ytre-styreledd"]],
+    ["Endeledd høyre side", ["ytre-styreledd"]],
+    ["Stabilisatorstagg høyre og vestre", ["stabilisatorstag"]],
+    ["Bærearm øvre Venstre Bak", ["ovre-baerearm"]],
+    ["Bærekule, v og h nedre", ["nedre-kuleledd"]],
+    ["Reparert rust i ramme", ["rustreparasjon"]],
+    ["Reparert kanaler Venstre side", ["rustreparasjon"]],
+    ["Tectylbehandling", ["rustbehandling"]],
+    ["Byttet turbo", ["turbo"]],
+    ["Bytte EGR ventil", ["egr"]],
+    ["Glødeplugger", ["gloeplugger"]],
+    ["Regreim og multireim", ["registerreim", "multireim"]],
+    ["Kompressor, Lufttank og Ventilblokk", ["luftkompressor", "lufttank", "ventilblokk"]],
+    ["Skifte av mansjett luftdemper høyre bak", ["luftfjaerbelg"]],
+    ["Drivakselledd venstre framme ytre", ["drivakselledd"]],
+    ["Skifte av girkasse, inkl filter og olje", ["girkasse"]],
+    ["Bytte av Gearvelger konsoll m kabel", ["girvelger"]],
+    ["Diffolje forran og bak, Transfercaseolje.", ["diff-foran", "diff-bak", "overforing"]],
+    ["Håndbrems mekanisme, reprasjon", ["parkbrems"]],
+    ["Rep eksoslekasje", ["eksos"]],
+    ["Batteri", ["batteri"]],
+  ];
+  for (const [tekst, forventet] of ekte) likt(gjettServicepunkter("annet", `${tekst} Ekstra Service`), forventet);
 });

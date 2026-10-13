@@ -30,6 +30,12 @@ const FRA_TYPE = { bremser: "bremser", dekk: "dekk", motor: "oljer", annet: "ann
  */
 export function delerFor(h) {
   const lagret = h?.servicepunkter ?? [];
+  // Bare «Ekstra service»/«Annet» lagret (typisk fra import med de gamle reglene): se om notatet
+  // nevner konkrete deler, så kostnaden havner i riktig kategori i stedet for «Annet».
+  if (lagret.length && lagret.every((d) => (finnPunkt(d)?.kategori?.id ?? "annet") === "annet")) {
+    const gjett = gjettServicepunkter(h?.komponent, h?.notat).filter((d) => finnPunkt(d)?.kategori?.id !== "annet");
+    if (gjett.length) return { deler: gjett, gjettet: true };
+  }
   if (lagret.length) return { deler: lagret, gjettet: false };
   if (h?.komponent === "eu_kontroll") return { deler: [], gjettet: false };
   const gjett = gjettServicepunkter(h?.komponent, h?.notat);

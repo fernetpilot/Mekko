@@ -98,7 +98,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   `kategorierFor(h)`, `hendelseTittel(h)` og `kostnadPerKategori(h)` brukes av fanen Vedlikehold, Mine biler,
   serviceheftet (nett og PDF), importen og biløkonomien, så de alltid viser det samme. Kategoriene er de i
   `servicekatalog.js` + «EU-kontroll» og «Service (uten spesifiserte deler)». Uten lagrede deler gjettes de
-  (`servicepunkt-gjetting.js`). Kostnad på besøk med flere kategorier fordeles likt; «Annet» får bare andel alene.
+  (`servicepunkt-gjetting.js`, regler for vanlige ord og skrivemåter i fritekst). Er bare «Ekstra service»/«Annet» lagret,
+  gjettes delene fra notatet likevel, så kostnaden ikke havner i «Annet». Kostnad på besøk med flere kategorier fordeles likt; «Annet» får bare andel alene.
   Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
 - `public/personvern.html` – personvernerklæring, lenket diskret nederst på forsiden og i profilmenyen.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).

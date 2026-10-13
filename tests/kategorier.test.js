@@ -56,3 +56,13 @@ test("kostnad fordeles likt på kategoriene, Annet bare når den står alene", (
     .reduce((n, x) => n + x.belop, 0);
   assert.ok(Math.abs(sum - 1000) < 1e-9);
 });
+
+test("bare «Ekstra service» lagret: deler i notatet styrer kategorien", () => {
+  const h = { komponent: "annet", kostnad: 4000, servicepunkter: ["ekstra-service"], notat: "Hjullager høyre bak · Type service: Ekstra Service" };
+  assert.deepEqual(delerFor(h), { deler: ["hjullager"], gjettet: true });
+  assert.deepEqual(kostnadPerKategori(h), [{ id: "styring", belop: 4000 }]);
+  // Uten konkrete deler i notatet blir det «Annet» som før
+  assert.deepEqual(delerFor({ ...h, notat: "Feilsøking" }), { deler: ["ekstra-service"], gjettet: false });
+  // Valgte deler fra en annen kategori overstyres ikke
+  assert.deepEqual(delerFor({ ...h, servicepunkter: ["bremseklosser"] }).deler, ["bremseklosser"]);
+});
