@@ -34,7 +34,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Trykk på tilhengeren (eller knappen øverst) åpner tilhengerkalkulatoren på samme side
   (`public/bilhold/js/lastkalkulator.js`): skiltoppslag og maks last med `beregnMaksLast`, samme regler
   som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
-  Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, tre svevende knapper:
+  Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, fem svevende knapper som holdes fra hverandre:
   Mine biler, Service og EU-kontroll, Vedlikehold). «Åpne bilen din» nederst på bilen åpner panelet «Bilen din»
   (`#bil-panel`) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
   eller trykke utenfor teksten.
@@ -57,6 +57,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   per bil vises vedlikeholdshistorikk og alle kjøretøydata fra Vegvesenet (hentes når seksjonen åpnes).
 - `public/registrer-vedlikehold.html` + `public/js/registrer-vedlikehold.js` – egen side for å registrere vedlikehold
   (`?bil=<id>` forhåndsvelger bil). Krever innlogging.
+  `?endre=<id>` endrer en registrering som finnes fra før (fyller inn skjemaet, vedlegg kan fjernes) og har «Slett registreringen».
+  Vedlikehold-fanen har en «Endre»-knapp på hver jobb som leder hit.
 - `public/js/kjoretoydetaljer.js` – gjør API-svaret om til lesbare seksjoner. Feltoversikt: `docs/api-felter.md`.
 - Dokumenter (kvitteringer, serviceordrer): `public/js/dokumenter.js`. Privat Supabase-bucket `dokumenter`,
   filsti `<bruker-id>/<vedlikehold-id>/…`, tabell `dokumenter` (se `supabase/02-dokumenter.sql`).

@@ -1,7 +1,8 @@
 // Registrer vedlikehold: egen side, nås fra Min profil-menyen og fra hver bil under Mine biler.
+// Med ?endre=<id> endres en registrering som finnes fra før, og den kan slettes.
 import { supabase } from "./supabase.js";
 import { bilLenke, formaterKm } from "./bilstatus.js";
-import { lastOppDokumenter, MAKS_BYTES, erPdf } from "./dokumenter.js";
+import { BUCKET, lastOppDokumenter, MAKS_BYTES, erPdf, slettFilerForVedlikehold } from "./dokumenter.js";
 import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
 
@@ -22,6 +23,8 @@ function idagTekst() {
 let biler = [];
 let brukerId = null;
 let valgteFiler = [];
+const endreId = new URLSearchParams(location.search).get("endre");
+let endres = null;              // registreringen som endres (med dokumenter)
 
 async function start() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -58,11 +61,93 @@ async function start() {
   if (biler.some((b) => b.id === forvalgt)) valg.value = forvalgt;
 
   skjema.dato.value = idagTekst();
+  if (endreId && !(await fyllInnForEndring())) return;
   visKmHint();
   oppdaterImportLenke();
   filtrerPaaBil();
   skjema.hidden = false;
 }
+
+// ---------------------------------------------------------------------------
+// Endre en registrering som finnes fra før
+// ---------------------------------------------------------------------------
+async function fyllInnForEndring() {
+  const { data: rad, error } = await supabase
+    .from("vedlikehold").select("*, dokumenter(*)").eq("id", endreId).maybeSingle();
+  if (error || !rad) {
+    $("laster").hidden = false;
+    $("laster").textContent = "Fant ikke denne registreringen. Den kan være slettet.";
+    return false;
+  }
+  endres = rad;
+  document.title = "Mekkoo – endre vedlikehold";
+  $("tittel").textContent = "Endre vedlikehold";
+  $("import-lenke").hidden = true;
+  $("lagre-knapp").textContent = "Lagre endringer";
+  $("slett-knapp").hidden = false;
+
+  valg.value = rad.bil_id;
+  skjema.komponent.value = rad.komponent;
+  skjema.dato.value = rad.dato;
+  skjema.kilometerstand.value = rad.kilometerstand ?? "";
+  skjema.kostnad.value = rad.kostnad ?? "";
+  skjema.utfort_av.value = rad.utfort_av ?? "";
+  skjema.notat.value = rad.notat ?? "";
+  valgteDeler = rad.servicepunkter ?? [];
+  velger.sett(valgteDeler);
+  visServicepunkt();
+  tegnLagredeFiler();
+  return true;
+}
+
+// Vedlegg som allerede er lagret: kan fjernes enkeltvis
+function tegnLagredeFiler() {
+  const ul = $("lagrede-filer");
+  const dok = endres?.dokumenter ?? [];
+  ul.hidden = !dok.length;
+  ul.replaceChildren(...dok.map((d) => {
+    const li = document.createElement("li");
+    const navn = document.createElement("span");
+    navn.className = "navn";
+    navn.textContent = `${d.mimetype === "application/pdf" ? "📄" : "🖼️"} ${d.filnavn}`;
+    const info = document.createElement("span");
+    info.className = "liten";
+    info.textContent = "Lagret";
+    const fjern = document.createElement("button");
+    fjern.type = "button";
+    fjern.className = "ikon-knapp";
+    fjern.setAttribute("aria-label", `Slett ${d.filnavn}`);
+    fjern.textContent = "✕";
+    fjern.addEventListener("click", () => slettLagretFil(d));
+    li.append(navn, info, fjern);
+    return li;
+  }));
+}
+
+async function slettLagretFil(d) {
+  if (!confirm(`Slette «${d.filnavn}»? Dette kan ikke angres.`)) return;
+  const { error: lagringsfeil } = await supabase.storage.from(BUCKET).remove([d.filsti]);
+  const { error } = lagringsfeil ? { error: lagringsfeil } : await supabase.from("dokumenter").delete().eq("id", d.id);
+  if (error) return melding("Kunne ikke slette vedlegget. Prøv igjen.", "feil");
+  endres.dokumenter = endres.dokumenter.filter((x) => x.id !== d.id);
+  tegnLagredeFiler();
+  melding("Vedlegget er slettet.", "ok");
+}
+
+$("slett-knapp").addEventListener("click", async (e) => {
+  if (!endres || !confirm("Slette denne registreringen og vedleggene? Dette kan ikke angres.")) return;
+  e.target.disabled = true;
+  melding("Sletter …");
+  try {
+    await slettFilerForVedlikehold(supabase, [endres.id]);
+    const { error } = await supabase.from("vedlikehold").delete().eq("id", endres.id);
+    if (error) throw error;
+  } catch {
+    e.target.disabled = false;
+    return melding("Kunne ikke slette. Prøv igjen.", "feil");
+  }
+  location.assign(bilLenke({ id: endres.bil_id }, "vedlikehold"));
+});
 
 // Vis siste kjente kilometerstand som hjelp
 function visKmHint() {
@@ -164,7 +249,9 @@ skjema.addEventListener("submit", async (e) => {
 
   e.submitter.disabled = true;
   melding("Lagrer …");
-  const { data: lagret, error } = await supabase.from("vedlikehold").insert(rad).select("id").single();
+  const { data: lagret, error } = endres
+    ? await supabase.from("vedlikehold").update(rad).eq("id", endres.id).select("id").single()
+    : await supabase.from("vedlikehold").insert(rad).select("id").single();
   if (error) {
     e.submitter.disabled = false;
     return melding("Kunne ikke lagre. Sjekk feltene og prøv igjen.", "feil");

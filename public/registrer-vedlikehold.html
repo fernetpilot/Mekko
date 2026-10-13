@@ -24,7 +24,7 @@
 
   <main>
     <p class="overline">Min profil</p>
-    <h1>Registrer vedlikehold</h1>
+    <h1 id="tittel">Registrer vedlikehold</h1>
 
     <a class="kort import-lenke" id="import-lenke" href="/importer-historikk">
       <span><strong>Har du historikk fra før?</strong><br>
@@ -74,10 +74,13 @@
           <span class="liten">PDF eller bilde, maks 10 MB per fil</span>
         </label>
         <input id="filer" name="filer" type="file" accept="image/*,application/pdf" multiple class="skjult-input">
+        <ul class="valgte-filer" id="lagrede-filer" hidden></ul>
         <ul class="valgte-filer" id="valgte-filer"></ul>
       </div>
-      <button class="knapp" type="submit">Lagre</button>
+      <button class="knapp" type="submit" id="lagre-knapp">Lagre</button>
       <p class="melding" id="melding" role="status"></p>
+      <!-- Bare når man endrer en registrering (?endre=<id>) -->
+      <button class="knapp fare" type="button" id="slett-knapp" hidden>Slett registreringen</button>
     </form>
   </main>
 </body>

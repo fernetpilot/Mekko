@@ -153,7 +153,7 @@ document.addEventListener('click', (e) => {
 
 // ---------- Tilhengeren og bilen: peke/trykke og sidevisning ----------
 // Hengeren åpner tilhengerkalkulatoren. Bilen (bare når man er innlogget) skannes når man
-// peker på den: man ser sjiraffen som kjører, tre knapper svever over bilen, og et skilt
+// peker på den: man ser sjiraffen som kjører, fem knapper svever over bilen, og et skilt
 // nederst på bilen åpner «Bilen din».
 const canvas = document.getElementById('scene');
 const skilt = document.getElementById('tilhenger-skilt');
@@ -207,11 +207,58 @@ function plasser(el, punkt, { minTopp = 80 } = {}) {
   el.style.left = `${Math.min(Math.max(p.x, halv), window.innerWidth - halv)}px`;
   el.style.top = `${Math.min(Math.max(p.y, el.offsetHeight / 2 + minTopp), window.innerHeight - el.offsetHeight / 2 - 12)}px`;
 }
+// De svevende knappene over bilen: hver følger sitt punkt, men dyttes ned (eller opp, hvis
+// det ikke er plass under) til det er god avstand til de andre, så det er lett å treffe riktig.
+const KNAPP_LUFT = 16;            // minste avstand mellom knappene (de svever ±7 px)
+// På smale skjermer står knappene i et ryddig rutenett (to og to) rett over bilen i stedet.
+function plasserBilKnapperRutenett() {
+  const punkter = bilKnapper.map((_, i) => scene.skjermpunkt(`bil-${i + 1}`)).filter(Boolean);
+  if (!punkter.length) return;
+  const h = bilKnapper[0].offsetHeight;
+  const rader = Math.ceil(bilKnapper.length / 2);
+  const hoyde = rader * h + (rader - 1) * KNAPP_LUFT;
+  const topp = Math.max(80, Math.min(...punkter.map((p) => p.y)) - hoyde + h);
+  const midt = window.innerWidth / 2;
+  bilKnapper.forEach((k, i) => {
+    const b = k.offsetWidth;
+    const rad = Math.floor(i / 2);
+    const alene = i === bilKnapper.length - 1 && i % 2 === 0;
+    const x = alene ? midt : i % 2 === 0 ? midt - KNAPP_LUFT / 2 - b / 2 : midt + KNAPP_LUFT / 2 + b / 2;
+    k.style.left = `${x}px`;
+    k.style.top = `${topp + rad * (h + KNAPP_LUFT) + h / 2}px`;
+  });
+}
+function plasserBilKnapper() {
+  if (window.innerWidth < 700) return plasserBilKnapperRutenett();
+  const opptatt = [bilSkilt.getBoundingClientRect()];
+  const knapper = bilKnapper.map((k, i) => {
+    const p = scene.skjermpunkt(`bil-${i + 1}`);
+    return p && { k, b: k.offsetWidth, h: k.offsetHeight, x: p.x, y: p.y };
+  }).filter(Boolean).sort((a, b) => a.y - b.y);
+  const kolliderer = (x, y, b, h) => opptatt.find((r) =>
+    x - b / 2 < r.right + KNAPP_LUFT && x + b / 2 > r.left - KNAPP_LUFT
+    && y - h / 2 < r.bottom + KNAPP_LUFT && y + h / 2 > r.top - KNAPP_LUFT);
+  for (const { k, b, h, x: x0, y: y0 } of knapper) {
+    const x = Math.min(Math.max(x0, b / 2 + 12), window.innerWidth - b / 2 - 12);
+    const minY = h / 2 + 80;
+    const maxY = window.innerHeight - h / 2 - 12;
+    let y = Math.min(Math.max(y0, minY), maxY);
+    for (let r, n = 0; (r = kolliderer(x, y, b, h)) && n < 10; n++) y = r.bottom + KNAPP_LUFT + h / 2;
+    if (y > maxY) {             // ikke plass under: prøv over i stedet
+      y = Math.min(Math.max(y0, minY), maxY);
+      for (let r, n = 0; (r = kolliderer(x, y, b, h)) && n < 10; n++) y = r.top - KNAPP_LUFT - h / 2;
+      y = Math.max(y, minY);
+    }
+    k.style.left = `${x}px`;
+    k.style.top = `${y}px`;
+    opptatt.push({ left: x - b / 2, right: x + b / 2, top: y - h / 2, bottom: y + h / 2 });
+  }
+}
 function plasserSkilt() {
   if (skiltVises) plasser(skilt, 'tilhenger');
   if (bilVises) {
     plasser(bilSkilt, 'bil-apne');
-    bilKnapper.forEach((k, i) => plasser(k, `bil-${i + 1}`));
+    plasserBilKnapper();
   }
   requestAnimationFrame(plasserSkilt);
 }
