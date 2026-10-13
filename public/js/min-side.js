@@ -3,7 +3,7 @@ import { supabase } from "./supabase.js";
 import { normaliserSkilt } from "./kjoretoy.js";
 import { slaOppBil, lagreNyBil } from "./ny-bil.js";
 import { bilLenke, euStatus, formaterDato, formaterKm } from "./bilstatus.js";
-import { hendelseTittel } from "./kategorier.js";
+import { hendelseTittel, lagreDeler } from "./kategorier.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
@@ -595,7 +595,8 @@ async function bekreftGjettet(h, deler) {
 }
 
 // Lagrer nye deler og oppdaterer merkene der, uten å tegne historikken på nytt.
-async function endreDeler(h, deler, merker, etterpaa) {
+async function endreDeler(h, valgt, merker, etterpaa) {
+  const deler = lagreDeler(valgt);   // ingen deler = «Annet», og gjettes ikke over
   const { error } = await supabase.from("vedlikehold").update({ servicepunkter: deler }).eq("id", h.id);
   if (error) return alert("Kunne ikke lagre. Prøv igjen.");
   h.servicepunkter = deler;
