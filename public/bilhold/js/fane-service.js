@@ -63,8 +63,9 @@ const aar = (iso) => iso.slice(0, 4);
 
 /** Én stolpe: hvor stor del av anbefalt intervall som gikk før jobben ble gjort (100 % = streken). */
 function stolpeRad(x, skala) {
-  const li = el('li', `boka-rad ${x.apen ? 'apen' : x.status}`);
-  const tittel = x.apen ? `${aar(x.fra)} – i dag` : `${aar(x.fra)} – ${aar(x.til)}`;
+  // Siden siste bytte: stiplet, men i samme farge som om jobben ble gjort i dag
+  const li = el('li', `boka-rad ${x.status}${x.apen ? ' apen' : ''}`);
+  const tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})` : `${aar(x.fra)} – ${aar(x.til)}`;
   const tall = [x.km != null && formaterKm(x.km), mnd(x.maneder)].filter(Boolean).join(' · ');
   const tekst = el('div', 'boka-tekst');
   tekst.append(el('span', null, tittel), el('span', 'boka-tall',
@@ -104,7 +105,7 @@ function etterBokaSeksjon(bil, idag) {
       const ol = el('ol', 'boka-stolper');
       ol.setAttribute('aria-label', `${h.navn}: tid mellom hver jobb, i prosent av anbefalt intervall`);
       ol.append(...rader.map((x) => stolpeRad(x, skala)));
-      d.append(ol, liten('Streken er anbefalt intervall. Grønn: innen intervallet. Gul: inntil 20 % over. Rød: mer enn 20 % over. Stiplet: siden sist.'));
+      d.append(ol, liten('Streken er anbefalt intervall. Grønn: innen intervallet. Gul: inntil 20 % over. Rød: mer enn 20 % over. Stiplet: tiden siden siste bytte, fargen viser hvordan det ligger an nå.'));
     }
     const jobber = el('p', 'bil-liten', `Utført: ${h.jobber.map((j) =>
       [formaterDato(j.dato), j.km != null && formaterKm(j.km)].filter(Boolean).join(', ')).join(' · ')}`);

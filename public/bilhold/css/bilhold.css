@@ -1288,5 +1288,9 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .boka-rad.ok .boka-fyll { background: var(--ok); }
 .boka-rad.litt .boka-fyll { background: var(--sjekk); }
 .boka-rad.over .boka-fyll { background: var(--kritisk); }
-.boka-rad.apen .boka-fyll { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 6px, transparent 6px 10px); }
+.boka-rad { --fyll: var(--tekst-dempet); }
+.boka-rad.ok { --fyll: var(--ok); }
+.boka-rad.litt { --fyll: var(--sjekk); }
+.boka-rad.over { --fyll: var(--kritisk); }
+.boka-rad.apen .boka-fyll { background: repeating-linear-gradient(90deg, var(--fyll) 0 6px, transparent 6px 10px) !important; }
 .bil-liste li.har-boka { cursor: pointer; }
