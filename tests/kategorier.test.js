@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { kategorierFor, hendelseTittel, kostnadPerKategori, delerFor, ALLE_KATEGORIER } from "../public/js/kategorier.js";
+import { kategorierFor, hendelseTittel, kostnadPerKategori, delerFor, lagreDeler, ALLE_KATEGORIER } from "../public/js/kategorier.js";
 import { KATALOG } from "../public/js/servicekatalog.js";
 
 const ids = (h) => kategorierFor(h).map((k) => k.id);
@@ -65,4 +65,20 @@ test("bare «Ekstra service» lagret: deler i notatet styrer kategorien", () => 
   assert.deepEqual(delerFor({ ...h, notat: "Feilsøking" }), { deler: ["ekstra-service"], gjettet: false });
   // Valgte deler fra en annen kategori overstyres ikke
   assert.deepEqual(delerFor({ ...h, servicepunkter: ["bremseklosser"] }).deler, ["bremseklosser"]);
+});
+
+test("brukerens eget valg gjettes ikke over", () => {
+  const notat = "Feilsøking - Turbo&girkasse";
+  // Uten lagrede deler gjettes det ut fra notatet
+  assert.equal(delerFor({ komponent: "annet", notat, servicepunkter: [] }).gjettet, true);
+  // Fjerner brukeren alle deler, lagres «Annet», og det blir værende
+  const ingen = { komponent: "annet", notat, servicepunkter: lagreDeler([]) };
+  assert.deepEqual(ingen.servicepunkter, ["annet-arbeid"]);
+  assert.deepEqual(delerFor(ingen), { deler: ["annet-arbeid"], gjettet: false });
+  assert.deepEqual(kategorierFor(ingen).map((k) => k.id), ["annet"]);
+  // Velger brukeren bare «Ekstra service», gjettes det heller ikke
+  const ekstra = { komponent: "annet", notat, servicepunkter: lagreDeler(["ekstra-service"]) };
+  assert.deepEqual(delerFor(ekstra), { deler: ["ekstra-service", "annet-arbeid"], gjettet: false });
+  // Konkrete deler lagres som de er
+  assert.deepEqual(lagreDeler(["turbo", "turbo"]), ["turbo"]);
 });

@@ -6,6 +6,7 @@
 // pluss to som ikke er deler: «EU-kontroll» og «Service (uten spesifiserte deler)».
 // Delene er de som er lagret på hendelsen (servicepunkter). Mangler de, gjettes de ut fra
 // type og notat (som før), og hendelsen merkes som gjettet.
+// Har brukeren valgt deler selv (også «ingen»), lagres valget med lagreDeler() og gjettes aldri over.
 
 import { KATALOG, finnPunkt, punktNavn } from "./servicekatalog.js";
 import { gjettServicepunkter } from "./servicepunkt-gjetting.js";
@@ -24,6 +25,22 @@ export const kategori = (id) => KATEGORI.get(id) ?? KATEGORI.get("annet");
 // Hendelser uten deler: kategorien følger feltet «Hva er gjort»
 const FRA_TYPE = { bremser: "bremser", dekk: "dekk", motor: "oljer", annet: "annet" };
 
+// «Annet» (annet-arbeid) i listen betyr at brukeren har valgt selv. Da gjettes det ikke.
+const VALGT_SELV = "annet-arbeid";
+const barAnnet = (deler) => deler.every((d) => (finnPunkt(d)?.kategori?.id ?? "annet") === "annet");
+
+/**
+ * Det som skal lagres når brukeren selv har valgt deler (i «Endre» eller i Mine biler).
+ * Ingen deler blir «Annet», og bare «Annet»-deler får med «Annet», så valget ikke gjettes over senere.
+ * @param {string[]} deler
+ * @returns {string[]}
+ */
+export function lagreDeler(deler) {
+  const liste = [...new Set(deler ?? [])];
+  if (barAnnet(liste) && !liste.includes(VALGT_SELV)) liste.push(VALGT_SELV);
+  return liste;
+}
+
 /**
  * Delene på en hendelse: de lagrede, eller gjettet ut fra type og notat.
  * @returns {{ deler: string[], gjettet: boolean }}
@@ -32,7 +49,8 @@ export function delerFor(h) {
   const lagret = h?.servicepunkter ?? [];
   // Bare «Ekstra service»/«Annet» lagret (typisk fra import med de gamle reglene): se om notatet
   // nevner konkrete deler, så kostnaden havner i riktig kategori i stedet for «Annet».
-  if (lagret.length && lagret.every((d) => (finnPunkt(d)?.kategori?.id ?? "annet") === "annet")) {
+  // Står «Annet» der, har brukeren valgt selv, og da gjettes det ikke.
+  if (lagret.length && barAnnet(lagret) && !lagret.includes(VALGT_SELV)) {
     const gjett = gjettServicepunkter(h?.komponent, h?.notat).filter((d) => finnPunkt(d)?.kategori?.id !== "annet");
     if (gjett.length) return { deler: gjett, gjettet: true };
   }

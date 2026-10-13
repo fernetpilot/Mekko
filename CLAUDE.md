@@ -101,7 +101,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   serviceheftet (nett og PDF), importen og biløkonomien, så de alltid viser det samme. Kategoriene er de i
   `servicekatalog.js` + «EU-kontroll» og «Service (uten spesifiserte deler)». Uten lagrede deler gjettes de
   (`servicepunkt-gjetting.js`, regler for vanlige ord og skrivemåter i fritekst). Er bare «Ekstra service»/«Annet» lagret,
-  gjettes delene fra notatet likevel, så kostnaden ikke havner i «Annet». Kostnad på besøk med flere kategorier fordeles likt på alle, også «Annet». I økonomi-fanen kan hver post åpnes for å se hendelsene som inngår; kategorier uten kostnad vises med 0 kr.
+  gjettes delene fra notatet likevel, så kostnaden ikke havner i «Annet». Velger brukeren deler selv (også ingen), lagres valget med `lagreDeler` og gjettes aldri over: ingen deler = «Annet» (`annet-arbeid`), og «Annet» i listen stopper gjettingen. Kostnad på besøk med flere kategorier fordeles likt på alle, også «Annet». I økonomi-fanen kan hver post åpnes for å se hendelsene som inngår; kategorier uten kostnad vises med 0 kr.
   Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
 - `public/personvern.html` – personvernerklæring, lenket diskret nederst på forsiden og i profilmenyen.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).

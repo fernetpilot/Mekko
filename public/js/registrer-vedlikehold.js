@@ -5,6 +5,7 @@ import { bilLenke, formaterKm } from "./bilstatus.js";
 import { BUCKET, lastOppDokumenter, MAKS_BYTES, erPdf, slettFilerForVedlikehold } from "./dokumenter.js";
 import { gjettServicepunkter, utvidDeler } from "./servicepunkt-gjetting.js";
 import { lagPunktvelger, hentBilEgenskaper } from "./punktvelger.js";
+import { delerFor, lagreDeler } from "./kategorier.js";
 
 const $ = (id) => document.getElementById(id);
 const skjema = $("vedlikehold-skjema");
@@ -93,7 +94,8 @@ async function fyllInnForEndring() {
   skjema.kostnad.value = rad.kostnad ?? "";
   skjema.utfort_av.value = rad.utfort_av ?? "";
   skjema.notat.value = rad.notat ?? "";
-  valgteDeler = rad.servicepunkter ?? [];
+  // Vis det som står i historikken (også gjettede deler), så brukeren kan rette dem
+  valgteDeler = delerFor(rad).deler;
   velger.sett(valgteDeler);
   visServicepunkt();
   tegnLagredeFiler();
@@ -240,7 +242,11 @@ skjema.addEventListener("submit", async (e) => {
     notat: skjema.notat.value.trim() || null,
     servicepunkter: $("servicepunkt-felt").hidden
       ? []
-      : (valgteDeler.length ? valgteDeler : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
+      // Ved endring (eller når noe er valgt) gjelder brukerens valg; ingen deler betyr «Annet».
+      // Ny registrering uten valgte deler: gjett ut fra notatet som før.
+      : (endres || valgteDeler.length
+        ? lagreDeler(valgteDeler)
+        : gjettServicepunkter(skjema.komponent.value, rad_notat(skjema))),
   };
 
   if (valgteFiler.some((f) => erPdf(f) && f.size > MAKS_BYTES)) {
