@@ -1313,3 +1313,19 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 /* Fordeling med mange poster: diagrammet over, tegnforklaringen i full bredde under */
 .kake-oppsett.mange { grid-template-columns: 1fr; }
 .kake-oppsett.mange svg { width: 100%; max-width: 190px; justify-self: center; }
+
+/* Økonomi: periodefilter */
+.periodefilter summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+.periodefilter summary::-webkit-details-marker { display: none; }
+.periodefilter[open] summary { margin-bottom: 12px; }
+.periode-tittel { display: grid; gap: 2px; min-width: 0; }
+.periode-etikett { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tekst-dempet); }
+.periode-valgt { font-weight: 600; }
+.periodefilter[open] .periode-hurtig { display: flex; flex-wrap: wrap; gap: 6px; }
+.periode-hurtig .bil-chip { letter-spacing: 0; font-weight: 600; }
+.periode-velger { display: grid; grid-template-columns: 1.3fr 1fr; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.periode-velger legend { padding: 0; margin-bottom: 6px; font-size: 14px; color: var(--tekst-dempet); }
+.periodefilter .bil-liten { margin-top: 10px; }
+.okonomi-rapporter, .periode-boks { display: contents; }
+.periode-rader { display: grid; gap: 10px; }
+@media (min-width: 560px) { .periode-rader { grid-template-columns: 1fr 1fr; } }

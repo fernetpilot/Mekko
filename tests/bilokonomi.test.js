@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { oppsummer, estimerVerdi, VERDI_ANTAKELSER } from "../public/js/bilokonomi.js";
+import { oppsummer, estimerVerdi, VERDI_ANTAKELSER, standardPeriode, manederMellom } from "../public/js/bilokonomi.js";
 
 const idag = new Date(2026, 9, 11);
 const hendelser = [
@@ -101,4 +101,37 @@ test("verdianslag: rutineoljer teller ikke som utbedring, nye deler gjør", () =
   const reparasjon = estimerVerdi({ ...felles, hendelser: [{ dato: "2025-01-01", komponent: "annet", kostnad: 5000, servicepunkter: ["luftkompressor"] }] });
   assert.equal(rutine.steg.length, 2);
   assert.equal(Math.round(reparasjon.steg[2].verdi), 1500);
+});
+
+test("standardPeriode: fra første hendelse til denne måneden", () => {
+  assert.deepEqual(standardPeriode(hendelser, idag), { fra: "2019-04", til: "2026-10" });
+  assert.deepEqual(standardPeriode([], idag), { fra: "2026-10", til: "2026-10" });
+});
+
+test("manederMellom: tar med begge ender og går over årsskiftet", () => {
+  assert.deepEqual(manederMellom("2024-11", "2025-02"), ["2024-11", "2024-12", "2025-01", "2025-02"]);
+});
+
+test("oppsummer med periode: all historikk, også før kjøp", () => {
+  const o = oppsummer(hendelser, { periode: standardPeriode(hendelser, idag), kjopsdato: "2022-01-01", kjopsKm: 118000, kmNaa: 160000, idag });
+  assert.equal(o.total, 25000);
+  assert.equal(o.perAr[0].ar, 2019);
+  assert.equal(o.perAr.at(-1).ar, 2026);
+  assert.equal(o.kmKjort, 160000 - 98000);
+});
+
+test("oppsummer med periode: bare månedene i perioden", () => {
+  const o = oppsummer(hendelser, { periode: { fra: "2022-03", til: "2023-11" }, idag });
+  assert.equal(o.total, 16000);
+  assert.equal(o.perManed.length, 21);
+  assert.equal(o.perManed[0].sum, 8000);
+  assert.equal(o.slutt, "2023-11-30");
+  assert.equal(o.kmKjort, 15000);
+  assert.ok(Math.abs(o.ar - 1.75) < 0.02);
+});
+
+test("oppsummer med periode: byttet om fra og til, og slutt ikke etter i dag", () => {
+  const o = oppsummer(hendelser, { periode: { fra: "2026-12", til: "2026-01" }, idag });
+  assert.equal(o.total, 2000);
+  assert.equal(o.slutt, "2026-10-11");
 });
