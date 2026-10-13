@@ -70,6 +70,8 @@ function oppdaterStyrelinje() {
     styrelinje.style.opacity = 1;
     hotspot.style.transform = `translate(${punkt.x}px, ${punkt.y}px)`;
     hotspot.style.setProperty('--status', getComputedStyle(kort).getPropertyValue('--status'));
+    hotspot.classList.toggle('kritisk', kort.classList.contains('status-kritisk'));
+    hotspot.setAttribute('aria-label', `Åpne detaljer: ${kort.querySelector('.kort-tittel')?.textContent ?? ''}`);
     hotspot.href = kort.getAttribute('href');
     hotspot.classList.add('synlig');
   } else {
@@ -341,7 +343,7 @@ function apneSide(navn, { historikk = true, fane, bilId } = {}) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   rot.dataset.theme = 'dark';
   scene?.settTema('dark');
-  scene?.settSideBunn(null);
+  nullstillForskyvning();
   scene?.settModus(navn);
   plasserPanel(p);
   p.hidden = false;
@@ -355,11 +357,15 @@ function apneSide(navn, { historikk = true, fane, bilId } = {}) {
   if (historikk) history.pushState({ side: navn }, '', `${navn === 'bil' ? location.search : ''}#${navn === 'bil' ? 'bilen-din' : 'kalkulator'}`);
   pushet = historikk;
   if (navn === 'bil') bilenDin().then((m) => m.visBilenDin({ fane, bilId }));
-  // Tastaturet på mobil ville dekket vogntoget, så bare fokuser med mus/tastatur
-  if (navn === 'kalkulator' && !window.matchMedia('(pointer: coarse)').matches) {
-    setTimeout(() => document.getElementById('last-bil').focus({ preventScroll: true }), 1100);
-  }
+  // Skjermlesere og tastatur følger med inn i panelet; fokus går tilbake dit man var når det lukkes.
+  // Tastaturet på mobil ville dekket vogntoget, så skrivefeltet får bare fokus med mus/tastatur.
+  fokusForPanel = document.activeElement;
+  const fokusMal = navn === 'kalkulator' && !window.matchMedia('(pointer: coarse)').matches
+    ? document.getElementById('last-bil')
+    : p.querySelector('h2');
+  setTimeout(() => { if (aapen === navn) fokusMal?.focus({ preventScroll: true }); }, 1100);
 }
+let fokusForPanel = null;
 const apneKalkulator = (o) => apneSide('kalkulator', o);
 
 function lukkSide({ historikk = true, umiddelbart = false } = {}) {
@@ -368,6 +374,11 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
   aapen = null;
   iKalkulator = false;
   p.classList.remove('apen');
+  nullstillForskyvning();
+  if (p.contains(document.activeElement)) {
+    const tilbake = fokusForPanel?.isConnected && fokusForPanel !== document.body ? fokusForPanel : document.querySelector('.kalk-knapp-topp');
+    tilbake?.focus({ preventScroll: true });
+  }
   if (!umiddelbart) {
     rot.classList.remove('kalkulator-modus');
     scene?.settModus('scroll');
@@ -384,24 +395,49 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
 const lukkKalkulator = (o) => lukkSide(o);
 
 
-// Begge panelene går helt opp til headeren, med luft øverst der vogntoget vises. Når man blar ned,
-// zoomer kameraet ut så veien hele tiden slutter der teksten begynner, til vogntoget bare er en smal
-// stripe under logoen og tilbakeknappen. Fanene i «Bilen din» stopper rett under veien.
+// Begge panelene starter rett under headeren, med luft øverst der vogntoget vises. Når man blar ned,
+// glir bildet opp sammen med teksten til bare den nærmeste kjørebanen og den hvite kantlinjen står igjen,
+// som en strek under logoen og knappene. Da står alt stille, som et stillbilde. Blar man opp igjen,
+// kjører bilen og hengeren videre. Fanene i «Bilen din» sitter rett under den hvite linjen.
+const veiSkygge = document.createElement('div');
+veiSkygge.className = 'vei-skygge';
+veiSkygge.setAttribute('aria-hidden', 'true');
+document.body.append(veiSkygge);
+let sideMaal = null;   // { linjeMal, maks, midtlinje } for åpent panel
+
 function plasserPanel(p) {
-  const topp = Math.round(header.getBoundingClientRect().bottom);
-  const { full, mini } = scene ? scene.sideBunn() : { full: 72, mini: 72 };
-  p.style.setProperty('--kalk-topp', `${topp}px`);
-  p.style.setProperty('--bil-luft', `${Math.max(0, full - topp)}px`);
-  p.style.setProperty('--vei-bunn', `${Math.max(0, mini - topp)}px`);
-  zoomEtterScroll(p);
+  if (!scene) {
+    p.style.setProperty('--kalk-topp', '72px');
+    return;
+  }
+  const { bunn, kantlinje, midtlinje } = scene.sideLinjer();
+  const linjeMal = Math.round(header.getBoundingClientRect().bottom) - 8;  // rett under knappene
+  const panelTopp = linjeMal + 2;
+  const maks = Math.max(0, kantlinje - linjeMal);
+  sideMaal = { linjeMal, maks, midtlinje };
+  p.style.setProperty('--kalk-topp', `${panelTopp}px`);
+  p.style.setProperty('--bil-luft', `${Math.max(0, bunn - panelTopp + 14)}px`);
+  // Helt nede slutter veien rett under linjen; der forsvinner teksten (og fanene står)
+  p.style.setProperty('--vei-bunn', '0px');
+  p.classList.add('ved-linjen');
+  flyttEtterScroll(p);
 }
-function zoomEtterScroll(p) {
-  if (!scene || PANELER[aapen] !== p) return;
-  const { full, mini } = scene.sideBunn();
-  scene.settSideBunn(p.scrollTop > 0 ? Math.max(mini, full - p.scrollTop) : null);
+function flyttEtterScroll(p) {
+  if (!scene || !sideMaal || PANELER[aapen] !== p) return;
+  const forskyv = Math.min(p.scrollTop, sideMaal.maks);
+  const helt = sideMaal.maks > 0 && p.scrollTop >= sideMaal.maks;
+  scene.settSideForskyvning(forskyv, helt);
+  // Over midtstripen skjules alt (trær, bil, henger) det siste stykket ned
+  const andel = sideMaal.maks ? forskyv / sideMaal.maks : 0;
+  veiSkygge.style.height = `${Math.max(0, sideMaal.midtlinje - forskyv + 1)}px`;
+  veiSkygge.style.opacity = String(Math.min(1, Math.max(0, (andel - 0.55) / 0.4)));
+}
+function nullstillForskyvning() {
+  scene?.settSideForskyvning(0, false);
+  veiSkygge.style.opacity = '0';
 }
 for (const p of Object.values(PANELER)) {
-  p.addEventListener('scroll', () => zoomEtterScroll(p), { passive: true });
+  p.addEventListener('scroll', () => flyttEtterScroll(p), { passive: true });
 }
 
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkSide(); });
