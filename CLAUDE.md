@@ -47,7 +47,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   bilene på nytt. De gamle sidene `/service-og-eu`, `/vedlikehold`, `/dekk` og `/bilokonomi` sender bare videre til riktig fane.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
-  EU-kontroll, service og dekkskift; slitasje i % skal legges til der.
+  EU-kontroll, service og dekkskift; servicepunkter som aldri er registrert gir ett samlet «bør sjekkes»-varsel per bil.
+  Er ett girkassepunkt registrert, etterlyses ikke den andre girtypen (`aktuellePunkter` i `servicepunkter.js`).
+  Slitasje i % skal legges til der.
 - `public/kalkulator.html` – tilhengerkalkulatoren (v1), nås på `/kalkulator`. Lenkes ikke lenger fra forsiden,
   men brukes hvis JavaScript/3D ikke virker.
 - `public/js/beregning.js` – all beregningslogikk. Ren funksjon: tall inn, resultat ut.

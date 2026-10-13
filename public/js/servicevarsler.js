@@ -1,8 +1,9 @@
 // Servicevarsler for ett kjøretøy. Ren logikk, ingen DOM og ingen nettverk.
-// Ukjent status (ingen registrering ennå) gir ikke varsel, for å unngå støy.
+// Punkter som aldri er registrert samles i ett «bør sjekkes»-varsel per bil, for å unngå støy.
 
 import { beregnServicefrist, fmtDato, fmtKm } from "./service.js";
 import { bilLenke } from "./bilstatus.js";
+import { aktuellePunkter } from "./servicepunkter.js";
 
 export function fristTekst(res) {
   const deler = [];
@@ -29,14 +30,27 @@ function tekstFor(res, punkt) {
 export function serviceVarsler(bil, { punkter = [], sisteUtfort = {}, kmNaa = null } = {}, idag = new Date()) {
   const iDag = idag.toISOString().slice(0, 10);
   const varsler = [];
-  for (const punkt of punkter) {
+  const ukjente = [];
+  const navn = bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(" ") || bil.kjennemerke;
+  for (const punkt of aktuellePunkter(punkter, sisteUtfort)) {
     const res = beregnServicefrist({ punkt, sist: sisteUtfort[punkt.id] ?? null, idag: iDag, kmNaa });
+    if (res.status === "ukjent") ukjente.push(punkt.navn);
     if (res.status !== "forfalt" && res.status !== "snart") continue;
     varsler.push({
       id: `service:${punkt.id}:${bil.kjennemerke}`,
       niva: "sjekk",
       tittel: res.status === "forfalt" ? `Service: ${punkt.navn.toLowerCase()} er forfalt` : `Service: ${punkt.navn.toLowerCase()} snart`,
       tekst: `${bil.kallenavn || [bil.merke, bil.modell].filter(Boolean).join(" ") || bil.kjennemerke} (${bil.kjennemerke}): ${tekstFor(res, punkt)}`,
+      lenke: bilLenke(bil, "service"),
+    });
+  }
+  if (ukjente.length) {
+    varsler.push({
+      id: `service:ukjent:${bil.kjennemerke}`,
+      niva: "sjekk",
+      tittel: ukjente.length === 1 ? `Bør sjekkes: ${ukjente[0].toLowerCase()}` : `${ukjente.length} deler bør sjekkes`,
+      tekst: `${navn} (${bil.kjennemerke}): Vi vet ikke når ${ukjente.length === 1 ? "dette" : "disse"} sist ble gjort: `
+        + `${ukjente.join(", ")}. Registrer siste bytte, så får du riktig frist.`,
       lenke: bilLenke(bil, "service"),
     });
   }

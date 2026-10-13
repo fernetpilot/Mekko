@@ -1066,7 +1066,11 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 .maaned-hode { display: flex; align-items: center; gap: 8px; }
 .maaned-hode h4 { margin: 0; font-size: 15px; }
 .maaned-naa { padding: 1px 8px; border-radius: 999px; border: 1px solid #9cc8ff; color: #9cc8ff; font-size: 11px; font-weight: 600; }
-.bil-ukjente { margin: 6px 0 0; font-size: 14px; line-height: 1.5; }
+/* «Bør gjennomføres eller sjekkes»: deler som aldri er registrert */
+.bil-kort.sjekk-kort { border-color: rgba(255, 204, 0, 0.45); background: rgba(255, 204, 0, 0.06); }
+.bil-kort.sjekk-kort h3 { color: #ffcc00; }
+.bil-liste .ukjent .prikk { background: var(--sjekk); opacity: 0.6; }
+.bil-liste .ukjent .merke { color: #ffcc00; }
 
 .bil-knapperad { display: flex; flex-wrap: wrap; gap: 8px; }
 .bil-knapp {

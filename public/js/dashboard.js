@@ -4,7 +4,7 @@
 
 import { beregnServicefrist, fmtDato, fmtKm } from "./service.js";
 import { sisteUtfortPerPunkt } from "./servicevarsler.js";
-import { punkterFor } from "./servicepunkter.js";
+import { aktuellePunkter, punkterFor } from "./servicepunkter.js";
 import { slitasjeLinjer, SLITASJE_PUNKTER } from "./slitasje.js";
 import { euStatus, dagerTil, KOMPONENT_NAVN } from "./bilstatus.js";
 import { punktNavn } from "./servicekatalog.js";
@@ -84,7 +84,7 @@ export function alleFrister(bil, idag = new Date()) {
   });
 
   // Servicepunkter (foreløpig bare Discovery 3)
-  for (const punkt of punkterFor(bil)) {
+  for (const punkt of aktuellePunkter(punkterFor(bil), siste)) {
     const res = beregnServicefrist({ punkt, sist: siste[punkt.id] ?? null, idag: iDag, kmNaa });
     frister.push({
       id: punkt.id,
