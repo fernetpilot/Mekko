@@ -1,20 +1,25 @@
 // «Fulgt etter boka?»: alle utførte jobber per servicepunkt mot anbefalt intervall.
 // Ren modul: ingen DOM og ingen nettverk. Brukes av fanen «Service og EU».
-// En jobb er gjort innen intervallet (km eller måneder, det som kommer først) eller litt over.
-// Grønn: innen intervallet. Gul: inntil 20 % over. Rød: mer enn 20 % over. Grønn og gul teller som «i tide».
+// Km veier tyngst: tid får større slingringsmonn enn kilometer.
+// Km:  grønn inntil 100 %, gul inntil 120 %, rød over det.
+// Tid: grønn inntil 120 %, gul inntil 160 %, rød over det.
+// Den dårligste av de to gjelder. Grønn og gul teller som «i tide».
 
 import { leggTilMåneder } from "./service.js";
 import { sisteUtfortPerPunkt } from "./servicevarsler.js";
 import { aktuellePunkter, punkterFor } from "./servicepunkter.js";
 import { SLITASJE_PUNKTER } from "./slitasje.js";
 
-export const TOLERANSE = 0.2;
+// Øvre grense (andel av anbefalt intervall) for grønn og gul
+export const GRENSER = { km: { ok: 1, litt: 1.2 }, tid: { ok: 1.2, litt: 1.6 } };
+const RANG = ["ukjent", "ok", "litt", "over"];
 
-/** ok (innen intervallet), litt (inntil 20 % over), over (mer), ukjent (kan ikke måles). */
-export function intervallStatus(andel) {
+/** ok, litt (gul), over (rød) eller ukjent (kan ikke måles) for én andel. type er "km" eller "tid". */
+export function intervallStatus(andel, type = "km") {
   if (andel == null) return "ukjent";
-  if (andel <= 1) return "ok";
-  return andel <= 1 + TOLERANSE ? "litt" : "over";
+  const g = GRENSER[type];
+  if (andel <= g.ok) return "ok";
+  return andel <= g.litt ? "litt" : "over";
 }
 
 const dagMs = 24 * 60 * 60 * 1000;
@@ -34,24 +39,27 @@ export function jobberFor(punktId, rader) {
 
 /**
  * Ett intervall mellom to jobber (eller fra siste jobb til i dag), målt mot punktets intervall.
- * andel: 1 = akkurat anbefalt intervall, 1.2 = 20 % over. Den grensen som nås først teller.
- * Null hvis intervallet ikke kan måles (mangler km og punktet har bare km-grense).
+ * andelKm/andelTid: 1 = akkurat anbefalt intervall, 1.2 = 20 % over (null hvis den ikke kan måles).
+ * andel er den største av dem (lengden på stolpen). status er den dårligste av km- og tidsstatus.
  */
 export function maalIntervall(punkt, fra, til) {
   const km = fra.km != null && til.km != null ? til.km - fra.km : null;
-  const andeler = [];
-  if (punkt.manederIntervall != null) {
-    andeler.push(dager(fra.dato, til.dato) / dager(fra.dato, leggTilMåneder(fra.dato, punkt.manederIntervall)));
-  }
-  if (punkt.kmIntervall != null && km != null) andeler.push(km / punkt.kmIntervall);
+  const andelTid = punkt.manederIntervall != null
+    ? dager(fra.dato, til.dato) / dager(fra.dato, leggTilMåneder(fra.dato, punkt.manederIntervall))
+    : null;
+  const andelKm = punkt.kmIntervall != null && km != null ? km / punkt.kmIntervall : null;
+  const andeler = [andelKm, andelTid].filter((a) => a != null);
   const andel = andeler.length ? Math.max(...andeler) : null;
-  const status = intervallStatus(andel);
+  const status = [intervallStatus(andelKm, "km"), intervallStatus(andelTid, "tid")]
+    .reduce((a, b) => (RANG.indexOf(b) > RANG.indexOf(a) ? b : a));
   return {
     fra: fra.dato,
     til: til.dato,
     km,
     maneder: Math.round((dager(fra.dato, til.dato) / 30.4375) * 10) / 10,
     andel,
+    andelKm,
+    andelTid,
     status,
     iTide: status === "ukjent" ? null : status !== "over",
   };

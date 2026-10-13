@@ -1286,7 +1286,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .boka-punkt .merke.litt { color: #ffcc00; }
 .boka-punkt .merke.over { color: #ff6b62; }
 .boka-stolper { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.boka-tekst { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.boka-tekst { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 10px; font-size: 13px; }
 .boka-tall { color: var(--tekst-dempet); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .boka-spor { position: relative; height: 10px; margin-top: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
 /* Streken for anbefalt intervall (100 %) */

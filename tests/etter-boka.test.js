@@ -10,7 +10,7 @@ const olje = { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIn
 const rader = [
   { servicepunkter: ["motorolje", "oljefilter"], dato: "2022-03-01", kilometerstand: 180000 },
   { servicepunkter: ["motorolje"], dato: "2023-02-15", kilometerstand: 189000 }, // i tide
-  { servicepunkter: ["motorolje"], dato: "2024-06-01", kilometerstand: 197000 }, // 129 % (tid): rød
+  { servicepunkter: ["motorolje"], dato: "2024-06-01", kilometerstand: 197000 }, // 129 % (tid): gul
   { servicepunkter: ["motorolje"], dato: "2025-03-01", kilometerstand: 211000 }, // 140 % (km): rød
   { servicepunkter: ["motorolje"], dato: "2025-03-01", kilometerstand: null },   // dublett
   { servicepunkter: ["bremsevaeske"], dato: "2024-01-01", kilometerstand: 195000 },
@@ -22,13 +22,26 @@ test("jobberFor: sortert, uten dubletter og rader uten dato", () => {
   assert.equal(j.at(-1).km, 211000);
 });
 
-test("intervallStatus: grønn innen, gul inntil 20 % over, rød over det", () => {
-  assert.equal(intervallStatus(0.9), "ok");
-  assert.equal(intervallStatus(1), "ok");
-  assert.equal(intervallStatus(1.15), "litt");
-  assert.equal(intervallStatus(1.2), "litt");
-  assert.equal(intervallStatus(1.21), "over");
+test("intervallStatus: km 100/120 %, tid 120/160 %", () => {
+  assert.equal(intervallStatus(1, "km"), "ok");
+  assert.equal(intervallStatus(1.15, "km"), "litt");
+  assert.equal(intervallStatus(1.2, "km"), "litt");
+  assert.equal(intervallStatus(1.21, "km"), "over");
+  assert.equal(intervallStatus(1.2, "tid"), "ok");
+  assert.equal(intervallStatus(1.5, "tid"), "litt");
+  assert.equal(intervallStatus(1.6, "tid"), "litt");
+  assert.equal(intervallStatus(1.61, "tid"), "over");
   assert.equal(intervallStatus(null), "ukjent");
+});
+
+test("maalIntervall: den dårligste av km og tid gjelder", () => {
+  // 15 mnd (125 % tid: gul), 9 000 km (90 %: grønn) → gul
+  const a = maalIntervall(olje, { dato: "2023-01-01", km: 100000 }, { dato: "2024-04-01", km: 109000 });
+  assert.equal(a.status, "litt");
+  // 13 mnd (108 % tid: grønn), 13 000 km (130 %: rød) → rød
+  const b = maalIntervall(olje, { dato: "2023-01-01", km: 100000 }, { dato: "2024-02-01", km: 113000 });
+  assert.equal(b.status, "over");
+  assert.equal(b.iTide, false);
 });
 
 test("maalIntervall: grensen som nås først teller", () => {
@@ -50,10 +63,10 @@ test("maalIntervall: grensen som nås først teller", () => {
 test("punktHistorikk: intervaller, i tide, snitt og åpent intervall til i dag", () => {
   const h = punktHistorikk(olje, rader, { idag, kmNaa: 216000 });
   assert.equal(h.intervaller.length, 3);
-  assert.deepEqual(h.intervaller.map((x) => x.iTide), [true, false, false]);
+  assert.deepEqual(h.intervaller.map((x) => x.iTide), [true, true, false]);
   assert.equal(h.maalt, 3);
-  assert.equal(h.iTide, 1);
-  assert.deepEqual(h.intervaller.map((x) => x.status), ["ok", "over", "over"]);
+  assert.equal(h.iTide, 2);
+  assert.deepEqual(h.intervaller.map((x) => x.status), ["ok", "litt", "over"]);
   assert.equal(h.status, "over");
   assert.equal(h.snittKm, 10333);
   assert.equal(h.naa.apen, true);
@@ -85,7 +98,7 @@ test("etterBoka: bare punkter med jobber, og summen over alle", () => {
   const o = etterBoka(bil, idag);
   assert.deepEqual(o.punkter.map((p) => p.id), ["motorolje", "oljefilter", "bremsevaeske"]);
   assert.equal(o.maalt, 3);
-  assert.equal(o.iTide, 1);
+  assert.equal(o.iTide, 2);
   // Andre biler: bare slitasjedelene har intervall
   assert.deepEqual(etterBoka({ modell: "GOLF", vedlikehold: rader }, idag).punkter, []);
 });

@@ -66,10 +66,11 @@ function stolpeRad(x, skala) {
   // Siden siste bytte: stiplet, men i samme farge som om jobben ble gjort i dag
   const li = el('li', `boka-rad ${x.status}${x.apen ? ' apen' : ''}`);
   const tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})` : `${aar(x.fra)} – ${aar(x.til)}`;
-  const tall = [x.km != null && formaterKm(x.km), mnd(x.maneder)].filter(Boolean).join(' · ');
+  const pst = (a) => (a == null ? '' : ` (${Math.round(a * 100)} %)`);
+  const tall = [x.km != null && formaterKm(x.km) + pst(x.andelKm), mnd(x.maneder) + pst(x.andelTid)]
+    .filter(Boolean).join(' · ');
   const tekst = el('div', 'boka-tekst');
-  tekst.append(el('span', null, tittel), el('span', 'boka-tall',
-    x.andel == null ? `${tall} · mangler km` : `${tall} · ${Math.round(x.andel * 100)} %`));
+  tekst.append(el('span', null, tittel), el('span', 'boka-tall', x.andel == null ? `${tall} · mangler km` : tall));
   const spor = el('div', 'boka-spor');
   spor.style.setProperty('--grense', `${100 / skala}%`);
   const fyll = el('span', 'boka-fyll');
@@ -87,7 +88,7 @@ function etterBokaSeksjon(bil, idag) {
   s.id = 'etter-boka';
   s.append(el('h3', 'bil-overskrift', 'Fulgt etter boka?'));
   s.append(liten(o.maalt
-    ? `${o.iTide} av ${o.maalt} bytter er gjort i tide (innen anbefalt intervall eller inntil 20 % over). Trykk på en del for å se hver jobb.`
+    ? `${o.iTide} av ${o.maalt} bytter er gjort i tide. Trykk på en del for å se hver jobb.`
     : 'Registrer minst to jobber på samme del, så ser du om den er byttet så ofte som anbefalt.'));
   for (const h of o.punkter) {
     const d = el('details', 'bil-kort boka-punkt');
@@ -105,7 +106,7 @@ function etterBokaSeksjon(bil, idag) {
       const ol = el('ol', 'boka-stolper');
       ol.setAttribute('aria-label', `${h.navn}: tid mellom hver jobb, i prosent av anbefalt intervall`);
       ol.append(...rader.map((x) => stolpeRad(x, skala)));
-      d.append(ol, liten('Streken er anbefalt intervall. Grønn: innen intervallet. Gul: inntil 20 % over. Rød: mer enn 20 % over. Stiplet: tiden siden siste bytte, fargen viser hvordan det ligger an nå.'));
+      d.append(ol, liten('Streken er anbefalt intervall. Km: grønn inntil intervallet, gul inntil 20 % over. Tid: grønn inntil 20 % over, gul inntil 60 % over. Mer enn det er rødt. Stiplet: tiden siden siste bytte.'));
     }
     const jobber = el('p', 'bil-liten', `Utført: ${h.jobber.map((j) =>
       [formaterDato(j.dato), j.km != null && formaterKm(j.km)].filter(Boolean).join(', ')).join(' · ')}`);
