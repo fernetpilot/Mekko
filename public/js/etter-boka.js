@@ -71,7 +71,7 @@ export function maalIntervall(punkt, fra, til) {
  *   intervaller: mellom utførte jobber. Med forstegang (første registreringsdato) regnes også første bytte
  *   fra bilen var ny (0 km), merket fraNy. naa: fra siste jobb til i dag (null uten jobber).
  *   maalt/iTide: antall intervaller som kunne måles, og hvor mange av dem som var i tide (grønne og gule).
- *   snittKm/snittManeder: snitt mellom registrerte bytter (uten «fra ny»), med status etter samme regler (snittStatusKm/-Tid).
+ *   snittKm/snittManeder: snitt over alle intervallene (også «fra ny»), med status etter samme regler (snittStatusKm/-Tid).
  *   status: over hvis noe var rødt, litt hvis noe var gult, ellers ok (ukjent uten målte intervaller).
  */
 export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null, forstegang = null } = {}) {
@@ -86,12 +86,10 @@ export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null, 
   const siste = jobber.at(-1);
   const naa = siste && siste.dato <= iDag ? { ...maalIntervall(punkt, siste, { dato: iDag, km: kmNaa }), apen: true } : null;
   const maalte = intervaller.filter((x) => x.andel != null);
-  // Snittet bygger bare på intervaller mellom registrerte bytter: «fra ny» kan skyldes manglende historikk
-  const mellom = intervaller.filter((x) => !x.fraNy);
-  const medKm = mellom.filter((x) => x.km != null);
+  const medKm = intervaller.filter((x) => x.km != null);
   const snittKm = medKm.length ? Math.round(medKm.reduce((sum, x) => sum + x.km, 0) / medKm.length) : null;
-  const snittManeder = mellom.length
-    ? Math.round((mellom.reduce((sum, x) => sum + x.maneder, 0) / mellom.length) * 10) / 10
+  const snittManeder = intervaller.length
+    ? Math.round((intervaller.reduce((sum, x) => sum + x.maneder, 0) / intervaller.length) * 10) / 10
     : null;
   return {
     id: punkt.id,

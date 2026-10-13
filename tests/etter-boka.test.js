@@ -100,7 +100,7 @@ test("punktHistorikk: første bytte regnes fra første registrering og 0 km", ()
   assert.equal(h.intervaller[0].status, "over");
   assert.equal(h.maalt, 2);
   assert.equal(h.iTide, 1);
-  assert.equal(h.snittKm, 30118); // snittet bruker bare intervallet mellom registrerte bytter
+  assert.equal(h.snittKm, 110000); // (189 882 + 30 118) / 2: «fra ny» teller med i snittet
   // Uten registreringsdato, eller med dato etter første bytte, er det som før
   assert.equal(punktHistorikk(gir, r, { idag }).intervaller.length, 1);
   assert.equal(punktHistorikk(gir, r, { idag, forstegang: "2019-01-01" }).intervaller.length, 1);

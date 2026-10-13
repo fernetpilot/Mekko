@@ -65,12 +65,11 @@ const aar = (iso) => iso.slice(0, 4);
 function stolpeRad(x, skala) {
   // Siden siste bytte: stiplet, men i samme farge som om jobben ble gjort i dag
   const li = el('li', `boka-rad ${x.status}${x.apen ? ' apen' : ''}`);
-  let tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})`
+  const tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})`
     : x.fraNy ? `Fra ny (${aar(x.fra)}) – ${aar(x.til)}` : `${aar(x.fra)} – ${aar(x.til)}`;
   const pst = (a) => (a == null ? '' : ` (${Math.round(a * 100)} %)`);
   const tall = [x.km != null && formaterKm(x.km) + pst(x.andelKm), mnd(x.maneder) + pst(x.andelTid)]
     .filter(Boolean).join(' · ');
-  if (x.fraNy && x.andel > 2) tittel += ' · kan skyldes manglende historikk';
   const tekst = el('div', 'boka-tekst');
   tekst.append(el('span', null, tittel), el('span', 'boka-tall', x.andel == null ? `${tall} · mangler km` : tall));
   const spor = el('div', 'boka-spor');
