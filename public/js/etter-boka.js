@@ -70,6 +70,7 @@ export function maalIntervall(punkt, fra, til) {
  * @returns {{ id, navn, kmIntervall, manederIntervall, jobber, intervaller, naa, maalt, iTide, snittKm, snittManeder }}
  *   intervaller: mellom utførte jobber. naa: fra siste jobb til i dag (null uten jobber).
  *   maalt/iTide: antall intervaller som kunne måles, og hvor mange av dem som var i tide (grønne og gule).
+ *   snittKm/snittManeder: snitt mellom byttene, med status etter samme regler (snittStatusKm/-Tid).
  *   status: over hvis noe var rødt, litt hvis noe var gult, ellers ok (ukjent uten målte intervaller).
  */
 export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null } = {}) {
@@ -80,6 +81,10 @@ export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null }
   const naa = siste && siste.dato <= iDag ? { ...maalIntervall(punkt, siste, { dato: iDag, km: kmNaa }), apen: true } : null;
   const maalte = intervaller.filter((x) => x.andel != null);
   const medKm = intervaller.filter((x) => x.km != null);
+  const snittKm = medKm.length ? Math.round(medKm.reduce((sum, x) => sum + x.km, 0) / medKm.length) : null;
+  const snittManeder = intervaller.length
+    ? Math.round((intervaller.reduce((sum, x) => sum + x.maneder, 0) / intervaller.length) * 10) / 10
+    : null;
   return {
     id: punkt.id,
     navn: punkt.navn,
@@ -92,10 +97,12 @@ export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null }
     status: !maalte.length ? "ukjent" : maalte.some((x) => x.status === "over") ? "over"
       : maalte.some((x) => x.status === "litt") ? "litt" : "ok",
     iTide: maalte.filter((x) => x.iTide).length,
-    snittKm: medKm.length ? Math.round(medKm.reduce((s, x) => s + x.km, 0) / medKm.length) : null,
-    snittManeder: intervaller.length
-      ? Math.round((intervaller.reduce((s, x) => s + x.maneder, 0) / intervaller.length) * 10) / 10
-      : null,
+    snittKm,
+    snittManeder,
+    // Samme fargeregler som for hver jobb
+    snittStatusKm: snittKm != null && punkt.kmIntervall ? intervallStatus(snittKm / punkt.kmIntervall, "km") : "ukjent",
+    snittStatusTid: snittManeder != null && punkt.manederIntervall
+      ? intervallStatus(snittManeder / punkt.manederIntervall, "tid") : "ukjent",
   };
 }
 

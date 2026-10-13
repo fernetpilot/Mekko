@@ -80,6 +80,12 @@ function stolpeRad(x, skala) {
   return li;
 }
 
+function snittFlis(etikett, verdi, under, status) {
+  const f = el('div', `boka-snitt-flis ${status}`);
+  f.append(el('span', 'boka-snitt-etikett', etikett), el('span', 'boka-snitt-verdi', verdi), el('span', 'boka-snitt-under', under));
+  return f;
+}
+
 /** «Fulgt etter boka?»: per del, alle utførte jobber mot anbefalt intervall. Null uten historikk. */
 function etterBokaSeksjon(bil, idag) {
   const o = etterBoka(bil, idag);
@@ -94,11 +100,21 @@ function etterBokaSeksjon(bil, idag) {
     const d = el('details', 'bil-kort boka-punkt');
     d.dataset.punkt = h.id;
     const sum = el('summary');
-    sum.append(el('strong', null, h.navn), el('span', `merke ${h.status}`,
+    const navn = el('span', 'boka-navn');
+    navn.append(el('strong', null, h.navn));
+    const snitt = [h.snittKm != null && formaterKm(h.snittKm), h.snittManeder != null && mnd(h.snittManeder)].filter(Boolean);
+    if (snitt.length) navn.append(el('span', 'boka-snitt-kort', `Snitt ${snitt.join(' · ')}`));
+    sum.append(navn, el('span', `merke ${h.status}`,
       h.maalt ? `${h.iTide} av ${h.maalt} i tide` : `${h.jobber.length} registrert`));
     d.append(sum);
-    const snitt = [h.snittKm != null && formaterKm(h.snittKm), h.snittManeder != null && mnd(h.snittManeder)].filter(Boolean);
-    d.append(liten(`Anbefalt: hver ${intervallTekst(h)}.${snitt.length ? ` Snitt hos deg: ${snitt.join(' og ')}.` : ''}`));
+    // Snittet mellom byttene, stort, med anbefalt verdi under
+    const tall = el('div', 'boka-snitt');
+    if (h.kmIntervall != null) tall.append(snittFlis('Snitt km mellom bytter', h.snittKm != null ? formaterKm(h.snittKm) : '–',
+      `Anbefalt ${formaterKm(h.kmIntervall)}`, h.snittStatusKm));
+    if (h.manederIntervall != null) tall.append(snittFlis('Snitt tid mellom bytter', h.snittManeder != null ? mnd(h.snittManeder) : '–',
+      `Anbefalt ${h.manederIntervall} mnd`, h.snittStatusTid));
+    d.append(tall);
+    if (!h.intervaller.length) d.append(liten('Snittet kommer når delen er registrert byttet minst to ganger.'));
     const rader = [...h.intervaller, ...(h.naa ? [h.naa] : [])];
     if (rader.length) {
       // Skalaen går minst til 150 %, så streken for anbefalt intervall står på samme sted

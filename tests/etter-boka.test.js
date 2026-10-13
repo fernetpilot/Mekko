@@ -69,6 +69,8 @@ test("punktHistorikk: intervaller, i tide, snitt og åpent intervall til i dag",
   assert.deepEqual(h.intervaller.map((x) => x.status), ["ok", "litt", "over"]);
   assert.equal(h.status, "over");
   assert.equal(h.snittKm, 10333);
+  assert.equal(h.snittStatusKm, "litt"); // 103 % av 10 000 km
+  assert.equal(h.snittStatusTid, "ok");
   assert.equal(h.naa.apen, true);
   assert.equal(h.naa.fra, "2025-03-01");
   assert.equal(h.naa.km, 5000);

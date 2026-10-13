@@ -1280,7 +1280,16 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .boka-punkt summary::-webkit-details-marker { display: none; }
 .boka-punkt summary::after { content: "›"; color: var(--tekst-dempet); transition: transform 0.2s; }
 .boka-punkt[open] summary::after { transform: rotate(90deg); }
-.boka-punkt summary strong { flex: 1; }
+.boka-navn { flex: 1; display: grid; gap: 2px; }
+.boka-snitt-kort { font-size: 12px; color: var(--tekst-dempet); font-variant-numeric: tabular-nums; }
+.boka-snitt { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.boka-snitt-flis { display: grid; gap: 2px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); border-left: 4px solid var(--glass-kant); }
+.boka-snitt-flis.ok { border-left-color: var(--ok); }
+.boka-snitt-flis.litt { border-left-color: var(--sjekk); }
+.boka-snitt-flis.over { border-left-color: var(--kritisk); }
+.boka-snitt-etikett { font-size: 12px; color: var(--tekst-dempet); }
+.boka-snitt-verdi { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.boka-snitt-under { font-size: 12px; color: var(--tekst-dempet); }
 .boka-punkt .merke { font-size: 12px; font-weight: 600; color: var(--tekst-dempet); }
 .boka-punkt .merke.ok { color: #34c759; }
 .boka-punkt .merke.litt { color: #ffcc00; }
