@@ -81,7 +81,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - Økonomi-fanen (`fane-okonomi.js`): kjøpspris/-dato/-km (felt på `biler`, se `supabase/06-bilokonomi.sql`), nøkkeltall,
   kakediagram per utgiftspost, stolper per år, akkumulert kurve og grovt verdianslag. Beregningene ligger i
   `public/js/bilokonomi.js` (ren, testet); antakelsene for verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der.
-  Øverst i fanen er et periodefilter (måned og år, hurtigvalg Alt/Siden kjøp/Siste 12 mnd/I år/I fjor). Standard er hele
+  Øverst i fanen er et sammenleggbart periodefilter (lukket som standard, «+»/«−»; måned og år, hurtigvalg Alt/Siden kjøp/Siste 12 mnd/I år/I fjor). Standard er hele
   historikken fra første hendelse (`standardPeriode`); `oppsummer(hendelser, { periode })` regner bare den perioden.
   Nøkkeltall, kake, stolper (per måned når perioden er ≤ 24 mnd, ellers per år), kurve og tabeller følger filteret;
   markedsverdi, «Totalkostnad siden kjøp» og «Investert totalt» gjelder alltid siden kjøp.
