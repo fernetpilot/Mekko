@@ -11,14 +11,42 @@ const DAG_MS = 24 * 60 * 60 * 1000;
 const iDato = (tekst) => { const [a, m, d] = tekst.split("-").map(Number); return new Date(a, m - 1, d); };
 const arMellom = (fra, til) => (til - fra) / (365.25 * DAG_MS);
 
+const tilTekst = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** «ÅÅÅÅ-MM» for en dato. */
+export const maned = (d) => (typeof d === "string" ? d.slice(0, 7) : tilTekst(d).slice(0, 7));
+const sisteDag = (ym) => { const [a, m] = ym.split("-").map(Number); return new Date(a, m, 0); };
+
+/** Standard: hele historikken, fra måneden med første hendelse til denne måneden. */
+export function standardPeriode(hendelser, idag = new Date()) {
+  const forste = (hendelser ?? []).map((h) => h.dato).filter(Boolean).sort()[0];
+  const til = maned(idag);
+  return { fra: forste ? maned(forste) : til, til };
+}
+
+/** Alle måneder fra og med fra til og med til: ["2024-11", "2024-12", "2025-01", …] */
+export function manederMellom(fra, til) {
+  const ut = [];
+  let [a, m] = fra.split("-").map(Number);
+  const [ta, tm] = til.split("-").map(Number);
+  while (a < ta || (a === ta && m <= tm)) {
+    ut.push(`${a}-${String(m).padStart(2, "0")}`);
+    if (++m > 12) { m = 1; a++; }
+  }
+  return ut;
+}
+
 /**
  * Oppsummerer kostnadene for én bil.
- * Med kjøpsdato regnes bare hendelser fra og med kjøpet.
+ * Med periode ({ fra: "ÅÅÅÅ-MM", til: "ÅÅÅÅ-MM" }) regnes hendelsene i de månedene, uansett kjøpsdato.
+ * Uten periode, men med kjøpsdato, regnes bare hendelser fra og med kjøpet.
  * @param {Array<{dato, komponent, kostnad, kilometerstand}>} hendelser
- * @param {{ kjopsdato?: string, kjopsKm?: number, kmNaa?: number, idag?: Date }} bil
+ * @param {{ periode?: {fra: string, til: string}, kjopsdato?: string, kjopsKm?: number, kmNaa?: number, idag?: Date }} bil
  */
-export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa = null, idag = new Date() } = {}) {
-  const iPerioden = (hendelser ?? []).filter((h) => h.dato && (!kjopsdato || h.dato >= kjopsdato));
+export function oppsummer(hendelser, { periode = null, kjopsdato = null, kjopsKm = null, kmNaa = null, idag = new Date() } = {}) {
+  if (periode && periode.fra > periode.til) periode = { fra: periode.til, til: periode.fra };
+  const iPerioden = (hendelser ?? []).filter((h) => h.dato && (periode
+    ? maned(h.dato) >= periode.fra && maned(h.dato) <= periode.til
+    : !kjopsdato || h.dato >= kjopsdato));
   const medKostnad = iPerioden.filter((h) => h.kostnad != null && Number(h.kostnad) > 0)
     .sort((a, b) => a.dato.localeCompare(b.dato));
 
@@ -28,16 +56,25 @@ export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa =
   }
   const total = medKostnad.reduce((n, h) => n + Number(h.kostnad), 0);
 
-  // Per år: alle år fra start til i dag, også år uten kostnader
-  const start = kjopsdato ?? medKostnad[0]?.dato ?? null;
+  // Perioden: fra første dag i fra-måneden til siste dag i til-måneden (men ikke etter i dag)
+  const start = periode ? `${periode.fra}-01` : kjopsdato ?? medKostnad[0]?.dato ?? null;
+  const sluttDato = periode && sisteDag(periode.til) < idag ? sisteDag(periode.til) : idag;
+  const slutt = tilTekst(sluttDato);
+  const sum = (filter) => medKostnad.filter(filter).reduce((n, h) => n + Number(h.kostnad), 0);
+
+  // Per år og per måned: alle år/måneder i perioden, også de uten kostnader
   const perAr = [];
+  const perManed = [];
   if (start) {
-    for (let ar = Number(start.slice(0, 4)); ar <= idag.getFullYear(); ar++) {
-      perAr.push({ ar, sum: medKostnad.filter((h) => h.dato.startsWith(String(ar))).reduce((n, h) => n + Number(h.kostnad), 0) });
+    for (let ar = Number(start.slice(0, 4)); ar <= Number(slutt.slice(0, 4)); ar++) {
+      perAr.push({ ar, sum: sum((h) => h.dato.startsWith(String(ar))) });
+    }
+    for (const ym of manederMellom(maned(start), maned(slutt))) {
+      perManed.push({ maned: ym, sum: sum((h) => h.dato.startsWith(ym)) });
     }
   }
 
-  // Akkumulert siden start: ett punkt per dato med kostnad
+  // Akkumulert i perioden: ett punkt per dato med kostnad
   let lop = 0;
   const akkumulert = start ? [{ dato: start, sum: 0 }] : [];
   for (const h of medKostnad) {
@@ -47,12 +84,15 @@ export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa =
     else akkumulert.push({ dato: h.dato, sum: lop });
   }
 
-  const ar = start ? arMellom(iDato(start), idag) : 0;
-  // Kilometer kjørt: fra kjøp (eller laveste registrerte) til siste kjente
+  const ar = start ? Math.max(0, arMellom(iDato(start), sluttDato)) : 0;
+  // Kilometer kjørt i perioden: fra laveste til høyeste kjente kilometerstand.
+  // Kjøpet og dagens kilometerstand teller med når de ligger i perioden.
   const kmListe = iPerioden.map((h) => h.kilometerstand).filter((k) => k != null);
-  const kmStart = kjopsKm ?? (kmListe.length ? Math.min(...kmListe) : null);
-  const kmSlutt = Math.max(kmNaa ?? -Infinity, ...(kmListe.length ? kmListe : [-Infinity]));
-  const kmKjort = kmStart != null && isFinite(kmSlutt) && kmSlutt > kmStart ? kmSlutt - kmStart : null;
+  if (kjopsKm != null && kjopsdato && (!periode || (maned(kjopsdato) >= periode.fra && maned(kjopsdato) <= periode.til))) kmListe.push(kjopsKm);
+  if (kmNaa != null && (!periode || periode.til >= maned(idag))) kmListe.push(kmNaa);
+  const kmStart = !periode && kjopsKm != null ? kjopsKm : kmListe.length ? Math.min(...kmListe) : null;
+  const kmSlutt = kmListe.length ? Math.max(...kmListe) : null;
+  const kmKjort = kmStart != null && kmSlutt != null && kmSlutt > kmStart ? kmSlutt - kmStart : null;
 
   return {
     total,
@@ -62,8 +102,10 @@ export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa =
       .map((k) => ({ nokkel: k.id, navn: k.navn, ikon: k.ikon, sum: perKategori[k.id], andel: total ? perKategori[k.id] / total : 0 }))
       .sort((a, b) => b.sum - a.sum),
     perAr,
+    perManed,
     akkumulert,
     start,
+    slutt,
     ar,
     // «Per år» gir bare mening når perioden er minst et halvt år
     snittPerAr: ar >= 0.5 ? total / ar : null,
