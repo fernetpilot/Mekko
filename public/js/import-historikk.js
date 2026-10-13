@@ -204,6 +204,26 @@ export function raderTilForslag(rader, { overskriftRad, kobling }, overskrifter 
 }
 
 /** Er dette trolig samme hendelse som en som allerede finnes? */
+/**
+ * Kobler forslag til hendelser som allerede finnes, én-til-én (samme dato, og samme type eller km).
+ * Flere rader med samme dato og km (f.eks. flere jobber på ett besøk) kobles til hver sin hendelse:
+ * først den med samme notat, så samme type.
+ * @returns {Array<object|null>} treffet for hvert forslag, eller null
+ */
+export function kobleDubletter(forslagListe, eksisterende) {
+  const brukt = new Set();
+  return forslagListe.map((f) => {
+    if (!f?.dato) return null;
+    const kandidater = (eksisterende ?? []).filter((e) => !brukt.has(e) && e.dato === f.dato
+      && (e.komponent === f.komponent || (e.kilometerstand != null && e.kilometerstand === f.kilometerstand)));
+    const treff = kandidater.find((e) => vask(e.notat) === vask(f.notat))
+      ?? kandidater.find((e) => e.komponent === f.komponent)
+      ?? kandidater[0] ?? null;
+    if (treff) brukt.add(treff);
+    return treff;
+  });
+}
+
 export function erDublett(forslag, eksisterende) {
   if (!forslag.dato) return false;
   return eksisterende.some((e) =>

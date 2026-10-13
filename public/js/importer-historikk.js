@@ -3,7 +3,7 @@
 import { supabase } from "./supabase.js";
 import { KOMPONENT_NAVN, formaterDato } from "./bilstatus.js";
 import { gjettServicepunkter } from "./servicepunkt-gjetting.js";
-import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst, tolkHendelsesliste } from "./import-historikk.js";
+import { FELTER, finnKobling, raderTilForslag, erDublett, kobleDubletter, tolkKvitteringstekst, tolkHendelsesliste } from "./import-historikk.js";
 import { lastOppDokumenter, erPdf, MAKS_BYTES } from "./dokumenter.js";
 import { kategoriListe } from "./kategori-visning.js";
 
@@ -66,8 +66,9 @@ async function start() {
 
 async function hentEksisterende() {
   const { data } = await supabase.from("vedlikehold")
-    .select("dato, komponent, kilometerstand").eq("bil_id", $("bil-valg").value);
+    .select("id, dato, komponent, kilometerstand, kostnad, notat").eq("bil_id", $("bil-valg").value);
   eksisterende = data ?? [];
+  merkDubletter(forslag);
   tegnForslag();
 }
 $("bil-valg").addEventListener("change", hentEksisterende);
@@ -209,7 +210,7 @@ async function taImotFiler(filer) {
       melding(m, `Leser ${fil.name} …`);
       const nye = await forslagFraDokument(fil);
       // Hendelser som trolig finnes fra før, velges bort som standard
-      for (const f of nye) if (erDublett(f, eksisterende)) f.med = false;
+      merkDubletter(nye);
       forslag.unshift(...nye);
       antallDok++;
     } else {
@@ -222,6 +223,20 @@ async function taImotFiler(filer) {
   if (antallDok) document.querySelector(".forslag")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/**
+ * Forslag som finnes fra før, velges bort. Unntak: mangler hendelsen beløp og forslaget har det,
+ * legges beløpet på den eksisterende hendelsen i stedet for å lage en ny (f.eks. når et ark lastes opp
+ * på nytt med en kostnadskolonne).
+ */
+function merkDubletter(liste) {
+  kobleDubletter(liste, eksisterende).forEach((treff, i) => {
+    const f = liste[i];
+    f.dublettAv = treff?.id ?? null;
+    f.oppdater = treff && treff.kostnad == null && f.kostnad != null ? treff.id : null;
+    if (treff) f.med = Boolean(f.oppdater);
+  });
+}
+
 function nyttForslag(felter = {}) {
   return { id: nesteId++, med: true, dato: null, komponent: "service", kilometerstand: null, kostnad: null, utfort_av: null, notat: null, filer: [], ...felter };
 }
@@ -231,7 +246,8 @@ function lagForslagFraArk(a) {
   const gamle = forslag.filter((f) => f.arkId === a.id);
   const lose = gamle.flatMap((f) => f.filer.map((fil) => nyttForslag({ filer: [fil] })));
   forslag = forslag.filter((f) => f.arkId !== a.id);
-  const nye = raderTilForslag(a.rader, a).map((f) => nyttForslag({ ...f, arkId: a.id, med: !erDublett(f, eksisterende) }));
+  const nye = raderTilForslag(a.rader, a).map((f) => nyttForslag({ ...f, arkId: a.id }));
+  merkDubletter(nye);
   nye.sort((x, y) => (y.dato ?? "").localeCompare(x.dato ?? ""));
   forslag.push(...lose, ...nye);
 }
@@ -277,11 +293,15 @@ function tegnArk() {
       tegnArk();
       tegnForslag();
     });
-    return lag("details", { className: "kort ark", open: !a.kobling.includes("dato") },
+    return lag("details", { className: "kort ark", open: !a.kobling.includes("dato") || !a.kobling.includes("kostnad") },
       lag("summary", {}, lag("span", { textContent: `📊 ${a.navn} · ${antall} rader` }), fjern),
       lag("p", { className: "liten", textContent: a.kobling.includes("dato")
         ? "Kolonnene er koblet automatisk. Rett opp her hvis noe er feil."
         : "Fant ingen datokolonne. Velg hvilken kolonne som inneholder dato." }),
+      // Uten kostnadskolonne blir biløkonomien tom. Si det tydelig, så det ikke ser ut som en feil.
+      a.kobling.includes("kostnad") ? null : lag("p", { className: "lest-hint", textContent:
+        "Arket har ingen kolonne for kostnad, så hendelsene importeres uten beløp og telles ikke i biløkonomien. "
+        + "Legg til en kolonne «Kostnad» i arket og last det opp på nytt, velg en kolonne under, eller skriv beløpet i forslagene." }),
       ...rader);
   }));
 }
@@ -311,7 +331,9 @@ function tegnForslag() {
     li.append(lag("div", { className: "forslag-topp" },
       lag("label", { className: "ta-med" }, med, lag("span", { textContent: "Ta med" })),
       lag("span", { className: "liten", textContent: kilde }),
-      dublett ? lag("span", { className: "merke-dublett", textContent: "Finnes kanskje allerede" }) : null));
+      f.oppdater
+        ? lag("span", { className: "merke-dublett oppdater", textContent: "Finnes allerede – beløpet legges til" })
+        : dublett || f.dublettAv ? lag("span", { className: "merke-dublett", textContent: "Finnes kanskje allerede" }) : null));
     const hint = {
       pdf: "Fylt ut fra PDF-en. Sjekk at det stemmer.",
       liste: `Fant ${f.antallIListe} hendelser i ${f.kildeNavn}. PDF-en legges ved denne hendelsen – flytt eller fjern den hvis du vil.`,
@@ -405,7 +427,12 @@ function tegnForslag() {
   const klare = valgte.filter((f) => f.dato);
   const vedlegg = klare.reduce((n, f) => n + f.filer.length, 0);
   $("antall-forslag").textContent = `(${valgte.length} av ${forslag.length} valgt)`;
-  $("importer").textContent = `Importer ${klare.length} ${klare.length === 1 ? "hendelse" : "hendelser"}${vedlegg ? ` med ${vedlegg} vedlegg` : ""}`;
+  const nye = klare.filter((f) => !f.oppdater).length;
+  const oppd = klare.length - nye;
+  $("importer").textContent = [
+    nye || !oppd ? `Importer ${nye} ${nye === 1 ? "hendelse" : "hendelser"}` : "",
+    oppd ? `${nye ? "og legg" : "Legg"} beløp på ${oppd} som finnes` : "",
+  ].filter(Boolean).join(" ") + (vedlegg ? ` (${vedlegg} vedlegg)` : "");
   $("importer").disabled = !klare.length;
   const uten = valgte.length - klare.length;
   melding($("melding"), uten
@@ -437,6 +464,18 @@ $("importer").addEventListener("click", async () => {
 
   for (const f of valgte) {
     melding(m, `Importerer ${ferdig + 1} av ${valgte.length} …`);
+    if (f.oppdater) {
+      // Hendelsen finnes: legg bare på beløpet (og eventuelle vedlegg)
+      const { error } = await supabase.from("vedlikehold").update({ kostnad: f.kostnad }).eq("id", f.oppdater);
+      if (error) { feil.push(`${etikett(f)}: beløpet kunne ikke lagres`); continue; }
+      if (f.filer.length) {
+        const r = await lastOppDokumenter(supabase, { eierId: brukerId, vedlikeholdId: f.oppdater, filer: f.filer });
+        feil.push(...r.feil);
+      }
+      ferdig++;
+      f.importert = true;
+      continue;
+    }
     const { data, error } = await supabase.from("vedlikehold").insert({
       bil_id: bilId,
       komponent: f.komponent,
@@ -475,7 +514,7 @@ $("importer").addEventListener("click", async () => {
     ark = ark.filter((a) => forslag.some((f) => f.arkId === a.id));
     tegnArk();
     tegnForslag();
-    eksisterende = (await supabase.from("vedlikehold").select("dato, komponent, kilometerstand").eq("bil_id", bilId)).data ?? eksisterende;
+    eksisterende = (await supabase.from("vedlikehold").select("id, dato, komponent, kilometerstand, kostnad, notat").eq("bil_id", bilId)).data ?? eksisterende;
     if (feil.length) alert(`${ferdig} av ${valgte.length} hendelser er importert.\n\nNoe gikk galt:\n${feil.join("\n")}`);
     melding(m, `${ferdig} ${ferdig === 1 ? "hendelse er" : "hendelser er"} importert. ${igjen.length} gjenstår – fyll inn dato og importer igjen.`, "ok");
     document.querySelector(".forslag")?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -260,3 +260,21 @@ Nye bremseklosser foran`;
   assert.equal(hendelseTittel({ komponent: h[1].komponent, servicepunkter: h[1].servicepunkter }), "Hjuloppheng og styring");
   assert.deepEqual(kategorierFor(h[0]).map((k) => k.id), ["oljer", "annet"]);
 });
+
+import { kobleDubletter } from "../public/js/import-historikk.js";
+
+test("dubletter kobles én-til-én, også flere jobber på samme besøk", () => {
+  const finnes = [
+    { id: "a", dato: "2013-06-19", komponent: "service", kilometerstand: 103845, notat: "Oljefilter – Type service: Service B", kostnad: null },
+    { id: "b", dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Endeledd høyre side – Type service: Ekstra Service", kostnad: null },
+    { id: "c", dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Tectylbehandling – Type service: Ekstra Service", kostnad: 500 },
+  ];
+  const nye = [
+    { dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Tectylbehandling – Type service: Ekstra Service", kostnad: 600 },
+    { dato: "2013-06-19", komponent: "service", kilometerstand: 103845, notat: "Oljefilter – Type service: Service B", kostnad: 2500 },
+    { dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Endeledd høyre side – Type service: Ekstra Service", kostnad: 1200 },
+    { dato: "2013-06-19", komponent: "dekk", kilometerstand: 103845, notat: "Noe nytt" },
+    { dato: "2020-01-01", komponent: "service" },
+  ];
+  assert.deepEqual(kobleDubletter(nye, finnes).map((t) => t?.id ?? null), ["c", "a", "b", null, null]);
+});
