@@ -2,6 +2,7 @@
 // Bytt bil øverst, nøkkeltall, og faner for Oversikt, Service, Vedlikehold, Dekk, Økonomi og Bildata.
 // All beregning ligger i de rene modulene (dashboard.js, dekk.js, bilstatus.js). Her tegnes bare panelet.
 import { euStatus, formaterDato, formaterKm } from '/js/bilstatus.js';
+import { normaliserSkilt } from '/js/kjoretoy.js';
 import { alleFrister, aarshjul, bilNavn, velgBil } from '/js/dashboard.js';
 import { hentBiler, lagreBil, lagretBil } from './bil-data.js';
 import { el, fristListe, lenkekort, liten } from './bil-visning.js';
@@ -82,10 +83,61 @@ export async function visBilenDin(valg = {}) {
 // ---------------------------------------------------------------------------
 // Toppen: bilbytte, navn og nøkkeltall
 // ---------------------------------------------------------------------------
+// «+ Legg til bil» blir til en tekstboks rett ved siden av, så man slipper å gå til en annen side.
 function leggTilKnapp() {
-  const a = el('a', 'bil-chip legg-til', '+ Legg til bil');
-  a.href = '/min-side#ny-bil-skjema';
-  return a;
+  const knapp = el('button', 'bil-chip legg-til', '+ Legg til bil');
+  knapp.type = 'button';
+  knapp.addEventListener('click', () => {
+    const skjema = leggTilSkjema(() => skjema.replaceWith(knapp));
+    knapp.replaceWith(skjema);
+    skjema.querySelector('input').focus();
+    skjema.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' });
+  });
+  return knapp;
+}
+
+function leggTilSkjema(avbryt) {
+  const skjema = el('form', 'bil-ny');
+  const felt = el('input');
+  Object.assign(felt, { type: 'text', name: 'skilt', placeholder: 'Skiltnummer', autocomplete: 'off', spellcheck: false });
+  felt.setAttribute('aria-label', 'Skiltnummer på bilen du vil legge til');
+  felt.setAttribute('autocapitalize', 'characters');
+  const ok = el('button', 'bil-ny-ok', 'Legg til');
+  ok.type = 'submit';
+  const lukk = el('button', 'bil-ny-lukk', '✕');
+  lukk.type = 'button';
+  lukk.setAttribute('aria-label', 'Avbryt');
+  lukk.addEventListener('click', () => { melding(''); avbryt(); });
+  skjema.append(felt, ok, lukk);
+
+  skjema.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const skilt = normaliserSkilt(felt.value);
+    if (!skilt) { melding('Skriv et gyldig skiltnummer, f.eks. AB 12345.', 'feil'); felt.focus(); return; }
+    ok.disabled = felt.disabled = true;
+    melding(`Henter ${skilt} fra Statens vegvesen …`);
+    try {
+      const { slaOppBil, lagreNyBil } = await import('/js/ny-bil.js');
+      const k = await slaOppBil(skilt);
+      const id = await lagreNyBil(skilt, k);
+      melding(`${[k.merke, k.modell].filter(Boolean).join(' ') || skilt} er lagt til.`, 'ok');
+      biler = null;
+      henter = null;
+      await visBilenDin({ bilId: id });
+    } catch (feil) {
+      melding(feil.message, 'feil');
+      ok.disabled = felt.disabled = false;
+      felt.focus();
+    }
+  });
+  return skjema;
+}
+
+function melding(tekst, type = '') {
+  const m = $('bil-ny-melding');
+  m.textContent = tekst;
+  m.className = `bil-ny-melding ${type}`;
+  m.hidden = !tekst;
 }
 
 function tegn() {

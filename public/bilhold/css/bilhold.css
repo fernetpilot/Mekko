@@ -916,6 +916,35 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 }
 .bil-chip[aria-pressed="true"] { color: var(--tekst); border-color: #9cc8ff; background: rgba(156, 200, 255, 0.16); }
 .bil-chip.legg-til { border-style: dashed; font-weight: 600; letter-spacing: 0; }
+/* Legg til bil rett i raden: tekstboks + knapp */
+.bil-ny { flex: none; display: flex; align-items: center; gap: 6px; }
+.bil-ny input {
+  width: 9.5em;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #9cc8ff;
+  background: rgba(156, 200, 255, 0.1);
+  color: var(--tekst);
+  font: 700 13px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bil-ny input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--tekst-dempet); }
+.bil-ny input:focus { outline: none; box-shadow: 0 0 0 3px rgba(156, 200, 255, 0.25); }
+.bil-ny-ok, .bil-ny-lukk {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+.bil-ny-ok { background: #f2f3f5; color: #0b0c0e; border-color: #f2f3f5; }
+.bil-ny-ok:disabled { opacity: 0.6; cursor: progress; }
+.bil-ny-lukk { padding: 8px 11px; background: var(--glass); color: var(--tekst-dempet); }
+.bil-ny-melding { margin: -4px 0 12px; font-size: 14px; color: var(--tekst-dempet); }
+.bil-ny-melding.ok { color: #34c759; }
+.bil-ny-melding.feil { color: #ff6b5e; }
 
 .bil-faner {
   position: sticky;

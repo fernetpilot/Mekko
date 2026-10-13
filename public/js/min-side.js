@@ -1,6 +1,7 @@
 // Min side: innlogging med e-postlenke, mine biler og vedlikehold.
 import { supabase } from "./supabase.js";
-import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
+import { normaliserSkilt } from "./kjoretoy.js";
+import { slaOppBil, lagreNyBil } from "./ny-bil.js";
 import { bilLenke, euStatus, formaterDato, formaterKm } from "./bilstatus.js";
 import { hendelseTittel } from "./kategorier.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
@@ -606,38 +607,7 @@ async function endreDeler(h, deler, merker, etterpaa) {
 // Skiltoppslag hos Statens vegvesen (via vår proxy)
 // ---------------------------------------------------------------------------
 
-/** Slår opp et skilt og returnerer bilen. Kaster feil med norsk tekst. */
-async function slaOppBil(skilt) {
-  let res, svar;
-  try {
-    res = await fetch(`/api/kjoretoy?kjennemerke=${encodeURIComponent(skilt)}`);
-    svar = await res.json();
-  } catch {
-    throw new Error("Fikk ikke kontakt med Statens vegvesen. Prøv igjen.");
-  }
-  if (!res.ok) throw new Error(svar.feil || "Fant ikke bilen.");
-  const k = hentKjoretoy(svar);
-  if (k.erTilhenger) throw new Error("Dette skiltet tilhører en tilhenger. Skriv skiltet på bilen din.");
-  return k;
-}
-
 const bilNavn = (k) => [k.merke, k.modell].filter(Boolean).join(" ") || "bilen";
-
-/** Lagrer en oppslått bil på innlogget bruker. */
-async function lagreBil(skilt, k) {
-  const { error } = await supabase.from("biler").insert({
-    kjennemerke: skilt,
-    merke: k.merke,
-    modell: k.modell,
-    forstegangsregistrert: k.forstegangsregistrert,
-    eu_kontrollfrist: k.euKontrollfrist,
-  });
-  if (error) {
-    throw new Error(error.code === "23505"
-      ? "Denne bilen ligger allerede under Mine biler."
-      : "Kunne ikke lagre bilen. Prøv igjen.");
-  }
-}
 
 /**
  * Første innlogging: bilen fra registreringen ligger på brukeren (forste_bil).
@@ -647,7 +617,7 @@ async function leggInnForsteBil(bruker) {
   const skilt = normaliserSkilt(bruker?.user_metadata?.forste_bil);
   if (!skilt) return;
   try {
-    await lagreBil(skilt, await slaOppBil(skilt));
+    await lagreNyBil(skilt, await slaOppBil(skilt));
   } catch (feil) {
     // Finnes den allerede er alt i orden; andre feil vises, men stopper ikke siden
     if (!/allerede/.test(feil.message)) melding($("ny-bil-melding"), `Kunne ikke legge inn ${skilt}: ${feil.message}`, "feil");
@@ -666,7 +636,7 @@ $("ny-bil-skjema").addEventListener("submit", async (e) => {
   melding(m, "Henter bilen …");
   try {
     const k = await slaOppBil(skilt);
-    await lagreBil(skilt, k);
+    await lagreNyBil(skilt, k);
     $("nytt-skilt").value = "";
     melding(m, `${bilNavn(k)} er lagt til.`, "ok");
     lastBiler();
