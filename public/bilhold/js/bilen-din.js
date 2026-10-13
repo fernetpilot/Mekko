@@ -1,10 +1,9 @@
 // «Bilen din»: den samlede bilvisningen under 3D-bilen (innlogget).
 // Bytt bil øverst, nøkkeltall, og faner for Oversikt, Service, Vedlikehold, Dekk, Økonomi og Bildata.
 // All beregning ligger i de rene modulene (dashboard.js, dekk.js, bilstatus.js). Her tegnes bare panelet.
-import { supabase } from '/js/supabase.js';
 import { euStatus, formaterDato, formaterKm } from '/js/bilstatus.js';
 import { alleFrister, aarshjul, bilNavn, velgBil } from '/js/dashboard.js';
-import { leggPaDekksett } from '/js/dekk-data.js';
+import { hentBiler, lagreBil, lagretBil } from './bil-data.js';
 import { el, fristListe, lenkekort, liten } from './bil-visning.js';
 import { dekkFane } from './fane-dekk.js';
 import { serviceFane, serviceFliser } from './fane-service.js';
@@ -19,7 +18,6 @@ export const FANER = [
   { id: 'okonomi', navn: 'Økonomi' },
   { id: 'bildata', navn: 'Bildata' },
 ];
-const LAGRET_BIL = 'mekko-valgt-bil';
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,22 +30,10 @@ let dekksettOk = true;
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
-async function hentBiler() {
-  const { data, error } = await supabase
-    .from('biler')
-    .select('*, vedlikehold(*, dokumenter(*)), utsettelser(*)')
-    .order('opprettet')
-    .order('dato', { referencedTable: 'vedlikehold', ascending: false });
-  if (error) throw error;
-  dekksettOk = await leggPaDekksett(supabase, data);
-  return data;
-}
-
-function lagretBil() {
-  try { return localStorage.getItem(LAGRET_BIL); } catch { return null; }
-}
-function lagreBil(id) {
-  try { localStorage.setItem(LAGRET_BIL, id); } catch { /* bare en snarvei */ }
+async function hentBilerOgDekk() {
+  const svar = await hentBiler();
+  dekksettOk = svar.dekksettOk;
+  return svar.biler;
 }
 
 /** Valgt bil og fane står i adressen (?bil=…&fane=…#bilen-din), så lenker og «tilbake» virker. */
@@ -71,7 +57,7 @@ export async function visBilenDin(valg = {}) {
 
   if (!biler) {
     try {
-      henter ??= hentBiler();
+      henter ??= hentBilerOgDekk();
       biler = await henter;
     } catch (feil) {
       console.warn('Kunne ikke hente bilene:', feil);
@@ -135,6 +121,8 @@ function tegn() {
   }
   tegnFaner();
   oppdaterAdresse();
+  // Kortene på forsiden følger valgt bil (forside-kort.js)
+  document.dispatchEvent(new CustomEvent('mekko:bil', { detail: { bil } }));
 }
 
 function tegnFaner() {

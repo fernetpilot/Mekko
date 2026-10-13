@@ -24,7 +24,9 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
-  Viser foreløpig bare eksempeldata. Siden er åpen for alle; «Logg inn»-knapper (`data-logg-inn`) står
+  Kortene (Motorrom, Bremseanlegg, Dekk og hjul) viser eksempeldata for utloggede. Innlogget fyller
+  `public/bilhold/js/forside-kort.js` dem med status for valgt bil (ren logikk i `public/js/forside.js`, testet)
+  og lenker til riktig fane i «Bilen din». Bilene hentes med `public/bilhold/js/bil-data.js`. Siden er åpen for alle; «Logg inn»-knapper (`data-logg-inn`) står
   i headeren, på kortene og etter kalkulatorsvaret. De skjules når `<html>` har klassen `innlogget`
   (settes av et skript øverst i `<head>` hvis det finnes en lagret Supabase-økt).
   Trykk på en «Logg inn»-knapp: kameraet zoomer inn på sjiraffen, så åpnes `/min-side`, der det samme
