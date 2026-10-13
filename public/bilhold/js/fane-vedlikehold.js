@@ -11,6 +11,11 @@ function hendelse(h) {
   const hode = el('div', 'jobb-hode');
   hode.append(el('time', null, formaterDato(h.dato)));
   if (h.kostnad != null) hode.append(el('span', 'jobb-kost', formaterKr(h.kostnad)));
+  // Endre eller slette registreringen (på registreringssiden)
+  const endre = el('a', 'jobb-endre', 'Endre');
+  endre.href = `/registrer-vedlikehold?endre=${encodeURIComponent(h.id)}`;
+  endre.setAttribute('aria-label', `Endre ${hendelseTittel(h)} ${formaterDato(h.dato)}`);
+  hode.append(endre);
   li.append(hode, el('strong', 'jobb-tittel', hendelseTittel(h)));
 
   const info = [h.kilometerstand != null && formaterKm(h.kilometerstand), h.utfort_av].filter(Boolean).join(' · ');

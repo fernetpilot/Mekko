@@ -1101,6 +1101,18 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 .bil-jobb { padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .jobb-hode { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--tekst-dempet); }
 .jobb-kost { color: var(--tekst); font-weight: 600; white-space: nowrap; }
+.jobb-hode time { margin-right: auto; }
+.jobb-hode { align-items: center; }
+.jobb-endre {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tekst);
+  font-weight: 600;
+  text-decoration: none;
+}
+.jobb-endre:hover { border-color: #fff; }
 .jobb-tittel { display: block; margin: 3px 0 2px; font-size: 15px; overflow-wrap: anywhere; }
 .jobb-info { margin: 0; font-size: 13px; color: var(--tekst-dempet); overflow-wrap: anywhere; }
 .jobb-notat {

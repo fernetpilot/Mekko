@@ -57,6 +57,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   per bil vises vedlikeholdshistorikk og alle kjøretøydata fra Vegvesenet (hentes når seksjonen åpnes).
 - `public/registrer-vedlikehold.html` + `public/js/registrer-vedlikehold.js` – egen side for å registrere vedlikehold
   (`?bil=<id>` forhåndsvelger bil). Krever innlogging.
+  `?endre=<id>` endrer en registrering som finnes fra før (fyller inn skjemaet, vedlegg kan fjernes) og har «Slett registreringen».
+  Vedlikehold-fanen har en «Endre»-knapp på hver jobb som leder hit.
 - `public/js/kjoretoydetaljer.js` – gjør API-svaret om til lesbare seksjoner. Feltoversikt: `docs/api-felter.md`.
 - Dokumenter (kvitteringer, serviceordrer): `public/js/dokumenter.js`. Privat Supabase-bucket `dokumenter`,
   filsti `<bruker-id>/<vedlikehold-id>/…`, tabell `dokumenter` (se `supabase/02-dokumenter.sql`).
