@@ -27,6 +27,7 @@ let henter = null;
 let bil = null;
 let fane = 'oversikt';
 let dekksettOk = true;
+let slippHoyde = null;
 
 // ---------------------------------------------------------------------------
 // Data
@@ -190,7 +191,13 @@ function tegnFaner() {
     k.addEventListener('click', () => velgFane(f.id));
     return k;
   }));
-  nav.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Valgt fane inn i synsfeltet sideveis (bare vannrett, så siden ikke flytter seg)
+  const valgt = nav.querySelector('[aria-selected="true"]');
+  if (valgt) {
+    const venstre = valgt.offsetLeft - nav.offsetLeft;
+    if (venstre < nav.scrollLeft) nav.scrollLeft = venstre - 8;
+    else if (venstre + valgt.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = venstre + valgt.offsetWidth - nav.clientWidth + 8;
+  }
 
   const innhold = $('bil-fane-innhold');
   innhold.setAttribute('aria-labelledby', `bil-fane-${fane}`);
@@ -210,12 +217,22 @@ async function lastPaNytt() {
 export function velgFane(id) {
   if (!FANER.some((f) => f.id === id) || !bil) return;
   fane = id;
+  // Bli stående der man er: hold på høyden så en kortere fane ikke drar siden opp
+  const panel = $('bil-panel');
+  const innhold = $('bil-fane-innhold');
+  const scroll = panel.scrollTop;
+  innhold.style.minHeight = `${innhold.offsetHeight}px`;
   tegnFaner();
   oppdaterAdresse();
-  // Hopp til fanene hvis man har scrollet langt ned
-  const panel = $('bil-panel');
-  const topp = $('bil-faner').offsetTop - 24;
-  if (panel.scrollTop > topp) panel.scrollTo({ top: topp, behavior: 'smooth' });
+  panel.scrollTop = scroll;
+  // Slipp høyden når man blar opp igjen
+  if (slippHoyde) panel.removeEventListener('scroll', slippHoyde);
+  const slipp = slippHoyde = () => {
+    if (panel.scrollTop > scroll - 40) return;
+    innhold.style.minHeight = '';
+    panel.removeEventListener('scroll', slipp);
+  };
+  panel.addEventListener('scroll', slipp, { passive: true });
 }
 
 // Piltaster mellom fanene
