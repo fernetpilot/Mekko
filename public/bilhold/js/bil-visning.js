@@ -51,6 +51,7 @@ export function fristLinje(f) {
 
 export function fristRad(f, { utsett } = {}) {
   const li = el('li', `frist ${f.status}`);
+  li.dataset.punkt = f.id;
   li.append(el('span', 'prikk'));
   const t = el('div', 'liste-tekst');
   t.append(el('strong', null, f.navn), el('span', 'liste-under', fristLinje(f)));

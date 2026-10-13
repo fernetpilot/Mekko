@@ -4,6 +4,7 @@ import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { utsettelseFor } from '/js/slitasje.js';
 import { alleFrister, aarshjul, nesteService, slitasjeOppsummering } from '/js/dashboard.js';
+import { etterBoka } from '/js/etter-boka.js';
 import {
   STATUS_TEKST, ansvar, dagerTekst, el, flis, fliser, fristListe, fristRad, kmIgjen, liten,
 } from './bil-visning.js';
@@ -53,6 +54,100 @@ function utsetter(bil, ctx) {
     }
     ctx?.oppdater?.();
   };
+}
+
+const intervallTekst = (h) => [h.kmIntervall != null && `${formaterKm(h.kmIntervall)}`,
+  h.manederIntervall != null && `${h.manederIntervall} mnd`].filter(Boolean).join(' eller ');
+const mnd = (m) => `${String(m).replace('.', ',')} mnd`;
+const aar = (iso) => iso.slice(0, 4);
+
+/** Én stolpe: hvor stor del av anbefalt intervall som gikk før jobben ble gjort (100 % = streken). */
+function stolpeRad(x, skala) {
+  // Siden siste bytte: stiplet, men i samme farge som om jobben ble gjort i dag
+  const li = el('li', `boka-rad ${x.status}${x.apen ? ' apen' : ''}`);
+  const tittel = x.apen ? `Siden siste bytte (${aar(x.fra)})` : `${aar(x.fra)} – ${aar(x.til)}`;
+  const pst = (a) => (a == null ? '' : ` (${Math.round(a * 100)} %)`);
+  const tall = [x.km != null && formaterKm(x.km) + pst(x.andelKm), mnd(x.maneder) + pst(x.andelTid)]
+    .filter(Boolean).join(' · ');
+  const tekst = el('div', 'boka-tekst');
+  tekst.append(el('span', null, tittel), el('span', 'boka-tall', x.andel == null ? `${tall} · mangler km` : tall));
+  const spor = el('div', 'boka-spor');
+  spor.style.setProperty('--grense', `${100 / skala}%`);
+  const fyll = el('span', 'boka-fyll');
+  fyll.style.width = `${Math.min(100, ((x.andel ?? 0) / skala) * 100)}%`;
+  spor.append(fyll);
+  li.append(tekst, spor);
+  return li;
+}
+
+function snittFlis(etikett, verdi, under, status) {
+  const f = el('div', `boka-snitt-flis ${status}`);
+  f.append(el('span', 'boka-snitt-etikett', etikett), el('span', 'boka-snitt-verdi', verdi), el('span', 'boka-snitt-under', under));
+  return f;
+}
+
+/** «Fulgt etter boka?»: per del, alle utførte jobber mot anbefalt intervall. Null uten historikk. */
+function etterBokaSeksjon(bil, idag) {
+  const o = etterBoka(bil, idag);
+  if (!o.punkter.length) return null;
+  const s = el('section', 'bil-etter-boka');
+  s.id = 'etter-boka';
+  s.append(el('h3', 'bil-overskrift', 'Fulgt etter boka?'));
+  s.append(liten(o.maalt
+    ? `${o.iTide} av ${o.maalt} bytter er gjort i tide. Trykk på en del for å se hver jobb.`
+    : 'Registrer minst to jobber på samme del, så ser du om den er byttet så ofte som anbefalt.'));
+  for (const h of o.punkter) {
+    const d = el('details', 'bil-kort boka-punkt');
+    d.dataset.punkt = h.id;
+    const sum = el('summary');
+    const navn = el('span', 'boka-navn');
+    navn.append(el('strong', null, h.navn));
+    const snitt = [h.snittKm != null && formaterKm(h.snittKm), h.snittManeder != null && mnd(h.snittManeder)].filter(Boolean);
+    if (snitt.length) navn.append(el('span', 'boka-snitt-kort', `Snitt ${snitt.join(' · ')}`));
+    sum.append(navn, el('span', `merke ${h.status}`,
+      h.maalt ? `${h.iTide} av ${h.maalt} i tide` : `${h.jobber.length} registrert`));
+    d.append(sum);
+    // Snittet mellom byttene, stort, med anbefalt verdi under
+    const tall = el('div', 'boka-snitt');
+    if (h.kmIntervall != null) tall.append(snittFlis('Snitt km mellom bytter', h.snittKm != null ? formaterKm(h.snittKm) : '–',
+      `Anbefalt ${formaterKm(h.kmIntervall)}`, h.snittStatusKm));
+    if (h.manederIntervall != null) tall.append(snittFlis('Snitt tid mellom bytter', h.snittManeder != null ? mnd(h.snittManeder) : '–',
+      `Anbefalt ${h.manederIntervall} mnd`, h.snittStatusTid));
+    d.append(tall);
+    if (!h.intervaller.length) d.append(liten('Snittet kommer når delen er registrert byttet minst to ganger.'));
+    const rader = [...h.intervaller, ...(h.naa ? [h.naa] : [])];
+    if (rader.length) {
+      // Skalaen går minst til 150 %, så streken for anbefalt intervall står på samme sted
+      const skala = Math.max(1.5, ...rader.map((x) => x.andel ?? 0));
+      const ol = el('ol', 'boka-stolper');
+      ol.setAttribute('aria-label', `${h.navn}: tid mellom hver jobb, i prosent av anbefalt intervall`);
+      ol.append(...rader.map((x) => stolpeRad(x, skala)));
+      d.append(ol, liten('Streken er anbefalt intervall. Km: grønn inntil intervallet, gul inntil 20 % over. Tid: grønn inntil 20 % over, gul inntil 60 % over. Mer enn det er rødt. Stiplet: tiden siden siste bytte.'));
+    }
+    const jobber = el('p', 'bil-liten', `Utført: ${h.jobber.map((j) =>
+      [formaterDato(j.dato), j.km != null && formaterKm(j.km)].filter(Boolean).join(', ')).join(' · ')}`);
+    d.append(jobber);
+    s.append(d);
+  }
+  return s;
+}
+
+/** Trykk på en del i listene over åpner historikken for den delen. */
+function lenkTilBoka(ut) {
+  const boka = ut.find((x) => x.id === 'etter-boka');
+  if (!boka) return;
+  for (const seksjon of ut) {
+    seksjon.querySelectorAll?.('li.frist[data-punkt]').forEach((li) => {
+      const d = boka.querySelector(`details[data-punkt="${li.dataset.punkt}"]`);
+      if (!d) return;
+      li.classList.add('har-boka');
+      li.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        d.open = true;
+        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
 }
 
 export function serviceFane(bil, idag, ctx) {
@@ -107,6 +202,9 @@ export function serviceFane(bil, idag, ctx) {
 
   if (hjul.utenDato.length) ut.push(fristListe('Etter kilometerstand og slitasje', hjul.utenDato, '', valg));
   if (hjul.senere.length) ut.push(fristListe('Senere', hjul.senere));
+  const boka = etterBokaSeksjon(bil, idag);
+  if (boka) ut.push(boka);
+  lenkTilBoka(ut);
   ut.push(ansvar('Fristene er veiledende og bygger på det du har registrert. Sjekk servicehefte og vognkort, og se vegvesen.no for EU-kontroll.'));
   return ut;
 }
