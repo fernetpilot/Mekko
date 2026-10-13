@@ -68,15 +68,21 @@ export function maalIntervall(punkt, fra, til) {
 /**
  * Historikken for ett punkt.
  * @returns {{ id, navn, kmIntervall, manederIntervall, jobber, intervaller, naa, maalt, iTide, snittKm, snittManeder }}
- *   intervaller: mellom utførte jobber. naa: fra siste jobb til i dag (null uten jobber).
+ *   intervaller: mellom utførte jobber. Med forstegang (første registreringsdato) regnes også første bytte
+ *   fra bilen var ny (0 km), merket fraNy. naa: fra siste jobb til i dag (null uten jobber).
  *   maalt/iTide: antall intervaller som kunne måles, og hvor mange av dem som var i tide (grønne og gule).
- *   snittKm/snittManeder: snitt mellom byttene, med status etter samme regler (snittStatusKm/-Tid).
+ *   snittKm/snittManeder: snitt over alle intervallene (også «fra ny»), med status etter samme regler (snittStatusKm/-Tid).
  *   status: over hvis noe var rødt, litt hvis noe var gult, ellers ok (ukjent uten målte intervaller).
  */
-export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null } = {}) {
+export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null, forstegang = null } = {}) {
   const iDag = idag.toISOString().slice(0, 10);
   const jobber = jobberFor(punkt.id, rader);
   const intervaller = jobber.slice(1).map((j, i) => maalIntervall(punkt, jobber[i], j));
+  // Første bytte måles fra bilen var ny: første registrering og 0 km
+  const ny = forstegang?.slice(0, 10);
+  if (ny && jobber.length && ny < jobber[0].dato) {
+    intervaller.unshift({ ...maalIntervall(punkt, { dato: ny, km: 0 }, jobber[0]), fraNy: true });
+  }
   const siste = jobber.at(-1);
   const naa = siste && siste.dato <= iDag ? { ...maalIntervall(punkt, siste, { dato: iDag, km: kmNaa }), apen: true } : null;
   const maalte = intervaller.filter((x) => x.andel != null);
@@ -115,7 +121,9 @@ export function etterBoka(bil, idag = new Date()) {
   const siste = sisteUtfortPerPunkt(rader);
   const alle = [...aktuellePunkter(punkterFor(bil), siste), ...SLITASJE_PUNKTER];
   const punkter = alle
-    .map((p) => punktHistorikk(p, rader, { idag, kmNaa: bil?.kilometerstand ?? null }))
+    .map((p) => punktHistorikk(p, rader, {
+      idag, kmNaa: bil?.kilometerstand ?? null, forstegang: bil?.forstegangsregistrert ?? null,
+    }))
     .filter((h) => h.jobber.length);
   return {
     punkter,

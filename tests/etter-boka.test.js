@@ -87,6 +87,25 @@ test("punktHistorikk: gule teller som i tide", () => {
   assert.equal(h.status, "litt");
 });
 
+test("punktHistorikk: første bytte regnes fra første registrering og 0 km", () => {
+  const gir = { id: "automatgir", navn: "Automatgir", kmIntervall: 80000, manederIntervall: 60 };
+  const r = [
+    { servicepunkter: ["automatgir"], dato: "2018-04-10", kilometerstand: 189882 },
+    { servicepunkter: ["automatgir"], dato: "2022-06-02", kilometerstand: 220000 },
+  ];
+  const h = punktHistorikk(gir, r, { idag, forstegang: "2005-03-01" });
+  assert.equal(h.intervaller.length, 2);
+  assert.equal(h.intervaller[0].fraNy, true);
+  assert.equal(h.intervaller[0].km, 189882);
+  assert.equal(h.intervaller[0].status, "over");
+  assert.equal(h.maalt, 2);
+  assert.equal(h.iTide, 1);
+  assert.equal(h.snittKm, 110000); // (189 882 + 30 118) / 2: «fra ny» teller med i snittet
+  // Uten registreringsdato, eller med dato etter første bytte, er det som før
+  assert.equal(punktHistorikk(gir, r, { idag }).intervaller.length, 1);
+  assert.equal(punktHistorikk(gir, r, { idag, forstegang: "2019-01-01" }).intervaller.length, 1);
+});
+
 test("punktHistorikk: én jobb gir ingen målte intervaller", () => {
   const h = punktHistorikk(olje, rader.slice(0, 1), { idag });
   assert.equal(h.intervaller.length, 0);
