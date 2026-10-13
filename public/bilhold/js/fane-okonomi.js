@@ -377,16 +377,14 @@ function periodefilter(bil, hendelser, idag, periode, endre) {
   const std = standardPeriode(hendelser, idag);
   const naa = maned(idag);
   const forsteAr = Math.min(Number(std.fra.slice(0, 4)), bil.kjopsdato ? Number(bil.kjopsdato.slice(0, 4)) : Infinity);
-  // Sammenleggbart: lukket viser bare valgt periode, «+» åpner og «−» lukker
+  // Sammenleggbart: lukket viser bare valgt periode; trykk på linjen åpner og lukker
   const k = el('details', 'bil-kort periodefilter');
   k.open = filterApent;
   k.addEventListener('toggle', () => { filterApent = k.open; });
   const sum = el('summary');
   const tekst = el('span', 'periode-tittel');
   tekst.append(el('span', 'periode-etikett', 'Periode'), el('span', 'periode-valgt', periodeTekst(periode)));
-  const tegn = el('span', 'periode-tegn', '');
-  tegn.setAttribute('aria-hidden', 'true');
-  sum.append(tekst, tegn);
+  sum.append(tekst);
   sum.setAttribute('aria-label', `Periode for rapportene: ${periodeTekst(periode)}. Trykk for å endre.`);
   k.append(sum);
   const f = el('form', 'bil-skjema');

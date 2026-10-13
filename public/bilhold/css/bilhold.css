@@ -1283,10 +1283,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .periode-tittel { display: grid; gap: 2px; min-width: 0; }
 .periode-etikett { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tekst-dempet); }
 .periode-valgt { font-weight: 600; }
-.periode-tegn { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 999px; border: 1px solid var(--glass-kant); font-size: 20px; line-height: 1; color: var(--tekst); }
-.periode-tegn::before { content: "+"; }
-.periodefilter[open] .periode-tegn::before { content: "−"; }
-.periode-hurtig { display: flex; flex-wrap: wrap; gap: 6px; }
+.periodefilter[open] .periode-hurtig { display: flex; flex-wrap: wrap; gap: 6px; }
 .periode-hurtig .bil-chip { letter-spacing: 0; font-weight: 600; }
 .periode-velger { display: grid; grid-template-columns: 1.3fr 1fr; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .periode-velger legend { padding: 0; margin-bottom: 6px; font-size: 14px; color: var(--tekst-dempet); }
