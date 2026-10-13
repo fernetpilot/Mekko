@@ -56,7 +56,12 @@ function lagKamerapunkter(aspekt) {
 }
 
 export function lagScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // Lett versjon for eldre og svake telefoner: lav oppløsning, ingen skygger og 30 bilder i sekundet.
+  // Slås på med en gang hvis telefonen sier at den har lite minne eller sparer data, ellers hvis
+  // de første sekundene går tregt (se maalYtelse nederst).
+  const svakFraStart = (navigator.deviceMemory && navigator.deviceMemory <= 2) || navigator.connection?.saveData === true;
+  let lett = false;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !svakFraStart, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -313,9 +318,36 @@ export function lagScene(canvas) {
     omgivelser.gressMat.color.lerp(tema.gress, demp * 0.6);
     omgivelser.veiMat.color.lerp(tema.vei, demp * 0.6);
 
-    renderer.render(scene, kamera);
+    maalYtelse(dt);
+    hoppOver = lett && !hoppOver;          // lett versjon: tegn annenhver frame (ca. 30 i sekundet)
+    if (!hoppOver) renderer.render(scene, kamera);
     requestAnimationFrame(tegn);
   }
+  let hoppOver = false;
+
+  function brukLettVersjon() {
+    if (lett) return;
+    lett = true;
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = false;
+    scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+    tilpassStorrelse();
+    document.documentElement.classList.add('lett-3d');
+  }
+  // Måler hvor fort de første sekundene tegnes (etter oppstart). Går det tregt, byttes det til lett versjon.
+  const maaling = { tid: 0, tider: [] };
+  function maalYtelse(dt) {
+    if (lett || maaling.tider === null) return;
+    maaling.tid += dt;
+    if (maaling.tid < 1.5) return;                       // oppstarten teller ikke
+    maaling.tider.push(dt);
+    if (maaling.tider.length < 90) return;
+    const sortert = maaling.tider.sort((a, b) => a - b);
+    const median = sortert[Math.floor(sortert.length / 2)];
+    maaling.tider = null;
+    if (median > 1 / 30) brukLettVersjon();
+  }
+  if (svakFraStart || new URLSearchParams(location.search).has('lett')) brukLettVersjon();
   requestAnimationFrame(tegn);
 
   const tmp = new THREE.Vector3();
