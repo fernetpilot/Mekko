@@ -69,3 +69,8 @@ test("multireim er ikke registerreim", () => {
   likt(gjettServicepunkter("motor", "Byttet multireim"), ["multireim"]);
   likt(gjettServicepunkter("service", "Ny registerreim"), ["registerreim"]);
 });
+
+test("dieselfilter gjenkjennes og blandes ikke med oljefilter", () => {
+  likt(gjettServicepunkter("service", "Oljefilter, Olje, Dieselfilter og Pollenfilter").sort(),
+    ["drivstoffilter-diesel", "motorolje", "oljefilter"]);
+});
