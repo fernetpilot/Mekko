@@ -69,6 +69,10 @@ export function serviceFane(bil, idag, ctx) {
   }
 
   if (hjul.forfalt.length) ut.push(fristListe('Bør gjøres nå', hjul.forfalt, 'forfalt-kort', valg));
+  // Deler vi ikke vet når sist ble gjort: bør gjennomføres eller sjekkes
+  if (hjul.ukjent.length) ut.push(fristListe('Bør gjennomføres eller sjekkes', hjul.ukjent, 'sjekk-kort', {
+    ingress: 'Vi vet ikke når disse sist ble gjort. Sjekk serviceheftet og registrer dem, så får de riktig frist.',
+  }));
 
   // Årshjulet: måneder med noe i får eget kort, tomme måneder samles på én linje
   const s = el('section', 'bil-aarshjul');
@@ -103,13 +107,6 @@ export function serviceFane(bil, idag, ctx) {
 
   if (hjul.utenDato.length) ut.push(fristListe('Etter kilometerstand og slitasje', hjul.utenDato, '', valg));
   if (hjul.senere.length) ut.push(fristListe('Senere', hjul.senere));
-  if (hjul.ukjent.length) {
-    const k = el('section', 'bil-kort');
-    k.append(el('h3', null, 'Mangler registrering'),
-      liten('Vi vet ikke når disse sist ble gjort. Registrer dem, så kommer de med i oversikten.'),
-      el('p', 'bil-ukjente', hjul.ukjent.map((f) => f.navn).join(' · ')));
-    ut.push(k);
-  }
   ut.push(ansvar('Fristene er veiledende og bygger på det du har registrert. Sjekk servicehefte og vognkort, og se vegvesen.no for EU-kontroll.'));
   return ut;
 }

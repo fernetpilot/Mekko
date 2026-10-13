@@ -2,7 +2,7 @@
 // Bare DOM-hjelpere. All beregning ligger i de rene modulene i /js/.
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 
-export const STATUS_TEKST = { ok: 'OK', snart: 'Snart', forfalt: 'Bør gjøres', utsatt: 'Utsatt', ukjent: 'Ukjent' };
+export const STATUS_TEKST = { ok: 'OK', snart: 'Snart', forfalt: 'Bør gjøres', utsatt: 'Utsatt', ukjent: 'Sjekk' };
 export const KILDE_TEKST = { eu: 'EU-kontroll', service: 'Service', slitasje: 'Slitasje' };
 
 export function el(tag, klasse, tekst) {
@@ -43,7 +43,9 @@ export function fristLinje(f) {
   if (f.kilde === 'eu') return [f.dato && formaterDato(f.dato), dagerTekst(f.dagerIgjen)].filter(Boolean).join(' · ');
   if (f.id === 'dekk') return f.tekst || 'Dekkene ser fine ut';
   if (f.id === 'dekkskift') return f.tekst ?? '';
-  return [f.dato && formaterDato(f.dato), f.km != null && `ved ${formaterKm(f.km)}`, kmIgjen(f.kmIgjen)]
+  if (f.status === 'ukjent') return 'Ikke registrert ennå';
+  // Dato med nedtelling, som på EU-kontrollen, og km hvis punktet også har km-grense
+  return [f.dato && formaterDato(f.dato), dagerTekst(f.dagerIgjen), f.km != null && `ved ${formaterKm(f.km)}`, kmIgjen(f.kmIgjen)]
     .filter(Boolean).join(' · ');
 }
 
@@ -69,6 +71,7 @@ export function fristRad(f, { utsett } = {}) {
 export function fristListe(tittel, frister, klasse = '', valg = {}) {
   const s = el('section', `bil-kort ${klasse}`);
   if (tittel) s.append(el('h3', null, tittel));
+  if (valg.ingress) s.append(liten(valg.ingress));
   const ul = el('ul', 'bil-liste');
   ul.append(...frister.map((f) => fristRad(f, valg)));
   s.append(ul);

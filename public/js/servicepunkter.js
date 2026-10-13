@@ -8,6 +8,17 @@ export function punkterFor(bil) {
   return /DISCOVERY 3/i.test(bil?.modell ?? "") ? LR3_2_7_TDV6 : [];
 }
 
+/**
+ * Punkter som gjelder bilen: er ett girkassepunkt (automat/manuell) registrert, faller de
+ * andre girtypene bort. Er ingen registrert, vet vi ikke girkassen, og alle blir med.
+ * @param {Array} punkter
+ * @param {Object<string, unknown>} siste  Siste utførte per punkt-id (se sisteUtfortPerPunkt)
+ */
+export function aktuellePunkter(punkter, siste = {}) {
+  const kjent = punkter.find((p) => p.gjelderFor && siste[p.id])?.gjelderFor;
+  return kjent ? punkter.filter((p) => !p.gjelderFor || p.gjelderFor === kjent) : punkter;
+}
+
 export const LR3_2_7_TDV6 = [
   { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIntervall: 12 },
   { id: "oljefilter", navn: "Oljefilter", kmIntervall: 10000, manederIntervall: 12 },
@@ -16,7 +27,7 @@ export const LR3_2_7_TDV6 = [
   { id: "manuelt-gir", navn: "Manuelt gir", kmIntervall: 80000, manederIntervall: 60, gjelderFor: "manuell" },
   { id: "diff-foran", navn: "Differensial foran", kmIntervall: 25000, manederIntervall: 24 },
   { id: "diff-bak", navn: "Differensial bak", kmIntervall: 25000, manederIntervall: 24 },
-  { id: "servostyring", navn: "Servostyring", kmIntervall: 80000, manederIntervall: 60 },
+  { id: "servostyring", navn: "Servoolje", kmIntervall: 80000, manederIntervall: 60 },
   { id: "kjolevaeske", navn: "Kjølevæske", kmIntervall: null, manederIntervall: 60 },
   { id: "bremsevaeske", navn: "Bremsevæske", kmIntervall: null, manederIntervall: 60 },
 ];

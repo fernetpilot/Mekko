@@ -19,8 +19,29 @@ test("ingen varsel når alt er ok", () => {
   assert.deepEqual(v, []);
 });
 
-test("ingen varsel når status er ukjent", () => {
-  assert.deepEqual(serviceVarsler(bil, { punkter: [OLJE], sisteUtfort: {}, kmNaa: 103000 }, idag), []);
+test("deler som aldri er registrert gir ett samlet «bør sjekkes»-varsel", () => {
+  const BREMS = LR3_2_7_TDV6.find((p) => p.id === "bremsevaeske");
+  const KJOL = LR3_2_7_TDV6.find((p) => p.id === "kjolevaeske");
+  const v = serviceVarsler(bil, { punkter: [OLJE, BREMS, KJOL], sisteUtfort: { motorolje: { dato: "2025-01-01", km: 100000 } }, kmNaa: 103000 }, idag);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].id, "service:ukjent:BR67285");
+  assert.equal(v[0].niva, "sjekk");
+  assert.equal(v[0].tittel, "2 deler bør sjekkes");
+  assert.match(v[0].tekst, /Bremsevæske, Kjølevæske/);
+});
+
+test("ett uregistrert punkt får navnet i tittelen", () => {
+  const [v] = serviceVarsler(bil, { punkter: [OLJE], sisteUtfort: {}, kmNaa: 103000 }, idag);
+  assert.equal(v.tittel, "Bør sjekkes: motorolje");
+});
+
+test("registrert automatgir gjør at manuelt gir ikke etterlyses", () => {
+  const v = serviceVarsler(bil, {
+    punkter: LR3_2_7_TDV6.filter((p) => p.gjelderFor),
+    sisteUtfort: { automatgir: { dato: "2025-01-01", km: 100000 } },
+    kmNaa: 103000,
+  }, idag);
+  assert.deepEqual(v, []);
 });
 
 test("snart gir sjekk-varsel med dato og km", () => {
