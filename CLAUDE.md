@@ -34,7 +34,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Trykk på tilhengeren (eller knappen øverst) åpner tilhengerkalkulatoren på samme side
   (`public/bilhold/js/lastkalkulator.js`): skiltoppslag og maks last med `beregnMaksLast`, samme regler
   som `/kalkulator`, pluss en rask førerkort-sjekk med vekter fra vognkortet (`sjekkForerkort`).
-  Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, tre svevende knapper:
+  Innlogget: hover/trykk på bilen «skanner» den (glasset blir gjennomsiktig, sjiraff kjører, fem svevende knapper som holdes fra hverandre:
   Mine biler, Service og EU-kontroll, Vedlikehold). «Åpne bilen din» nederst på bilen åpner panelet «Bilen din»
   (`#bil-panel`) med samme kameraanimasjon som kalkulatoren. Begge panelene lukkes ved å scrolle opp
   eller trykke utenfor teksten.

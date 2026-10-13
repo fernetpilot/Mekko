@@ -870,6 +870,8 @@ html.bil-skannes .bil-svev {
 }
 html.bil-skannes .bil-svev:nth-child(2) { animation-delay: -1.1s; transition-delay: 60ms; }
 html.bil-skannes .bil-svev:nth-child(3) { animation-delay: -2.1s; transition-delay: 120ms; }
+html.bil-skannes .bil-svev:nth-child(4) { animation-delay: -0.5s; transition-delay: 180ms; }
+html.bil-skannes .bil-svev:nth-child(5) { animation-delay: -1.6s; transition-delay: 240ms; }
 @keyframes svev {
   0%, 100% { transform: translate(-50%, -50%) translateY(0); }
   50% { transform: translate(-50%, -50%) translateY(-7px); }

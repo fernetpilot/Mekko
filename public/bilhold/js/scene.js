@@ -724,10 +724,12 @@ function lagBil() {
   skannRamme.renderOrder = 10;
   gruppe.add(skannRamme);
 
-  // Punkter for knappene: tre over bilen og én nederst på siden
+  // Punkter for knappene: fem over bilen (i to høyder) og én nederst på siden.
+  // main.js dytter knappene fra hverandre hvis de likevel havner oppå hverandre.
   const knappepunkter = {};
   for (const [navn, x, y, z] of [
-    ['bil-1', 0.3, 2.55, 1.5], ['bil-2', 0.3, 2.85, -0.4], ['bil-3', 0.3, 2.55, -2.1],
+    ['bil-1', 0.3, 2.5, 1.7], ['bil-2', 0.3, 3.3, 0.6], ['bil-3', 0.3, 2.5, -0.5],
+    ['bil-4', 0.3, 3.3, -1.6], ['bil-5', 0.3, 2.5, -2.6],
     ['bil-apne', BREDDE / 2, 0.42, -0.05],
   ]) {
     const o = new THREE.Object3D();
