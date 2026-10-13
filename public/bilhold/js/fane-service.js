@@ -1,6 +1,8 @@
 // Fanen «Service og EU» i «Bilen din»: alt som kommer de neste 12 månedene.
 // Beregningen ligger i dashboard.js (ren og testet).
+import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
+import { utsettelseFor } from '/js/slitasje.js';
 import { alleFrister, aarshjul, nesteService, slitasjeOppsummering } from '/js/dashboard.js';
 import {
   STATUS_TEKST, ansvar, dagerTekst, el, flis, fliser, fristListe, fristRad, kmIgjen, liten,
@@ -34,8 +36,28 @@ export function serviceFliser(frister) {
   return fliser(serviceFlis, slitasjeFlis);
 }
 
-export function serviceFane(bil, idag) {
+/** «Utsett»: lagrer en utsettelse for slitasjedelen og tegner fanen på nytt. */
+function utsetter(bil, ctx) {
+  return async (f, knapp) => {
+    const kmNaa = bil.kilometerstand ?? null;
+    if (f.id === 'bremseklosser' && kmNaa == null) {
+      return alert('Legg inn kilometerstanden på bilen først, så vi vet når vi skal minne deg på igjen.');
+    }
+    const rad = utsettelseFor(f.id, { kmNaa, idag: new Date().toISOString().slice(0, 10) });
+    if (!rad) return;
+    knapp.disabled = true;
+    const { error } = await supabase.from('utsettelser').insert({ ...rad, bil_id: bil.id });
+    if (error) {
+      knapp.disabled = false;
+      return alert('Kunne ikke utsette. Prøv igjen.');
+    }
+    ctx?.oppdater?.();
+  };
+}
+
+export function serviceFane(bil, idag, ctx) {
   const frister = alleFrister(bil, idag);
+  const valg = { utsett: utsetter(bil, ctx) };
   const hjul = aarshjul(frister, idag);
   const eu = frister.find((f) => f.id === 'eu');
   const ut = [serviceFliser(frister)];
@@ -46,7 +68,7 @@ export function serviceFane(bil, idag) {
       : `EU-kontroll ${dagerTekst(eu.dagerIgjen)} (${formaterDato(eu.dato)}).`));
   }
 
-  if (hjul.forfalt.length) ut.push(fristListe('Bør gjøres nå', hjul.forfalt, 'forfalt-kort'));
+  if (hjul.forfalt.length) ut.push(fristListe('Bør gjøres nå', hjul.forfalt, 'forfalt-kort', valg));
 
   // Årshjulet: måneder med noe i får eget kort, tomme måneder samles på én linje
   const s = el('section', 'bil-aarshjul');
@@ -68,7 +90,7 @@ export function serviceFane(bil, idag) {
     hode.append(el('h4', null, stor(m.navn)));
     if (i === 0) hode.append(el('span', 'maaned-naa', 'Nå'));
     const ul = el('ul', 'bil-liste');
-    ul.append(...m.frister.map(fristRad));
+    ul.append(...m.frister.map((f) => fristRad(f, valg)));
     li.append(hode, ul);
     ol.append(li);
   });
@@ -79,7 +101,7 @@ export function serviceFane(bil, idag) {
   s.append(ol);
   ut.push(s);
 
-  if (hjul.utenDato.length) ut.push(fristListe('Etter kilometerstand og slitasje', hjul.utenDato));
+  if (hjul.utenDato.length) ut.push(fristListe('Etter kilometerstand og slitasje', hjul.utenDato, '', valg));
   if (hjul.senere.length) ut.push(fristListe('Senere', hjul.senere));
   if (hjul.ukjent.length) {
     const k = el('section', 'bil-kort');

@@ -47,21 +47,30 @@ export function fristLinje(f) {
     .filter(Boolean).join(' · ');
 }
 
-export function fristRad(f) {
+export function fristRad(f, { utsett } = {}) {
   const li = el('li', `frist ${f.status}`);
   li.append(el('span', 'prikk'));
   const t = el('div', 'liste-tekst');
   t.append(el('strong', null, f.navn), el('span', 'liste-under', fristLinje(f)));
   li.append(t, el('span', 'merke', f.status === 'ok' ? KILDE_TEKST[f.kilde] : STATUS_TEKST[f.status]));
+  // Slitasjedeler som snart bør byttes kan utsettes («snooze»)
+  if (utsett && f.kanUtsette && f.utsettTekst) {
+    const k = el('button', 'knapp sekundaer bil-utsett', f.utsettTekst);
+    k.type = 'button';
+    k.addEventListener('click', () => utsett(f, k));
+    const rad = el('div', 'bil-utsett-rad');
+    rad.append(k);
+    li.append(rad);
+  }
   return li;
 }
 
 /** Kort med overskrift og en liste med frister. */
-export function fristListe(tittel, frister, klasse = '') {
+export function fristListe(tittel, frister, klasse = '', valg = {}) {
   const s = el('section', `bil-kort ${klasse}`);
   if (tittel) s.append(el('h3', null, tittel));
   const ul = el('ul', 'bil-liste');
-  ul.append(...frister.map(fristRad));
+  ul.append(...frister.map((f) => fristRad(f, valg)));
   s.append(ul);
   return s;
 }

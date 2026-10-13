@@ -1230,3 +1230,19 @@ button.bil-knapp { font-family: var(--font); cursor: pointer; }
 #bil-panel { -webkit-mask-image: none; mask-image: none; }
 /* Det som kommer til syne under 3D-scenen når den glir opp: samme farge som gresset nederst */
 html.kalkulator-modus body { background: rgb(62, 79, 65); }
+
+/* «Utsett»-knappen under en slitasjedel i Service og EU */
+.bil-liste li:has(.bil-utsett) { flex-wrap: wrap; }
+.bil-utsett-rad { flex-basis: 100%; padding-left: 19px; }
+.bil-utsett {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bil-utsett:disabled { opacity: 0.5; }

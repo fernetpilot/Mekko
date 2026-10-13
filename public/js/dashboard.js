@@ -116,6 +116,8 @@ export function alleFrister(bil, idag = new Date()) {
       dagerIgjen: res?.gjenstaar?.dager ?? (l.dato ? dagerTil(l.dato, idag) : null),
       kmIgjen: res?.gjenstaar?.km ?? null,
       tekst: l.status === "ukjent" && l.id !== "dekk" ? "Ingen registrering ennå" : (punkt ? fristTekst(res?.neste) : l.frist),
+      kanUtsette: l.kanUtsette,
+      utsettTekst: l.utsettTekst,
     });
   }
   return frister;
