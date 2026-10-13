@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { jobberFor, maalIntervall, punktHistorikk, etterBoka } from "../public/js/etter-boka.js";
+import { intervallStatus, jobberFor, maalIntervall, punktHistorikk, etterBoka } from "../public/js/etter-boka.js";
 
 const idag = new Date(Date.UTC(2026, 9, 13)); // 13. oktober 2026
 const olje = { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIntervall: 12 };
@@ -10,8 +10,8 @@ const olje = { id: "motorolje", navn: "Motorolje", kmIntervall: 10000, manederIn
 const rader = [
   { servicepunkter: ["motorolje", "oljefilter"], dato: "2022-03-01", kilometerstand: 180000 },
   { servicepunkter: ["motorolje"], dato: "2023-02-15", kilometerstand: 189000 }, // i tide
-  { servicepunkter: ["motorolje"], dato: "2024-06-01", kilometerstand: 197000 }, // for sent (tid)
-  { servicepunkter: ["motorolje"], dato: "2025-03-01", kilometerstand: 210000 }, // for sent (km)
+  { servicepunkter: ["motorolje"], dato: "2024-06-01", kilometerstand: 197000 }, // 129 % (tid): rød
+  { servicepunkter: ["motorolje"], dato: "2025-03-01", kilometerstand: 211000 }, // 140 % (km): rød
   { servicepunkter: ["motorolje"], dato: "2025-03-01", kilometerstand: null },   // dublett
   { servicepunkter: ["bremsevaeske"], dato: "2024-01-01", kilometerstand: 195000 },
 ];
@@ -19,7 +19,16 @@ const rader = [
 test("jobberFor: sortert, uten dubletter og rader uten dato", () => {
   const j = jobberFor("motorolje", [...rader, { servicepunkter: ["motorolje"], dato: null }]);
   assert.deepEqual(j.map((x) => x.dato), ["2022-03-01", "2023-02-15", "2024-06-01", "2025-03-01"]);
-  assert.equal(j.at(-1).km, 210000);
+  assert.equal(j.at(-1).km, 211000);
+});
+
+test("intervallStatus: grønn innen, gul inntil 20 % over, rød over det", () => {
+  assert.equal(intervallStatus(0.9), "ok");
+  assert.equal(intervallStatus(1), "ok");
+  assert.equal(intervallStatus(1.15), "litt");
+  assert.equal(intervallStatus(1.2), "litt");
+  assert.equal(intervallStatus(1.21), "over");
+  assert.equal(intervallStatus(null), "ukjent");
 });
 
 test("maalIntervall: grensen som nås først teller", () => {
@@ -44,11 +53,23 @@ test("punktHistorikk: intervaller, i tide, snitt og åpent intervall til i dag",
   assert.deepEqual(h.intervaller.map((x) => x.iTide), [true, false, false]);
   assert.equal(h.maalt, 3);
   assert.equal(h.iTide, 1);
-  assert.equal(h.snittKm, 10000);
+  assert.deepEqual(h.intervaller.map((x) => x.status), ["ok", "over", "over"]);
+  assert.equal(h.status, "over");
+  assert.equal(h.snittKm, 10333);
   assert.equal(h.naa.apen, true);
   assert.equal(h.naa.fra, "2025-03-01");
-  assert.equal(h.naa.km, 6000);
+  assert.equal(h.naa.km, 5000);
   assert.ok(h.naa.andel > 1); // over 12 måneder siden
+});
+
+test("punktHistorikk: gule teller som i tide", () => {
+  const h = punktHistorikk(olje, [
+    { servicepunkter: ["motorolje"], dato: "2023-01-01", kilometerstand: 100000 },
+    { servicepunkter: ["motorolje"], dato: "2023-12-01", kilometerstand: 111500 }, // 115 %: gul
+  ], { idag });
+  assert.equal(h.intervaller[0].status, "litt");
+  assert.equal(h.iTide, 1);
+  assert.equal(h.status, "litt");
 });
 
 test("punktHistorikk: én jobb gir ingen målte intervaller", () => {

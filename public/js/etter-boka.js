@@ -1,11 +1,21 @@
 // «Fulgt etter boka?»: alle utførte jobber per servicepunkt mot anbefalt intervall.
 // Ren modul: ingen DOM og ingen nettverk. Brukes av fanen «Service og EU».
-// En jobb er «i tide» når den er gjort innen intervallet (km eller måneder, det som kommer først).
+// En jobb er gjort innen intervallet (km eller måneder, det som kommer først) eller litt over.
+// Grønn: innen intervallet. Gul: inntil 20 % over. Rød: mer enn 20 % over. Grønn og gul teller som «i tide».
 
 import { leggTilMåneder } from "./service.js";
 import { sisteUtfortPerPunkt } from "./servicevarsler.js";
 import { aktuellePunkter, punkterFor } from "./servicepunkter.js";
 import { SLITASJE_PUNKTER } from "./slitasje.js";
+
+export const TOLERANSE = 0.2;
+
+/** ok (innen intervallet), litt (inntil 20 % over), over (mer), ukjent (kan ikke måles). */
+export function intervallStatus(andel) {
+  if (andel == null) return "ukjent";
+  if (andel <= 1) return "ok";
+  return andel <= 1 + TOLERANSE ? "litt" : "over";
+}
 
 const dagMs = 24 * 60 * 60 * 1000;
 const dager = (fra, til) => Math.round((Date.parse(til) - Date.parse(fra)) / dagMs);
@@ -35,13 +45,15 @@ export function maalIntervall(punkt, fra, til) {
   }
   if (punkt.kmIntervall != null && km != null) andeler.push(km / punkt.kmIntervall);
   const andel = andeler.length ? Math.max(...andeler) : null;
+  const status = intervallStatus(andel);
   return {
     fra: fra.dato,
     til: til.dato,
     km,
     maneder: Math.round((dager(fra.dato, til.dato) / 30.4375) * 10) / 10,
     andel,
-    iTide: andel == null ? null : andel <= 1,
+    status,
+    iTide: status === "ukjent" ? null : status !== "over",
   };
 }
 
@@ -49,7 +61,8 @@ export function maalIntervall(punkt, fra, til) {
  * Historikken for ett punkt.
  * @returns {{ id, navn, kmIntervall, manederIntervall, jobber, intervaller, naa, maalt, iTide, snittKm, snittManeder }}
  *   intervaller: mellom utførte jobber. naa: fra siste jobb til i dag (null uten jobber).
- *   maalt/iTide: antall intervaller som kunne måles, og hvor mange av dem som var innen anbefalt.
+ *   maalt/iTide: antall intervaller som kunne måles, og hvor mange av dem som var i tide (grønne og gule).
+ *   status: over hvis noe var rødt, litt hvis noe var gult, ellers ok (ukjent uten målte intervaller).
  */
 export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null } = {}) {
   const iDag = idag.toISOString().slice(0, 10);
@@ -68,6 +81,8 @@ export function punktHistorikk(punkt, rader, { idag = new Date(), kmNaa = null }
     intervaller,
     naa,
     maalt: maalte.length,
+    status: !maalte.length ? "ukjent" : maalte.some((x) => x.status === "over") ? "over"
+      : maalte.some((x) => x.status === "litt") ? "litt" : "ok",
     iTide: maalte.filter((x) => x.iTide).length,
     snittKm: medKm.length ? Math.round(medKm.reduce((s, x) => s + x.km, 0) / medKm.length) : null,
     snittManeder: intervaller.length

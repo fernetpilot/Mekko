@@ -1276,6 +1276,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .boka-punkt summary strong { flex: 1; }
 .boka-punkt .merke { font-size: 12px; font-weight: 600; color: var(--tekst-dempet); }
 .boka-punkt .merke.ok { color: #34c759; }
+.boka-punkt .merke.litt { color: #ffcc00; }
 .boka-punkt .merke.over { color: #ff6b62; }
 .boka-stolper { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .boka-tekst { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
@@ -1285,6 +1286,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .boka-spor::after { content: ""; position: absolute; left: var(--grense); top: -3px; bottom: -3px; width: 2px; background: #f2f3f5; border-radius: 1px; }
 .boka-fyll { display: block; height: 100%; border-radius: 999px; background: var(--tekst-dempet); }
 .boka-rad.ok .boka-fyll { background: var(--ok); }
+.boka-rad.litt .boka-fyll { background: var(--sjekk); }
 .boka-rad.over .boka-fyll { background: var(--kritisk); }
 .boka-rad.apen .boka-fyll { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 6px, transparent 6px 10px); }
 .bil-liste li.har-boka { cursor: pointer; }
