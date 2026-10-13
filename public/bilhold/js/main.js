@@ -287,9 +287,10 @@ function apneSide(navn, { historikk = true, fane, bilId } = {}) {
   rot.dataset.theme = 'dark';
   scene?.settTema('dark');
   scene?.settModus(navn);
-  p.style.setProperty('--kalk-topp', `${scene ? scene.kalkulatorBunn() : 72}px`);
+  plasserPanel(p);
   p.hidden = false;
   p.scrollTop = 0;
+  flyttBil(0);
   // Én frame senere, så overgangen fra skjult til synlig blir animert
   requestAnimationFrame(() => {
     rot.classList.add('kalkulator-modus');
@@ -312,6 +313,7 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
   aapen = null;
   iKalkulator = false;
   p.classList.remove('apen');
+  flyttBil(0);
   if (!umiddelbart) {
     rot.classList.remove('kalkulator-modus');
     scene?.settModus('scroll');
@@ -326,6 +328,24 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
   pushet = false;
 }
 const lukkKalkulator = (o) => lukkSide(o);
+
+// Panelet starter under vogntoget. «Bilen din» går helt opp til headeren, med luft øverst der bilen
+// vises: når man blar, glir bilen opp og ut sammen med teksten, så det blir mer plass til å lese.
+function plasserPanel(p) {
+  const bunn = scene ? scene.kalkulatorBunn() : 72;
+  if (p !== PANELER.bil) return p.style.setProperty('--kalk-topp', `${bunn}px`);
+  const topp = Math.round(header.getBoundingClientRect().bottom);
+  p.style.setProperty('--kalk-topp', `${topp}px`);
+  p.style.setProperty('--bil-luft', `${Math.max(0, bunn - topp)}px`);
+}
+function flyttBil(y) {
+  canvas.style.transform = y ? `translateY(${-y}px)` : '';
+}
+PANELER.bil.addEventListener('scroll', () => {
+  if (aapen !== 'bil') return;
+  const luft = parseFloat(PANELER.bil.style.getPropertyValue('--bil-luft')) || 0;
+  flyttBil(Math.min(PANELER.bil.scrollTop, luft));
+}, { passive: true });
 
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkSide(); });
 
@@ -364,7 +384,7 @@ window.addEventListener('popstate', () => {
   else lukkSide({ historikk: false });
 });
 window.addEventListener('resize', () => {
-  if (aapen && scene) PANELER[aapen].style.setProperty('--kalk-topp', `${scene.kalkulatorBunn()}px`);
+  if (aapen) plasserPanel(PANELER[aapen]);
 });
 
 // Knappen i headeren åpner kalkulatoren her på siden (lenken til /kalkulator virker uten JS),

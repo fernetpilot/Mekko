@@ -1224,3 +1224,9 @@ button.bil-knapp { font-family: var(--font); cursor: pointer; }
 .viz-tips strong { display: block; }
 .treff { cursor: pointer; }
 .treff:focus-visible { outline: 2px solid #f2f3f5; outline-offset: 2px; }
+
+/* «Bilen din»: luft øverst der bilen vises, og bilen glir opp og ut når man blar */
+#bil-panel .bil-luft { height: var(--bil-luft, 0px); }
+#bil-panel { -webkit-mask-image: none; mask-image: none; }
+/* Det som kommer til syne under 3D-scenen når den glir opp: samme farge som gresset nederst */
+html.kalkulator-modus body { background: rgb(62, 79, 65); }
