@@ -1,10 +1,11 @@
 // Biløkonomi: oppsummering av kostnader og et grovt anslag på markedsverdi.
 // Ren logikk: ingen DOM, ingen nettverk. Brukes av public/bilhold/js/fane-okonomi.js.
 
-import { KOMPONENT_NAVN } from "./bilstatus.js";
+import { ALLE_KATEGORIER, kostnadPerKategori } from "./kategorier.js";
 
-/** Fast rekkefølge på utgiftspostene (styrer også fargene i diagrammene). */
-export const KATEGORIER = ["service", "motor", "bremser", "dekk", "eu_kontroll", "annet"];
+// Utgiftspostene er de samme kategoriene som på hver hendelse (kategorier.js),
+// så fordelingen her henger sammen med historikken og serviceheftet.
+export const KATEGORIER = ALLE_KATEGORIER.map((k) => k.id);
 
 const DAG_MS = 24 * 60 * 60 * 1000;
 const iDato = (tekst) => { const [a, m, d] = tekst.split("-").map(Number); return new Date(a, m - 1, d); };
@@ -22,8 +23,10 @@ export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa =
     .sort((a, b) => a.dato.localeCompare(b.dato));
 
   const perKategori = Object.fromEntries(KATEGORIER.map((k) => [k, 0]));
-  for (const h of medKostnad) perKategori[KATEGORIER.includes(h.komponent) ? h.komponent : "annet"] += Number(h.kostnad);
-  const total = Object.values(perKategori).reduce((a, b) => a + b, 0);
+  for (const h of medKostnad) {
+    for (const { id, belop } of kostnadPerKategori(h)) perKategori[id] += belop;
+  }
+  const total = medKostnad.reduce((n, h) => n + Number(h.kostnad), 0);
 
   // Per år: alle år fra start til i dag, også år uten kostnader
   const start = kjopsdato ?? medKostnad[0]?.dato ?? null;
@@ -54,7 +57,10 @@ export function oppsummer(hendelser, { kjopsdato = null, kjopsKm = null, kmNaa =
   return {
     total,
     perKategori,
-    kategorier: KATEGORIER.filter((k) => perKategori[k] > 0).map((k) => ({ nokkel: k, navn: KOMPONENT_NAVN[k], sum: perKategori[k], andel: total ? perKategori[k] / total : 0 })),
+    // Største post først. Hver post har samme navn og ikon som på hendelsene.
+    kategorier: ALLE_KATEGORIER.filter((k) => perKategori[k.id] > 0.005)
+      .map((k) => ({ nokkel: k.id, navn: k.navn, ikon: k.ikon, sum: perKategori[k.id], andel: total ? perKategori[k.id] / total : 0 }))
+      .sort((a, b) => b.sum - a.sum),
     perAr,
     akkumulert,
     start,
@@ -83,9 +89,9 @@ export const VERDI_ANTAKELSER = {
   normalKmPerAr: 15000,
   kmJusteringPer10000: 0.015,   // ±1,5 % per 10 000 km over/under normalt
   kmFaktorGrenser: [0.85, 1.10],
-  // Utbedringer (bremser, dekk, annet – ikke rutineservice) siste 3 år teller 30 %,
-  // men aldri mer enn 15 % av grunnverdien
-  utbedringKategorier: ["bremser", "dekk", "annet"],
+  // Utbedringer siste 3 år teller 30 %, men aldri mer enn 15 % av grunnverdien.
+  // Alt unntatt rutine (oljer/væsker/filtre, EU-kontroll og service uten deler) regnes som utbedring.
+  ikkeUtbedring: ["oljer", "eu_kontroll", "service"],
   utbedringAr: 3,
   utbedringAndel: 0.3,
   utbedringMaksAndel: 0.15,
@@ -132,8 +138,10 @@ export function estimerVerdi({ kjopspris, kjopsdato, kjopsKm = null, kmNaa = nul
   // 3. Utbedringer siste år teller delvis
   const fra = new Date(idag.getTime() - A.utbedringAr * 365.25 * DAG_MS);
   const utbedringer = hendelser
-    .filter((h) => h.kostnad && A.utbedringKategorier.includes(h.komponent) && h.dato >= kjopsdato && iDato(h.dato) >= fra)
-    .reduce((n, h) => n + Number(h.kostnad), 0);
+    .filter((h) => h.kostnad && h.dato >= kjopsdato && iDato(h.dato) >= fra)
+    .flatMap((h) => kostnadPerKategori(h))
+    .filter((x) => !A.ikkeUtbedring.includes(x.id))
+    .reduce((n, x) => n + x.belop, 0);
   if (utbedringer > 0) {
     const tillegg = Math.min(A.utbedringAndel * utbedringer, A.utbedringMaksAndel * grunnverdi);
     steg.push({ tekst: `Utbedringer siste ${A.utbedringAr} år (${Math.round(utbedringer).toLocaleString("nb-NO")} kr, teller delvis)`, verdi: tillegg });

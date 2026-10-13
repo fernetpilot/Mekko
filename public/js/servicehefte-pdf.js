@@ -4,7 +4,8 @@
 // Ren logikk uten DOM: pdf-lib og en funksjon som henter filer sendes inn,
 // slik at modulen kan testes i Node og gjenbrukes i en app.
 
-import { KOMPONENT_NAVN, formaterDato, formaterKm } from "./bilstatus.js";
+import { formaterDato, formaterKm } from "./bilstatus.js";
+import { hendelseTittel, kategorierFor } from "./kategorier.js";
 
 const A4 = [595.28, 841.89];
 const MARG = 50;
@@ -96,8 +97,12 @@ export async function lagServiceheftePdf(PDFLib, { bil, hendelser, hentFil, lage
   const vedlegg = [];
   for (const h of hendelser) {
     nySideVedBehov(60);
-    const type = KOMPONENT_NAVN[h.komponent] ?? h.komponent;
+    const type = hendelseTittel(h);
     skriv(`${formaterDato(h.dato)}  ·  ${type}`, { f: fet, storrelse: 12 });
+    // Delene per kategori, som i historikken på nettsiden
+    for (const k of kategorierFor(h)) {
+      if (k.delNavn.length) skriv(`${k.navn}: ${k.delNavn.join(", ")}`, { storrelse: 10 });
+    }
     const detaljer = [
       h.kilometerstand != null && formaterKm(h.kilometerstand),
       h.kostnad != null && `${Number(h.kostnad).toLocaleString("nb-NO")} kr`,

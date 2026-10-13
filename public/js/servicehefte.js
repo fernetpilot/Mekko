@@ -1,6 +1,8 @@
 // Servicehefte for én bil: historikk med dokumentasjon, og nedlasting som PDF.
 import { supabase } from "./supabase.js";
-import { KOMPONENT_NAVN, formaterDato, formaterKm } from "./bilstatus.js";
+import { formaterDato, formaterKm } from "./bilstatus.js";
+import { hendelseTittel } from "./kategorier.js";
+import { kategoriListe } from "./kategori-visning.js";
 import { BUCKET, signerteLenker, slettFilerForVedlikehold } from "./dokumenter.js";
 import { lagServiceheftePdf } from "./servicehefte-pdf.js";
 
@@ -74,7 +76,7 @@ async function tegnTidslinje() {
     li.className = "kort hendelse";
 
     const tittel = document.createElement("h2");
-    tittel.textContent = KOMPONENT_NAVN[h.komponent] ?? h.komponent;
+    tittel.textContent = hendelseTittel(h);
     const dato = document.createElement("p");
     dato.className = "overline";
     dato.textContent = formaterDato(h.dato);
@@ -93,7 +95,7 @@ async function tegnTidslinje() {
     slett.setAttribute("aria-label", `Slett ${tittel.textContent} ${dato.textContent}`);
     slett.textContent = "✕";
     slett.addEventListener("click", () => slettHendelse(h));
-    li.append(slett, dato, tittel, detaljer);
+    li.append(slett, dato, tittel, kategoriListe(h, { gjettetTekst: "Delene er gjettet ut fra notatet." }), detaljer);
     if (h.notat) {
       const notat = document.createElement("p");
       notat.className = "notat";
@@ -149,7 +151,7 @@ async function tegnTidslinje() {
 // ---------------------------------------------------------------------------
 async function slettHendelse(h) {
   const antall = h.dokumenter?.length ?? 0;
-  const navn = `${KOMPONENT_NAVN[h.komponent] ?? h.komponent} ${formaterDato(h.dato)}`;
+  const navn = `${hendelseTittel(h)} ${formaterDato(h.dato)}`;
   if (!confirm(antall ? `Slette «${navn}» og ${antall} vedlegg?` : `Slette «${navn}»?`)) return;
   try {
     await slettFilerForVedlikehold(supabase, [h.id]);

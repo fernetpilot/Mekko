@@ -5,6 +5,7 @@ import { KOMPONENT_NAVN, formaterDato } from "./bilstatus.js";
 import { gjettServicepunkter } from "./servicepunkt-gjetting.js";
 import { FELTER, finnKobling, raderTilForslag, erDublett, tolkKvitteringstekst, tolkHendelsesliste } from "./import-historikk.js";
 import { lastOppDokumenter, erPdf, MAKS_BYTES } from "./dokumenter.js";
+import { kategoriListe } from "./kategori-visning.js";
 
 const $ = (id) => document.getElementById(id);
 const lag = (tag, egenskaper = {}, ...barn) => {
@@ -339,17 +340,20 @@ function tegnForslag() {
 
     const tall = (v) => (v === "" ? null : Number(v));
     dato.addEventListener("change", () => { f.dato = dato.value || null; tegnForslag(); });
-    type.addEventListener("change", () => { f.komponent = type.value; });
+    type.addEventListener("change", () => { f.komponent = type.value; tegnForslag(); });
     km.addEventListener("input", () => { f.kilometerstand = tall(km.value); });
     kost.addEventListener("input", () => { f.kostnad = tall(kost.value); });
     av.addEventListener("input", () => { f.utfort_av = av.value.trim() || null; });
     notat.addEventListener("input", () => { f.notat = notat.value.trim() || null; });
+    notat.addEventListener("change", () => tegnForslag()); // oppdater kategoriene når feltet forlates
 
     const skjemafelt = [
       lag("div", { className: "to-kolonner" }, felt("dato", dato), felt("komponent", type)),
       lag("div", { className: "to-kolonner" }, felt("kilometerstand", km), felt("kostnad", kost)),
       felt("utfort_av", av),
       felt("notat", notat),
+      // Kategoriene og delene som blir lagret, vist som i historikken
+      kategoriListe(f, { gjettetTekst: "Delene er gjettet ut fra teksten. Kan rettes etter import med «Endre»." }),
     ];
 
     // Dokumenter på forslaget
@@ -436,7 +440,8 @@ $("importer").addEventListener("click", async () => {
     const { data, error } = await supabase.from("vedlikehold").insert({
       bil_id: bilId,
       komponent: f.komponent,
-      servicepunkter: gjettServicepunkter(f.komponent, f.notat),
+      // Deler lest fra PDF-en (servicehefte fra Mekkoo) brukes som de er; ellers gjettes de som før
+      servicepunkter: f.servicepunkter?.length ? f.servicepunkter : gjettServicepunkter(f.komponent, f.notat),
       dato: f.dato,
       kilometerstand: f.kilometerstand == null ? null : Math.round(f.kilometerstand),
       kostnad: f.kostnad,

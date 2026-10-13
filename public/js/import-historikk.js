@@ -2,6 +2,8 @@
 // Selve lesingen av filen skjer i public/js/importer-historikk.js (SheetJS fra CDN).
 
 import { KOMPONENT_NAVN } from "./bilstatus.js";
+import { ALLE_KATEGORIER } from "./kategorier.js";
+import { allePunkter, POSISJONER, punktNavn } from "./servicekatalog.js";
 
 /** Feltene vi kan importere, med navn som vises til brukeren */
 export const FELTER = {
@@ -286,12 +288,47 @@ export function tolkKvitteringstekst(tekst, idag = new Date()) {
 
 const START_MED_DATO = new RegExp("^" + DATO + String.raw`(?:\s*[·|–\-:,]\s*|\s+|$)(.*)$`, "i");
 
-/** Finner typen ut fra overskriften, f.eks. «Oljeskift / motor» eller «EU-kontroll». */
+// Kategorinavn og delnavn slik Mekkoo skriver dem (se kategorier.js og servicekatalog.js),
+// så et servicehefte fra Mekkoo kan leses inn igjen med kategorier og deler.
+const KATEGORI_FRA_NAVN = new Map(ALLE_KATEGORIER.map((k) => [vask(k.navn), k.id]));
+const DEL_NAVN = allePunkter()
+  .flatMap((p) => (p.perPosisjon ? POSISJONER.map((pos) => `${p.id}@${pos.id}`) : [p.id]))
+  .map((id) => [punktNavn(id), id])
+  .sort((a, b) => b[0].length - a[0].length);   // lengste først, så «Øvre kuleledd (foran venstre)» slår «Øvre kuleledd»
+
+/** «Motorolje, Oljefilter, Øvre bærearm, komplett (foran venstre)» → id-er. Ukjente navn hoppes over. */
+export function delerFraTekst(tekst) {
+  let rest = ` ${String(tekst ?? "")} `;
+  const funnet = [];
+  for (const [navn, id] of DEL_NAVN) {
+    const i = rest.indexOf(navn);
+    if (i < 0) continue;
+    funnet.push({ i, id });
+    rest = rest.slice(0, i) + " ".repeat(navn.length) + rest.slice(i + navn.length);
+  }
+  return funnet.sort((a, b) => a.i - b.i).map((f) => f.id);
+}
+
+// Kategori → type i det gamle feltet «Hva er gjort»
+const TYPE_FRA_KATEGORI = { bremser: "bremser", dekk: "dekk", oljer: "motor", eu_kontroll: "eu_kontroll", service: "service" };
+
+/** Er overskriften bare kategorinavn, som «Hjuloppheng og styring · Bremser»? Gir kategori-id-ene eller null. */
+function kategorierITittel(tittel) {
+  const uten = String(tittel ?? "").replace(/^(service|eu-kontroll)\s*:\s*/i, "");
+  const deler = uten.split(/\s+·\s+/).map((d) => KATEGORI_FRA_NAVN.get(vask(d)));
+  return deler.length && deler.every(Boolean) ? deler : null;
+}
+
+/** Finner typen ut fra overskriften, f.eks. «Oljeskift / motor», «EU-kontroll» eller «Service: Bremser». */
 function typeFraTittel(tittel, resten) {
   const t = vask(tittel);
   for (const [nokkel, navn] of Object.entries(KOMPONENT_NAVN)) {
     if (t === nokkel || t === vask(navn)) return nokkel;
   }
+  if (/^service\s*:/i.test(tittel)) return "service";
+  if (/^eu-kontroll\s*:/i.test(tittel)) return "eu_kontroll";
+  const kategorier = kategorierITittel(tittel);
+  if (kategorier) return kategorier.map((k) => TYPE_FRA_KATEGORI[k]).find(Boolean) ?? "annet";
   return gjettKomponent(tittel, resten);
 }
 
@@ -299,7 +336,7 @@ function typeFraTittel(tittel, resten) {
  * Deler teksten i hendelser når den er en liste der hver hendelse starter med en dato
  * (som serviceheftet fra Mekkoo eller utskrifter fra verksteder). Gir tom liste hvis
  * teksten ikke ser ut som en liste (færre enn to hendelser) – da tolkes den som én kvittering.
- * @returns {Array<{ dato, komponent, kilometerstand, kostnad, utfort_av, notat }>}
+ * @returns {Array<{ dato, komponent, kilometerstand, kostnad, utfort_av, notat, servicepunkter }>}
  */
 export function tolkHendelsesliste(tekst, idag = new Date()) {
   const linjer = String(tekst ?? "").split(/\r?\n/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
@@ -322,10 +359,18 @@ export function tolkHendelsesliste(tekst, idag = new Date()) {
   return blokker.map((b) => {
     let kilometerstand = null, kostnad = null, utfort_av = null;
     const notat = [];
+    const servicepunkter = [];
     for (const l of b.linjer) {
+      // «Bremser: Bremseklosser, Bremseskiver» – kategori med deler, slik Mekkoo skriver det
+      const kat = l.match(/^([^:]{3,60}):\s*(.+)$/);
+      if (kat && KATEGORI_FRA_NAVN.has(vask(kat[1]))) {
+        const funnet = delerFraTekst(kat[2]);
+        if (funnet.length) { servicepunkter.push(...funnet.filter((id) => !servicepunkter.includes(id))); continue; }
+      }
       // Linjer som «280 000 km · 67 kr · Utført av: Verksted AS» deles opp i biter
       const biter = l.split(/\s+·\s+/);
-      const erDetaljlinje = biter.length > 1 || /^(utført av|utfort av)/i.test(l) || /^\d[\d\s.]*\s*(km|mil)\b/i.test(l);
+      const erDetaljlinje = biter.length > 1 || /^(utført av|utfort av)/i.test(l) || /^\d[\d\s.]*\s*(km|mil)\b/i.test(l)
+        || /^(?:kr\.?\s*)?\d[\d\s.,]*\s*(kr|nok|,-)$/i.test(l);
       if (!erDetaljlinje) { notat.push(l); continue; }
       for (const bit of biter) {
         let m;
@@ -349,9 +394,10 @@ export function tolkHendelsesliste(tekst, idag = new Date()) {
       kilometerstand: kilometerstand ?? reserve.kilometerstand ?? null,
       kostnad: kostnad ?? null,
       utfort_av: utfort_av ?? null,
-      // Overskriften tas med i notatet hvis den sier mer enn typen
-      notat: [typeFraTittel(b.tittel, "") === "annet" && vask(b.tittel) !== "annet" ? b.tittel : "", tekstNotat]
+      // Overskriften tas med i notatet hvis den sier mer enn typen (men ikke når den bare er kategorinavn)
+      notat: [typeFraTittel(b.tittel, "") === "annet" && vask(b.tittel) !== "annet" && !kategorierITittel(b.tittel) ? b.tittel : "", tekstNotat]
         .filter(Boolean).join(" – ").slice(0, 1000) || null,
+      servicepunkter,
     };
   });
 }

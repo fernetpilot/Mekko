@@ -16,8 +16,14 @@ const hendelser = [
 test("oppsummer: bare kostnader etter kjøp, fordelt på kategori", () => {
   const o = oppsummer(hendelser, { kjopsdato: "2022-01-01", kjopsKm: 118000, kmNaa: 160000, idag });
   assert.equal(o.total, 19000);
-  assert.deepEqual(o.perKategori, { service: 5000, motor: 2000, bremser: 3000, dekk: 8000, eu_kontroll: 1000, annet: 0 });
-  assert.equal(o.kategorier.length, 5);
+  // Samme kategorier som på hendelsene (kategorier.js). Uten deler følger kategorien typen.
+  assert.equal(o.perKategori.service, 5000);   // service uten deler
+  assert.equal(o.perKategori.oljer, 2000);     // «Oljeskift / motor» → motorolje og oljefilter
+  assert.equal(o.perKategori.bremser, 3000);
+  assert.equal(o.perKategori.dekk, 8000);
+  assert.equal(o.perKategori.eu_kontroll, 1000);
+  assert.deepEqual(o.kategorier.map((k) => k.nokkel), ["dekk", "service", "bremser", "oljer", "eu_kontroll"]);
+  assert.equal(o.kategorier[0].navn, "Dekk og hjul");
   assert.equal(o.antallMedKostnad, 5);
   assert.equal(o.antallUtenKostnad, 1);
   assert.equal(o.kmKjort, 42000);
@@ -74,4 +80,25 @@ test("verdianslag: ny bil taper mer per år, og verdien går ikke under gulvet",
 test("verdianslag krever kjøpspris og kjøpsdato", () => {
   assert.equal(estimerVerdi({ kjopspris: 0, kjopsdato: "2022-01-01", idag }), null);
   assert.equal(estimerVerdi({ kjopspris: 100000, idag }), null);
+});
+
+test("kostnad med deler i flere kategorier fordeles, summen stemmer", () => {
+  const o = oppsummer([
+    { dato: "2024-01-10", komponent: "service", kostnad: 6000, servicepunkter: ["motorolje", "oljefilter", "bremseklosser", "ytre-styreledd"] },
+    { dato: "2024-05-01", komponent: "annet", kostnad: 1000, servicepunkter: ["batteri"] },
+  ], { idag });
+  assert.equal(o.total, 7000);
+  assert.equal(o.perKategori.oljer, 2000);
+  assert.equal(o.perKategori.bremser, 2000);
+  assert.equal(o.perKategori.styring, 2000);
+  assert.equal(o.perKategori.elektrisk, 1000);
+  assert.ok(Math.abs(o.kategorier.reduce((n, k) => n + k.sum, 0) - o.total) < 1e-6);
+});
+
+test("verdianslag: rutineoljer teller ikke som utbedring, nye deler gjør", () => {
+  const felles = { kjopspris: 300000, kjopsdato: "2024-01-01", forstegangsregistrert: "2015-01-01", idag };
+  const rutine = estimerVerdi({ ...felles, hendelser: [{ dato: "2025-01-01", komponent: "service", kostnad: 5000, servicepunkter: ["motorolje", "oljefilter"] }] });
+  const reparasjon = estimerVerdi({ ...felles, hendelser: [{ dato: "2025-01-01", komponent: "annet", kostnad: 5000, servicepunkter: ["luftkompressor"] }] });
+  assert.equal(rutine.steg.length, 2);
+  assert.equal(Math.round(reparasjon.steg[2].verdi), 1500);
 });

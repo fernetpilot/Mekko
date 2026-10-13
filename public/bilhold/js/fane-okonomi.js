@@ -9,7 +9,6 @@ import { ansvar, el, flis, fliser, liten } from './bil-visning.js';
 const kr = (n) => `${Math.round(n).toLocaleString('nb-NO')} kr`;
 const krKort = (n) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits: 1 })} mill.`
   : Math.abs(n) >= 1000 ? `${Math.round(n / 1000).toLocaleString('nb-NO')}k` : String(Math.round(n)));
-const farge = (k) => `var(--serie-${k})`;
 const SVG = 'http://www.w3.org/2000/svg';
 const svg = (tag, attr = {}) => {
   const e = document.createElementNS(SVG, tag);
@@ -65,22 +64,35 @@ function diagramkort(tittel, under) {
   return k;
 }
 
+// Kakediagrammet viser de fem største postene i hver sin farge og resten samlet som «Øvrige»
+// (flere farger blir umulige å skille). Tegnforklaringen lister alle postene med samme ikon som på hendelsene.
+const MAKS_FARGER = 5;
+function kakeBiter(kategorier) {
+  if (kategorier.length <= MAKS_FARGER + 1) return kategorier.map((x, i) => ({ ...x, farge: `var(--serie-${i + 1})` }));
+  const topp = kategorier.slice(0, MAKS_FARGER).map((x, i) => ({ ...x, farge: `var(--serie-${i + 1})` }));
+  const rest = kategorier.slice(MAKS_FARGER);
+  const sum = rest.reduce((n, x) => n + x.sum, 0);
+  return [...topp, { nokkel: 'ovrige', navn: `Øvrige (${rest.length})`, ikon: '', sum, andel: rest.reduce((n, x) => n + x.andel, 0), farge: 'var(--serie-ovrige)', del: rest }];
+}
+
 function kake(o) {
-  const k = diagramkort('Fordeling per utgiftspost', o.total ? `${kr(o.total)} totalt` : null);
+  const k = diagramkort('Fordeling per utgiftspost', o.total ? `${kr(o.total)} totalt · samme kategorier som i vedlikeholdshistorikken` : null);
   if (!o.total) {
     k.append(liten('Ingen kostnader registrert ennå. Legg inn kostnad når du registrerer vedlikehold.'));
     return k;
   }
-  const oppsett = el('div', 'kake-oppsett');
+  const biter = kakeBiter(o.kategorier);
+  // Mange poster: diagrammet over og en bred liste under, så navnene får plass på mobil
+  const oppsett = el('div', o.kategorier.length > 4 ? 'kake-oppsett mange' : 'kake-oppsett');
   const s = svg('svg', { viewBox: '0 0 200 200', role: 'img',
     'aria-label': `Fordeling: ${o.kategorier.map((x) => `${x.navn} ${Math.round(x.andel * 100)} %`).join(', ')}` });
   const cx = 100, cy = 100, r = 80, tykkelse = 26;
   let vinkel = -Math.PI / 2;
-  for (const x of o.kategorier) {
+  for (const x of biter) {
     const bue = x.andel * Math.PI * 2;
     let sti;
-    if (o.kategorier.length === 1) {
-      sti = svg('circle', { cx, cy, r: r - tykkelse / 2, fill: 'none', 'stroke-width': tykkelse, stroke: farge(x.nokkel) });
+    if (biter.length === 1) {
+      sti = svg('circle', { cx, cy, r: r - tykkelse / 2, fill: 'none', 'stroke-width': tykkelse, stroke: x.farge });
     } else {
       const ytre = r, indre = r - tykkelse;
       const p = (rad, v) => [cx + rad * Math.cos(v), cy + rad * Math.sin(v)];
@@ -89,10 +101,11 @@ function kake(o) {
       const stor = bue > Math.PI ? 1 : 0;
       sti = svg('path', {
         d: `M${x1},${y1} A${ytre},${ytre} 0 ${stor} 1 ${x2},${y2} L${x3},${y3} A${indre},${indre} 0 ${stor} 0 ${x4},${y4} Z`,
-        fill: farge(x.nokkel), stroke: '#16171a', 'stroke-width': 2, 'stroke-linejoin': 'round',
+        fill: x.farge, stroke: '#16171a', 'stroke-width': 2, 'stroke-linejoin': 'round',
       });
     }
-    medTips(sti, `<strong>${esc(x.navn)}</strong>${kr(x.sum)} · ${Math.round(x.andel * 100)} %`);
+    const detaljer = x.del ? `<br>${x.del.map((d) => `${esc(d.navn)}: ${kr(d.sum)}`).join('<br>')}` : '';
+    medTips(sti, `<strong>${esc(x.ikon ? `${x.ikon} ${x.navn}` : x.navn)}</strong>${kr(x.sum)} · ${Math.round(x.andel * 100)} %${detaljer}`);
     s.append(sti);
     vinkel += bue;
   }
@@ -102,16 +115,22 @@ function kake(o) {
   under.textContent = 'kr totalt';
   s.append(midt, under);
 
+  // Tegnforklaring: alle postene. De som er samlet i «Øvrige», får grå prikk.
+  const fargeFor = new Map(biter.filter((b) => !b.del).map((b) => [b.nokkel, b.farge]));
   const liste = el('ul', 'tegnforklaring');
   for (const x of o.kategorier) {
     const li = el('li');
     const prikk = el('span', 'prikk');
-    prikk.style.background = farge(x.nokkel);
-    li.append(prikk, el('span', null, x.navn), el('span', 'belop', `${kr(x.sum)} · ${Math.round(x.andel * 100)} %`));
+    prikk.style.background = fargeFor.get(x.nokkel) ?? 'var(--serie-ovrige)';
+    const prosent = Math.round(x.andel * 100);
+    li.append(prikk, el('span', null, `${x.ikon} ${x.navn}`), el('span', 'belop', `${kr(x.sum)} · ${prosent < 1 ? '<1' : prosent} %`));
     liste.append(li);
   }
   oppsett.append(s, liste);
   k.append(oppsett);
+  if (o.kategorier.length > 1) {
+    k.append(liten('Besøk som gjelder flere kategorier, er fordelt likt mellom dem.'));
+  }
   return k;
 }
 

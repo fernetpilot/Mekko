@@ -195,13 +195,8 @@ export function slitasjeOppsummering(frister) {
 // Vedlikeholdshistorikk
 // ---------------------------------------------------------------------------
 
-/** Tittel på en hendelse: «Service» eller «Service: motorolje, oljefilter». */
-export function hendelseTittel(rad) {
-  const type = KOMPONENT_NAVN[rad.komponent] ?? rad.komponent ?? "Vedlikehold";
-  const deler = (rad.servicepunkter ?? []).map(punktNavn);
-  if (!deler.length) return type;
-  return `${type}: ${deler.map((d) => d.toLowerCase()).join(", ")}`;
-}
+// Tittelen kommer fra kategorier.js, så den er lik i historikken, serviceheftet og PDF-en.
+export { hendelseTittel } from "./kategorier.js";
 
 /** Nyeste først. Ved samme dato: høyest km først. */
 export function sorterHendelser(rader) {

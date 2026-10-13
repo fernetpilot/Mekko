@@ -1034,6 +1034,13 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 /* Fanene i «Bilen din»: årshjul, vedlikehold per år, økonomi */
 #bil-panel {
   /* Kategorifarger for Økonomi-fanen (validert mot mørk bakgrunn) */
+  /* Kakediagrammet: de fem største postene i fast rekkefølge (validert mot mørk bakgrunn), resten grå */
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --serie-ovrige: #6e6f75;
   --serie-service: #3987e5;
   --serie-motor: #d95926;
   --serie-bremser: #199e70;
@@ -1264,3 +1271,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
   cursor: pointer;
 }
 .bil-utsett:disabled { opacity: 0.5; }
+
+/* Fordeling med mange poster: diagrammet over, tegnforklaringen i full bredde under */
+.kake-oppsett.mange { grid-template-columns: 1fr; }
+.kake-oppsett.mange svg { width: 100%; max-width: 190px; justify-self: center; }
