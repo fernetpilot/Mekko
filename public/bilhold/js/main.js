@@ -80,6 +80,7 @@ const harViewTransitions = 'onpagereveal' in window;
 for (const lenke of document.querySelectorAll('a.glasskort, .hotspot')) {
   lenke.addEventListener('click', (e) => {
     if (harViewTransitions || e.metaKey || e.ctrlKey) return;
+    if (lenke.getAttribute('href').includes('#bilen-din')) return; // innlogget: åpner panelet (se under)
     e.preventDefault();
     document.body.classList.add('forlater');
     setTimeout(() => { window.location.href = lenke.href; }, 320);
