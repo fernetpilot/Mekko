@@ -16,6 +16,7 @@ const REGLER = [
   [/bremsev[æa]ske/, "bremsevaeske"],
   [/kj[øo]lev[æa]ske/, "kjolevaeske"],
   [/servo/, "servostyring"],
+  [/diesel\s*-?\s*filter|drivstoff\s*-?\s*filter/, "drivstoffilter-diesel"],
   [/olje\s*-?\s*filter/, "oljefilter"],
   [/luft\s*-?\s*filter/, "luftfilter"],
   [/multi\s*-?\s*reim|aggregatreim/, "multireim"],

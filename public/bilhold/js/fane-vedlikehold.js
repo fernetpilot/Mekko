@@ -4,6 +4,7 @@ import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { signerteLenker } from '/js/dokumenter.js';
 import { formaterKr, hendelseTittel, vedlikeholdOversikt } from '/js/dashboard.js';
+import { kategoriListe } from '/js/kategori-visning.js';
 import { el, flis, fliser, knapperad, liten } from './bil-visning.js';
 
 function hendelse(h) {
@@ -16,7 +17,7 @@ function hendelse(h) {
   endre.href = `/registrer-vedlikehold?endre=${encodeURIComponent(h.id)}`;
   endre.setAttribute('aria-label', `Endre ${hendelseTittel(h)} ${formaterDato(h.dato)}`);
   hode.append(endre);
-  li.append(hode, el('strong', 'jobb-tittel', hendelseTittel(h)));
+  li.append(hode, el('strong', 'jobb-tittel', hendelseTittel(h)), kategoriListe(h));
 
   const info = [h.kilometerstand != null && formaterKm(h.kilometerstand), h.utfort_av].filter(Boolean).join(' · ');
   if (info) li.append(el('p', 'jobb-info', info));

@@ -1,7 +1,8 @@
 // Min side: innlogging med e-postlenke, mine biler og vedlikehold.
 import { supabase } from "./supabase.js";
 import { hentKjoretoy, normaliserSkilt } from "./kjoretoy.js";
-import { bilLenke, euStatus, formaterDato, formaterKm, KOMPONENT_NAVN } from "./bilstatus.js";
+import { bilLenke, euStatus, formaterDato, formaterKm } from "./bilstatus.js";
+import { hendelseTittel } from "./kategorier.js";
 import { kjoretoyDetaljer } from "./kjoretoydetaljer.js";
 import { slettFilerForVedlikehold, slettAlleMineFiler } from "./dokumenter.js";
 import { servicelinjer } from "./servicevarsler.js";
@@ -448,7 +449,7 @@ function tegnHendelse(h, bil) {
   const li = document.createElement("li");
   const tekst = document.createElement("div");
   const tittel = document.createElement("div");
-  tittel.textContent = `${KOMPONENT_NAVN[h.komponent] ?? h.komponent} · ${formaterDato(h.dato)}`;
+  tittel.textContent = `${hendelseTittel(h)} · ${formaterDato(h.dato)}`;
   const detaljer = document.createElement("div");
   detaljer.className = "detaljer";
   detaljer.textContent = [

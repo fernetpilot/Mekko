@@ -1,0 +1,31 @@
+/* Kategorier og deler på en vedlikeholdshendelse. Brukes i fanen Vedlikehold, Mine biler og serviceheftet,
+   så hendelsene ser like ut overalt. Fargene er de samme som på delene i «Registrer vedlikehold». */
+
+.kat-olje { --kat: #b26a00; }
+.kat-filter { --kat: #1a7f37; }
+.kat-bremse { --kat: #b42318; }
+.kat-vaeske { --kat: #1f6feb; }
+.kat-motor { --kat: #7c3aed; }
+.kat-styring { --kat: #0e7490; }
+.kat-fjaering { --kat: #a16207; }
+.kat-drivlinje { --kat: #4b5563; }
+.kat-avgass { --kat: #6b7280; }
+.kat-elektrisk { --kat: #ca8a04; }
+.kat-dekk { --kat: #374151; }
+.kat-klima { --kat: #0284c7; }
+.kat-karosseri { --kat: #9d174d; }
+.kat-eu { --kat: #1a7f37; }
+.kat-annet { --kat: rgba(255, 255, 255, 0.28); }
+
+.kat-liste { list-style: none; margin: 6px 0 6px; padding: 0; display: grid; gap: 4px; }
+.kat-rad {
+  display: grid;
+  gap: 1px;
+  padding: 4px 0 4px 10px;
+  border-left: 3px solid var(--kat, rgba(255, 255, 255, 0.28));
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.kat-navn { font-weight: 600; }
+.kat-deler { color: var(--tekst-dempet, rgba(242, 243, 245, 0.62)); overflow-wrap: anywhere; }
+.kat-gjettet { font-size: 0.8rem; color: var(--tekst-dempet, rgba(242, 243, 245, 0.62)); font-style: italic; }

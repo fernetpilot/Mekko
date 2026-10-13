@@ -205,7 +205,7 @@ Vedlegg 1 – 10. okt. 2026 – Bremser – kvittering.pdf
 12.03.2020 Dette er en kvittering inne i et vedlegg`;
   const h = tolkHendelsesliste(tekst, new Date(2026, 9, 10));
   assert.equal(h.length, 4);
-  assert.deepEqual(h[0], { dato: "2026-10-10", komponent: "bremser", kilometerstand: 280000, kostnad: 670, utfort_av: "Ola Nordmann", notat: "Byttet klosser foran, og skiver bak" });
+  assert.deepEqual(h[0], { dato: "2026-10-10", komponent: "bremser", kilometerstand: 280000, kostnad: 670, utfort_av: "Ola Nordmann", notat: "Byttet klosser foran, og skiver bak", servicepunkter: [] });
   assert.equal(h[1].komponent, "service");
   assert.equal(h[1].notat, "Stor service – Type service: Ekstra Service");
   assert.equal(h[2].komponent, "motor");
@@ -231,4 +231,50 @@ Vinterdekk på`;
 
 test("én kvittering gir ingen liste", () => {
   assert.deepEqual(tolkHendelsesliste("Verksted AS\nFakturadato: 20.08.2023\nÅ betale kr 3 450,00"), []);
+});
+
+test("servicehefte fra Mekkoo leses inn igjen med kategorier og deler", async () => {
+  const { hendelseTittel, kategorierFor } = await import("../public/js/kategorier.js");
+  const tekst = `SERVICEHEFTE
+15. aug. 2026 · Service: Oljer, væsker og filtre
+Oljer, væsker og filtre: Motorolje, Oljefilter, Pollenfilter / kupéfilter
+Annet: Ekstra service
+279 618 km · 3 200 kr
+6. mai 2026 · Hjuloppheng og styring
+Hjuloppheng og styring: Hjullager / nav, Øvre bærearm, komplett (foran venstre)
+5 400 kr
+23. des. 2025 · Bremser
+2 900 kr
+Nye bremseklosser foran`;
+  const h = tolkHendelsesliste(tekst, new Date(2026, 9, 13));
+  assert.equal(h.length, 3);
+  assert.equal(h[0].komponent, "service");
+  assert.deepEqual(h[0].servicepunkter, ["motorolje", "oljefilter", "pollenfilter", "ekstra-service"]);
+  assert.equal(h[0].kostnad, 3200);
+  assert.equal(h[1].komponent, "annet");                 // ikke «dekk» selv om tittelen har ordet «hjul»
+  assert.deepEqual(h[1].servicepunkter, ["hjullager", "ovre-baerearm@fv"]);
+  assert.equal(h[1].kostnad, 5400);
+  assert.equal(h[1].notat, null);                        // tittelen er bare kategorinavn
+  assert.equal(h[2].kostnad, 2900);
+  // Samme tittel som før eksporten
+  assert.equal(hendelseTittel({ komponent: h[1].komponent, servicepunkter: h[1].servicepunkter }), "Hjuloppheng og styring");
+  assert.deepEqual(kategorierFor(h[0]).map((k) => k.id), ["oljer", "annet"]);
+});
+
+import { kobleDubletter } from "../public/js/import-historikk.js";
+
+test("dubletter kobles én-til-én, også flere jobber på samme besøk", () => {
+  const finnes = [
+    { id: "a", dato: "2013-06-19", komponent: "service", kilometerstand: 103845, notat: "Oljefilter – Type service: Service B", kostnad: null },
+    { id: "b", dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Endeledd høyre side – Type service: Ekstra Service", kostnad: null },
+    { id: "c", dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Tectylbehandling – Type service: Ekstra Service", kostnad: 500 },
+  ];
+  const nye = [
+    { dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Tectylbehandling – Type service: Ekstra Service", kostnad: 600 },
+    { dato: "2013-06-19", komponent: "service", kilometerstand: 103845, notat: "Oljefilter – Type service: Service B", kostnad: 2500 },
+    { dato: "2013-06-19", komponent: "annet", kilometerstand: 103845, notat: "Endeledd høyre side – Type service: Ekstra Service", kostnad: 1200 },
+    { dato: "2013-06-19", komponent: "dekk", kilometerstand: 103845, notat: "Noe nytt" },
+    { dato: "2020-01-01", komponent: "service" },
+  ];
+  assert.deepEqual(kobleDubletter(nye, finnes).map((t) => t?.id ?? null), ["c", "a", "b", null, null]);
 });

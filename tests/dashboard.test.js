@@ -148,9 +148,10 @@ test("slitasjeOppsummering: verste status med deler", () => {
 });
 
 test("hendelseTittel", () => {
-  assert.equal(hendelseTittel(bil.vedlikehold[0]), "Service: motorolje, oljefilter, luftfilter");
+  // Felles tittel fra kategorier.js: type og kategorier (delene vises under tittelen)
+  assert.equal(hendelseTittel(bil.vedlikehold[0]), "Service: Oljer, væsker og filtre");
   assert.equal(hendelseTittel(bil.vedlikehold[3]), "Annet");
-  assert.equal(hendelseTittel({ komponent: "dekk" }), "Dekk");
+  assert.equal(hendelseTittel({ komponent: "dekk" }), "Dekk og hjul");
 });
 
 test("sorterHendelser og sumKostnad", () => {

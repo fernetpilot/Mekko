@@ -82,6 +82,12 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   kakediagram per utgiftspost, stolper per år, akkumulert kurve og grovt verdianslag. Beregningene ligger i
   `public/js/bilokonomi.js` (ren, testet); antakelsene for verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der.
   Diagramfarger (`--serie-*`) står på `#bil-panel` i `public/bilhold/css/bilhold.css`.
+- **Kategorier og deler på hendelser: `public/js/kategorier.js` er eneste kilde** (ren, testet).
+  `kategorierFor(h)`, `hendelseTittel(h)` og `kostnadPerKategori(h)` brukes av fanen Vedlikehold, Mine biler,
+  serviceheftet (nett og PDF), importen og biløkonomien, så de alltid viser det samme. Kategoriene er de i
+  `servicekatalog.js` + «EU-kontroll» og «Service (uten spesifiserte deler)». Uten lagrede deler gjettes de
+  (`servicepunkt-gjetting.js`). Kostnad på besøk med flere kategorier fordeles likt; «Annet» får bare andel alene.
+  Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - Service og EU-fanen (`fane-service.js`): EU-kontroll, service og slitasje de neste 12 mnd. Vedlikehold-fanen
   (`fane-vedlikehold.js`): alt vedlikehold per år med kostnad og vedlegg. Ren logikk i `public/js/dashboard.js` (testet).
