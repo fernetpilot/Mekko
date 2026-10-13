@@ -829,6 +829,11 @@ details.hjelpetekst p { margin: 6px 0 0; }
 html.kalkulator-modus .kalk-knapp-topp .til-kalk { display: none; }
 html.kalkulator-modus .kalk-knapp-topp .til-forside { display: inline; }
 .slutt-lenke { font-size: 15px; text-align: center; }
+/* Personvern: diskret helt nederst */
+.personvern-lenke { margin: 28px 0 0; text-align: center; font-size: 12px; }
+.personvern-lenke a { color: var(--tekst-dempet); opacity: 0.7; text-decoration: none; }
+.personvern-lenke a:hover { opacity: 1; text-decoration: underline; }
+.profil-meny .profil-liten { font-size: 13px; color: var(--tekst-dempet); }
 
 /* Teksten i kalkulatoren forsvinner mykt inn under veikanten når man scroller */
 .kalk-panel {
@@ -916,10 +921,39 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
 }
 .bil-chip[aria-pressed="true"] { color: var(--tekst); border-color: #9cc8ff; background: rgba(156, 200, 255, 0.16); }
 .bil-chip.legg-til { border-style: dashed; font-weight: 600; letter-spacing: 0; }
+/* Legg til bil rett i raden: tekstboks + knapp */
+.bil-ny { flex: none; display: flex; align-items: center; gap: 6px; }
+.bil-ny input {
+  width: 9.5em;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #9cc8ff;
+  background: rgba(156, 200, 255, 0.1);
+  color: var(--tekst);
+  font: 700 13px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bil-ny input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--tekst-dempet); }
+.bil-ny input:focus { outline: none; box-shadow: 0 0 0 3px rgba(156, 200, 255, 0.25); }
+.bil-ny-ok, .bil-ny-lukk {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+.bil-ny-ok { background: #f2f3f5; color: #0b0c0e; border-color: #f2f3f5; }
+.bil-ny-ok:disabled { opacity: 0.6; cursor: progress; }
+.bil-ny-lukk { padding: 8px 11px; background: var(--glass); color: var(--tekst-dempet); }
+.bil-ny-melding { margin: -4px 0 12px; font-size: 14px; color: var(--tekst-dempet); }
+.bil-ny-melding.ok { color: #34c759; }
+.bil-ny-melding.feil { color: #ff6b5e; }
 
 .bil-faner {
   position: sticky;
-  top: 0;
+  top: var(--vei-bunn, 0px);   /* stopper rett under veien når man har blart ned */
   z-index: 2;
   display: flex;
   gap: 4px;
@@ -1250,9 +1284,13 @@ button.bil-knapp { font-family: var(--font); cursor: pointer; }
 .treff { cursor: pointer; }
 .treff:focus-visible { outline: 2px solid #f2f3f5; outline-offset: 2px; }
 
-/* «Bilen din»: luft øverst der bilen vises, og bilen glir opp og ut når man blar */
-#bil-panel .bil-luft { height: var(--bil-luft, 0px); }
-#bil-panel { -webkit-mask-image: none; mask-image: none; }
+/* Panelene: luft øverst der vogntoget vises. Når man blar, zoomer kameraet ut (main.js), og teksten
+   forsvinner i underkanten av veien i stedet for å legge seg oppå den. */
+.kalk-panel .bil-luft { height: var(--bil-luft, 0px); }
+.kalk-panel {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent var(--vei-bunn, 0px), #000 calc(var(--vei-bunn, 0px) + 6px));
+  mask-image: linear-gradient(to bottom, transparent 0, transparent var(--vei-bunn, 0px), #000 calc(var(--vei-bunn, 0px) + 6px));
+}
 /* Det som kommer til syne under 3D-scenen når den glir opp: samme farge som gresset nederst */
 html.kalkulator-modus body { background: rgb(62, 79, 65); }
 

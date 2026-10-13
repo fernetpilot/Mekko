@@ -2,6 +2,7 @@
 // Bytt bil øverst, nøkkeltall, og faner for Oversikt, Service, Vedlikehold, Dekk, Økonomi og Bildata.
 // All beregning ligger i de rene modulene (dashboard.js, dekk.js, bilstatus.js). Her tegnes bare panelet.
 import { euStatus, formaterDato, formaterKm } from '/js/bilstatus.js';
+import { normaliserSkilt } from '/js/kjoretoy.js';
 import { alleFrister, aarshjul, bilNavn, velgBil } from '/js/dashboard.js';
 import { hentBiler, lagreBil, lagretBil } from './bil-data.js';
 import { el, fristListe, lenkekort, liten } from './bil-visning.js';
@@ -26,6 +27,7 @@ let henter = null;
 let bil = null;
 let fane = 'oversikt';
 let dekksettOk = true;
+let slippHoyde = null;
 
 // ---------------------------------------------------------------------------
 // Data
@@ -82,10 +84,61 @@ export async function visBilenDin(valg = {}) {
 // ---------------------------------------------------------------------------
 // Toppen: bilbytte, navn og nøkkeltall
 // ---------------------------------------------------------------------------
+// «+ Legg til bil» blir til en tekstboks rett ved siden av, så man slipper å gå til en annen side.
 function leggTilKnapp() {
-  const a = el('a', 'bil-chip legg-til', '+ Legg til bil');
-  a.href = '/min-side#ny-bil-skjema';
-  return a;
+  const knapp = el('button', 'bil-chip legg-til', '+ Legg til bil');
+  knapp.type = 'button';
+  knapp.addEventListener('click', () => {
+    const skjema = leggTilSkjema(() => skjema.replaceWith(knapp));
+    knapp.replaceWith(skjema);
+    skjema.querySelector('input').focus();
+    skjema.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' });
+  });
+  return knapp;
+}
+
+function leggTilSkjema(avbryt) {
+  const skjema = el('form', 'bil-ny');
+  const felt = el('input');
+  Object.assign(felt, { type: 'text', name: 'skilt', placeholder: 'Skiltnummer', autocomplete: 'off', spellcheck: false });
+  felt.setAttribute('aria-label', 'Skiltnummer på bilen du vil legge til');
+  felt.setAttribute('autocapitalize', 'characters');
+  const ok = el('button', 'bil-ny-ok', 'Legg til');
+  ok.type = 'submit';
+  const lukk = el('button', 'bil-ny-lukk', '✕');
+  lukk.type = 'button';
+  lukk.setAttribute('aria-label', 'Avbryt');
+  lukk.addEventListener('click', () => { melding(''); avbryt(); });
+  skjema.append(felt, ok, lukk);
+
+  skjema.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const skilt = normaliserSkilt(felt.value);
+    if (!skilt) { melding('Skriv et gyldig skiltnummer, f.eks. AB 12345.', 'feil'); felt.focus(); return; }
+    ok.disabled = felt.disabled = true;
+    melding(`Henter ${skilt} fra Statens vegvesen …`);
+    try {
+      const { slaOppBil, lagreNyBil } = await import('/js/ny-bil.js');
+      const k = await slaOppBil(skilt);
+      const id = await lagreNyBil(skilt, k);
+      melding(`${[k.merke, k.modell].filter(Boolean).join(' ') || skilt} er lagt til.`, 'ok');
+      biler = null;
+      henter = null;
+      await visBilenDin({ bilId: id });
+    } catch (feil) {
+      melding(feil.message, 'feil');
+      ok.disabled = felt.disabled = false;
+      felt.focus();
+    }
+  });
+  return skjema;
+}
+
+function melding(tekst, type = '') {
+  const m = $('bil-ny-melding');
+  m.textContent = tekst;
+  m.className = `bil-ny-melding ${type}`;
+  m.hidden = !tekst;
 }
 
 function tegn() {
@@ -138,7 +191,13 @@ function tegnFaner() {
     k.addEventListener('click', () => velgFane(f.id));
     return k;
   }));
-  nav.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Valgt fane inn i synsfeltet sideveis (bare vannrett, så siden ikke flytter seg)
+  const valgt = nav.querySelector('[aria-selected="true"]');
+  if (valgt) {
+    const venstre = valgt.offsetLeft - nav.offsetLeft;
+    if (venstre < nav.scrollLeft) nav.scrollLeft = venstre - 8;
+    else if (venstre + valgt.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = venstre + valgt.offsetWidth - nav.clientWidth + 8;
+  }
 
   const innhold = $('bil-fane-innhold');
   innhold.setAttribute('aria-labelledby', `bil-fane-${fane}`);
@@ -158,12 +217,22 @@ async function lastPaNytt() {
 export function velgFane(id) {
   if (!FANER.some((f) => f.id === id) || !bil) return;
   fane = id;
+  // Bli stående der man er: hold på høyden så en kortere fane ikke drar siden opp
+  const panel = $('bil-panel');
+  const innhold = $('bil-fane-innhold');
+  const scroll = panel.scrollTop;
+  innhold.style.minHeight = `${innhold.offsetHeight}px`;
   tegnFaner();
   oppdaterAdresse();
-  // Hopp til fanene hvis man har scrollet langt ned
-  const panel = $('bil-panel');
-  const topp = $('bil-faner').offsetTop - 24;
-  if (panel.scrollTop > topp) panel.scrollTo({ top: topp, behavior: 'smooth' });
+  panel.scrollTop = scroll;
+  // Slipp høyden når man blar opp igjen
+  if (slippHoyde) panel.removeEventListener('scroll', slippHoyde);
+  const slipp = slippHoyde = () => {
+    if (panel.scrollTop > scroll - 40) return;
+    innhold.style.minHeight = '';
+    panel.removeEventListener('scroll', slipp);
+  };
+  panel.addEventListener('scroll', slipp, { passive: true });
 }
 
 // Piltaster mellom fanene

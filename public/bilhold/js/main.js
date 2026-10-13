@@ -8,9 +8,16 @@ const styrelinje = document.getElementById('styrelinje');
 const temaMeta = document.querySelector('meta[name="theme-color"]');
 
 let scene = null;
+// Bilen får fargen den er registrert med, og delene lyser i samme farge som statusen på kortene
+// (forside-kort.js). Lyttes på før scenen er lastet, så ingenting går tapt mens Three.js hentes.
+const bilVisning = { lakk: null, status: null };
+document.addEventListener('mekko:lakk', (e) => { bilVisning.lakk = e.detail.farge; scene?.settLakk(bilVisning.lakk); });
+document.addEventListener('mekko:delstatus', (e) => { bilVisning.status = e.detail.status; scene?.settDelStatus(bilVisning.status); });
 try {
   const { lagScene } = await import('./scene.js');
   scene = lagScene(document.getElementById('scene'));
+  scene.settLakk(bilVisning.lakk);
+  scene.settDelStatus(bilVisning.status);
 } catch (feil) {
   // Ingen WebGL (eller CDN nede): siden fungerer fortsatt, bare uten 3D
   console.warn('3D-scenen kunne ikke startes:', feil);
@@ -334,11 +341,11 @@ function apneSide(navn, { historikk = true, fane, bilId } = {}) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   rot.dataset.theme = 'dark';
   scene?.settTema('dark');
+  scene?.settSideBunn(null);
   scene?.settModus(navn);
   plasserPanel(p);
   p.hidden = false;
   p.scrollTop = 0;
-  flyttBil(0);
   // Én frame senere, så overgangen fra skjult til synlig blir animert
   requestAnimationFrame(() => {
     rot.classList.add('kalkulator-modus');
@@ -361,7 +368,6 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
   aapen = null;
   iKalkulator = false;
   p.classList.remove('apen');
-  flyttBil(0);
   if (!umiddelbart) {
     rot.classList.remove('kalkulator-modus');
     scene?.settModus('scroll');
@@ -377,23 +383,26 @@ function lukkSide({ historikk = true, umiddelbart = false } = {}) {
 }
 const lukkKalkulator = (o) => lukkSide(o);
 
-// Panelet starter under vogntoget. «Bilen din» går helt opp til headeren, med luft øverst der bilen
-// vises: når man blar, glir bilen opp og ut sammen med teksten, så det blir mer plass til å lese.
+
+// Begge panelene går helt opp til headeren, med luft øverst der vogntoget vises. Når man blar ned,
+// zoomer kameraet ut så veien hele tiden slutter der teksten begynner, til vogntoget bare er en smal
+// stripe under logoen og tilbakeknappen. Fanene i «Bilen din» stopper rett under veien.
 function plasserPanel(p) {
-  const bunn = scene ? scene.kalkulatorBunn() : 72;
-  if (p !== PANELER.bil) return p.style.setProperty('--kalk-topp', `${bunn}px`);
   const topp = Math.round(header.getBoundingClientRect().bottom);
+  const { full, mini } = scene ? scene.sideBunn() : { full: 72, mini: 72 };
   p.style.setProperty('--kalk-topp', `${topp}px`);
-  p.style.setProperty('--bil-luft', `${Math.max(0, bunn - topp)}px`);
+  p.style.setProperty('--bil-luft', `${Math.max(0, full - topp)}px`);
+  p.style.setProperty('--vei-bunn', `${Math.max(0, mini - topp)}px`);
+  zoomEtterScroll(p);
 }
-function flyttBil(y) {
-  canvas.style.transform = y ? `translateY(${-y}px)` : '';
+function zoomEtterScroll(p) {
+  if (!scene || PANELER[aapen] !== p) return;
+  const { full, mini } = scene.sideBunn();
+  scene.settSideBunn(p.scrollTop > 0 ? Math.max(mini, full - p.scrollTop) : null);
 }
-PANELER.bil.addEventListener('scroll', () => {
-  if (aapen !== 'bil') return;
-  const luft = parseFloat(PANELER.bil.style.getPropertyValue('--bil-luft')) || 0;
-  flyttBil(Math.min(PANELER.bil.scrollTop, luft));
-}, { passive: true });
+for (const p of Object.values(PANELER)) {
+  p.addEventListener('scroll', () => zoomEtterScroll(p), { passive: true });
+}
 
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') lukkSide(); });
 

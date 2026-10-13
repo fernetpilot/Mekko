@@ -45,6 +45,14 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   leder hit. Fanene ligger i egne filer i `public/bilhold/js/` (`fane-service.js`, `fane-vedlikehold.js`, `fane-dekk.js`,
   `fane-okonomi.js`; felles byggeklosser i `bil-visning.js`). Etter en lagring kaller fanen `ctx.oppdater()`, som henter
   bilene på nytt. De gamle sidene `/service-og-eu`, `/vedlikehold`, `/dekk` og `/bilokonomi` sender bare videre til riktig fane.
+  Panelene («Bilen din» og kalkulatoren) går opp til headeren med luft øverst (`.bil-luft`). Når man blar ned,
+  zoomer kameraet ut (`scene.settSideBunn`) så veien alltid slutter der teksten begynner, til vogntoget er en smal
+  stripe under headeren; fanene i «Bilen din» stopper rett under veien (`--vei-bunn`). «+ Legg til bil» blir en
+  tekstboks i bilraden (skiltoppslag og lagring i `public/js/ny-bil.js`, brukt også av Min side).
+  Innlogget får 3D-bilen fargen den er registrert med hos Vegvesenet (`public/js/bilfarge.js`, testet; huskes i
+  nettleseren per skilt), og motor/bremser/dekk lyser i kortets statusfarge når kameraet zoomer inn.
+  Svake telefoner får en lett 3D-versjon (lav oppløsning, ingen skygger, 30 fps): slås på av lite minne/datasparing
+  eller hvis de første sekundene går tregt. `?lett` i adressen tvinger den på.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   EU-kontroll, service og dekkskift; servicepunkter som aldri er registrert gir ett samlet «bør sjekkes»-varsel per bil.
@@ -92,6 +100,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   `servicekatalog.js` + «EU-kontroll» og «Service (uten spesifiserte deler)». Uten lagrede deler gjettes de
   (`servicepunkt-gjetting.js`). Kostnad på besøk med flere kategorier fordeles likt; «Annet» får bare andel alene.
   Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
+- `public/personvern.html` – personvernerklæring, lenket diskret nederst på forsiden og i profilmenyen.
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - Service og EU-fanen (`fane-service.js`): EU-kontroll, service og slitasje de neste 12 mnd. Vedlikehold-fanen
   (`fane-vedlikehold.js`): alt vedlikehold per år med kostnad og vedlegg. Ren logikk i `public/js/dashboard.js` (testet).

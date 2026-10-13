@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0d">
+  <title>Mekkoo – personvern</title>
+  <link rel="stylesheet" href="/css/min-side.css">
+  <style>
+    .personvern { max-width: 38rem; }
+    .personvern h2 { margin: 28px 0 8px; font-size: 18px; }
+    .personvern p, .personvern li { color: var(--tekst-dempet, #b7bac0); line-height: 1.55; }
+    .personvern ul { padding-left: 1.2em; }
+    .personvern li + li { margin-top: 4px; }
+    .personvern strong { color: var(--tekst, #f2f3f5); }
+    .personvern a { color: var(--tekst, #f2f3f5); text-underline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <header class="topp">
+    <a class="logo" href="/">MEKKOO</a>
+  </header>
+
+  <main class="personvern">
+    <p class="overline">Personvern</p>
+    <h1>Slik behandler vi opplysningene dine</h1>
+    <p>Mekkoo er laget for å holde oversikt over bilen din. Vi lagrer bare det som trengs for at tjenesten skal virke, og du kan slette alt selv når som helst.</p>
+
+    <h2>Hva vi lagrer</h2>
+    <ul>
+      <li><strong>Kontoen din:</strong> e-postadressen og et kryptert passord. Passordet kan vi ikke lese.</li>
+      <li><strong>Bilene dine:</strong> skiltnummer, merke, modell, EU-kontrollfrist og kilometerstand, og kjøpsopplysninger hvis du legger dem inn.</li>
+      <li><strong>Vedlikehold og dekk:</strong> det du registrerer selv, som service, reparasjoner, dekksett, beløp og notater.</li>
+      <li><strong>Vedlegg:</strong> kvitteringer og serviceordrer du laster opp. De ligger i et privat lager som bare du har tilgang til.</li>
+    </ul>
+
+    <h2>Hva vi bruker det til</h2>
+    <p>Bare til å vise deg oversikt over bilen, regne ut frister og gi deg varsler på siden. Vi selger ikke opplysningene, bruker dem ikke til reklame og deler dem ikke med andre.</p>
+
+    <h2>Oppslag hos Statens vegvesen</h2>
+    <p>Når du skriver inn et skiltnummer, slår vi det opp i Statens vegvesens kjøretøyregister for å hente tekniske data som vekter, farge og EU-kontrollfrist. Bare skiltnummeret sendes, ikke hvem du er.</p>
+
+    <h2>Hvor opplysningene ligger</h2>
+    <ul>
+      <li><strong>Supabase</strong> lagrer kontoen, bilene, vedlikeholdet og vedleggene. Tilgangsregler i databasen gjør at du bare kan se dine egne data.</li>
+      <li><strong>Netlify</strong> leverer selve nettsiden.</li>
+      <li><strong>Nettleseren din</strong> husker at du er logget inn, hvilken bil du så på sist og fargen på bilen. Dette blir liggende på din enhet og slettes når du logger ut eller tømmer nettleseren.</li>
+    </ul>
+    <p>Vi bruker ikke informasjonskapsler til sporing eller statistikk.</p>
+
+    <h2>Slik sletter du</h2>
+    <ul>
+      <li>En registrering eller et vedlegg sletter du der du ser det, for eksempel i Vedlikehold eller serviceheftet.</li>
+      <li>En bil, med all historikk og alle vedlegg, fjerner du under <a href="/min-side">Min side</a>.</li>
+      <li>Hele kontoen sletter du under <a href="/min-side">Min side</a> → «Slett konto». Da slettes alt for godt.</li>
+    </ul>
+
+    <h2>Spørsmål</h2>
+    <p>Har du spørsmål om personvern, eller vil du ha innsyn i hva vi har lagret om deg, kan du kontakte oss. Du har også rett til å klage til Datatilsynet.</p>
+
+    <p><a href="/">‹ Tilbake til forsiden</a></p>
+  </main>
+</body>
+</html>
