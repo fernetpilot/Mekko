@@ -33,6 +33,7 @@ const felles = {
 export const discovery3 = {
   ...felles,
   navn: 'Discovery 3',
+  dekk: 'terreng',           // grove dekk
   felg: { radius: 0.25, eiker: 7, eikebredde: 0.05 },
   karosseri: (ctx) => byggL319(ctx, false),
 };
@@ -55,8 +56,8 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const KUPE_B = 1.78;       // kupéens bredde ved beltelinjen (smalere enn karosseriet: tydelig skulder)
   const HELNING = 0.045;     // sideveggene går nesten loddrett opp til taket
   const TAK_F = 1.86;        // takets underkant foran
-  const TAK_B = 1.905;       // taket bak trinnet, 4–5 cm høyere
-  const TRINN_Z = 0;         // der taket hever seg, ved B-stolpen
+  const TAK_B = 1.91;        // «Alpine»-taket bak trinnet, ca. 5 cm høyere
+  const TRINN_Z = -1.0;      // der taket hever seg, like bak C-stolpen
   const RUTE_FOT = { z: 1.0, y: BELTE };
   const RUTE_TOPP = { z: 0.44, y: TAK_F };
   const sideX = (BREDDE + MIDT_B) / 4;
@@ -88,15 +89,16 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const rodtGlass = std({ color: 0xc8150f, emissive: 0x4a0000, metalness: 0.2, roughness: 0.25 });   // baklys
 
   // ---------- Hjulbuer ----------
-  // Runde buer tegnet som mangekant (lavpoly). Senter i hjulnavet, går ned til underkanten av karosseriet.
-  const bueVinkel = (bunn) => Math.asin((bunn - 0.38) / BUE_R);
-  // Punktene (z, y) over hjulet, bakfra og fram
-  const buePunkter = (aksel, bunnBak, bunnFram, r = BUE_R, n = 11) => {
-    const a1 = Math.PI - bueVinkel(bunnBak), a2 = bueVinkel(bunnFram);
-    return Array.from({ length: n + 1 }, (_, i) => {
-      const a = a1 + (a2 - a1) * (i / n);
-      return [aksel + Math.cos(a) * r, 0.38 + Math.sin(a) * r];
+  // Nesten rektangulære buer med avrundede hjørner, så hjulene ser ut til å stå i firkantede kasser.
+  // Punktene (z, y) over hjulet, bakfra og fram. r styrer størrelsen (BUE_R er selve åpningen).
+  const buePunkter = (aksel, bunnBak, bunnFram, r = BUE_R, n = 4) => {
+    const w = r * 0.98, topp = 0.38 + r * 0.9, rh = 0.15 * r / BUE_R;
+    const hjorne = (cz, cy, fra, til) => Array.from({ length: n + 1 }, (_, i) => {
+      const a = fra + (til - fra) * (i / n);
+      return [cz + Math.cos(a) * rh, cy + Math.sin(a) * rh];
     });
+    return [[aksel - w, bunnBak], ...hjorne(aksel - w + rh, topp - rh, Math.PI, Math.PI / 2),
+      ...hjorne(aksel + w - rh, topp - rh, Math.PI / 2, 0), [aksel + w, bunnFram]];
   };
   // Ring langs buen (mellom radius r1 og r2), brukt til kledningen utenpå og innerskjermen inni
   const bueRing = (aksel, bunnBak, bunnFram, r1, r2) => {
@@ -125,8 +127,8 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     // Terskel i samme kledning mellom hjulbuene
     const tFra = BAKAKSEL + BUE_R + 0.03, tTil = FORAKSEL - BUE_R - 0.03;
     fboks(0.06, 0.17, tTil - tFra, kledning, s * (SIDE + 0.01), UNDER - 0.005, (tFra + tTil) / 2, 0.018);
-    // Svak preglinje langs dørene, i høyde med håndtakene
-    fboks(0.016, 0.03, tTil - tFra + 0.2, solv, s * (SIDE + 0.002), 1.13, (tFra + tTil) / 2, 0.008);
+    // Enkel, rett karakterlinje midt på dørsiden
+    fboks(0.018, 0.035, tTil - tFra + 0.2, solv, s * (SIDE + 0.003), 0.88, (tFra + tTil) / 2, 0.01);
   }
   // Bakplate i lakk over endene av sideplatene (frontplaten ligger i byggFrontD3/D4)
   fboks(BREDDE - 0.02, BELTE - 0.53, 0.05, solv, 0, (BELTE + 0.52) / 2, BAK - 0.002, 0.02);
@@ -157,15 +159,33 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   panser.position.set(0, BELTE + 0.005, HENGSEL_Z);
   karosseri.add(panser);
   const panserL = Math.hypot(FRONT - HENGSEL_Z, BELTE - PANSER_FRONT) + 0.03;
-  fboks(BREDDE - 0.01, 0.06, panserL, solv, 0, 0, panserL / 2, 0.035, panser);
-  // Opphøyd, trapesformet felt i midten: to svakt utoverbøyde linjer fra innerkanten av lyktene mot frontruta
-  const felt = [[0.52, panserL - 0.07], [0.6, panserL * 0.55], [0.6, panserL * 0.25], [0.57, 0.08]];
-  const feltForm = new THREE.Shape([...felt, ...felt.slice().reverse().map(([x, z]) => [-x, z])].map(([x, z]) => new THREE.Vector2(x, -z)));
-  const hevet = new THREE.Mesh(new THREE.ExtrudeGeometry(feltForm, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.03, bevelOffset: -0.03, bevelSegments: 1 }), solv);
-  hevet.rotation.x = -Math.PI / 2;
-  hevet.position.y = 0.03;
-  hevet.castShadow = true;
-  panser.add(hevet);
+  // Helt flatt i midten, med markerte kanter som faller brått ned mot skjermene (tverrsnitt trukket langs panseret)
+  const PB = BREDDE / 2 - 0.005;
+  const snitt = new THREE.Shape([[-PB, -0.06], [-PB + 0.16, 0.035], [PB - 0.16, 0.035], [PB, -0.06], [PB - 0.02, -0.075], [-PB + 0.02, -0.075]]
+    .map(([x, y]) => new THREE.Vector2(x, y)));
+  const panserPlate = new THREE.Mesh(new THREE.ExtrudeGeometry(snitt, { depth: panserL, bevelEnabled: false }), solv);
+  panserPlate.castShadow = true;
+  panserPlate.receiveShadow = true;
+  panser.add(panserPlate);
+  if (!d4) {
+    // Bokstavene LAND ROVER i en flat linje på forkanten, like over grillen
+    const lerret = document.createElement('canvas');
+    lerret.width = 1024;
+    lerret.height = 128;
+    const g = lerret.getContext('2d');
+    g.fillStyle = '#1d1f22';
+    g.font = '800 96px Arial, Helvetica, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    if ('letterSpacing' in g) g.letterSpacing = '22px';
+    g.fillText('LAND ROVER', 512, 68);
+    const tekstur = new THREE.CanvasTexture(lerret);
+    tekstur.colorSpace = THREE.SRGBColorSpace;
+    const bokstaver = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.12), new THREE.MeshStandardMaterial({ map: tekstur, transparent: true, metalness: 0.5, roughness: 0.4 }));
+    bokstaver.rotation.x = -Math.PI / 2;
+    bokstaver.position.set(0, 0.037, panserL - 0.11);
+    panser.add(bokstaver);
+  }
   fboks(BREDDE - 0.01, 0.1, 0.08, solv, 0, -0.035, panserL - 0.04, 0.04, panser);    // forkanten bøyer ned, med bred fas
   const panserGrunn = Math.atan2(BELTE - PANSER_FRONT, FRONT - HENGSEL_Z);           // senker fronten
 
@@ -197,15 +217,21 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     const ytre = s * (KUPE_B / 2 - 0.015);
     const vinduer = [
       [[0.06, VF], [aStolpeZ(VF) - 0.07, VF], [aStolpeZ(VT) - 0.07, VT], [0.06, VT]],   // fordør
-      [[-0.86, VF], [-0.06, VF], [-0.06, VT_BAK], [-0.86, VT_BAK]],                     // bakdør (bak trinnet i taket)
+      [[-0.86, VF], [-0.06, VF], [-0.06, VT], [-0.86, VT]],                             // bakdør
       [[BAK + 0.32, VF], [-0.98, VF], [-0.98, VT_BAK], [BAK + 0.32, VT_BAK]],           // bakre sidevindu
     ];
     sideplate(y0([[BAK, BELTE], [RUTE_FOT.z, BELTE], [RUTE_TOPP.z, TAK_F + 0.02], [TRINN_Z, TAK_F + 0.02], [TRINN_Z, TAK_B + 0.02], [BAK, TAK_B + 0.02]]),
       0.03, solv, ytre, vinduer.map(y0), vegg);
     const glassX = ytre + s * 0.02;
     for (const v of vinduer) sideplate(y0(v), 0.01, glass, glassX, [], vegg);
+    // Stramme, rettvinklede sorte rammer rundt sidevinduene
+    for (const v of vinduer) {
+      const cz = v.reduce((a, p) => a + p[0], 0) / v.length, cy = v.reduce((a, p) => a + p[1], 0) / v.length;
+      const ut = v.map(([z, y]) => [z + Math.sign(z - cz) * 0.025, y + Math.sign(y - cy) * 0.025]);
+      sideplate(y0(ut), 0.012, plast, glassX + s * 0.006, [y0(v)], vegg);
+    }
     // Sorte B- og C-stolper: vinduene blir ett mørkt bånd, D-stolpen er lakkert
-    boks(0.012, VT_BAK - VF + 0.02, 0.13, plast, glassX, (VT_BAK + VF) / 2 - BELTE, 0, vegg);
+    boks(0.012, VT - VF + 0.02, 0.13, plast, glassX, (VT + VF) / 2 - BELTE, 0, vegg);
     boks(0.012, VT_BAK - VF + 0.02, 0.14, plast, glassX, (VT_BAK + VF) / 2 - BELTE, -0.92, vegg);
     // A-stolpen er også sort på siden, fra vinduet fram til frontruta
     sideplate(y0([[aStolpeZ(VF) - 0.075, VF - 0.01], [aStolpeZ(VF) + 0.01, VF - 0.01], [aStolpeZ(TAK_F) + 0.01, TAK_F], [aStolpeZ(VT) - 0.075, VT]]), 0.012, plast, glassX, [], vegg);
@@ -278,57 +304,57 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     const gitter = std({ color: 0x34373c, metalness: 0.3, roughness: 0.6 });
     // Lakkert felt rundt lykter og grill
     fboks(BREDDE - 0.02, PANSER_FRONT - SPLITT, 0.05, solv, 0, (PANSER_FRONT + SPLITT) / 2, FRONT + 0.002, 0.02);
-    // Støtfanger i mørk plast under delelinjen, og selve delelinjen
-    fboks(BREDDE + 0.02, SPLITT - 0.36, 0.16, kledning, 0, (SPLITT + 0.36) / 2, FRONT + 0.08, 0.05);
-    boks(BREDDE - 0.14, 0.012, 0.02, morkPlast, 0, SPLITT + 0.002, FRONT + 0.155);
+    // Støtfanger i mørk plast under delelinjen, tredelt: midtparti og to hjørner i ulakkert, strukturert plast
+    const struktur = std({ color: 0x2b2c2f, roughness: 1 });
+    const MB = 1.12;
+    fboks(MB, SPLITT - 0.36, 0.16, kledning, 0, (SPLITT + 0.36) / 2, FRONT + 0.08, 0.04);
+    for (const s of [-1, 1]) fboks((BREDDE + 0.02 - MB) / 2 - 0.01, SPLITT - 0.35, 0.18, struktur, s * (MB / 2 + (BREDDE + 0.02 - MB) / 4), (SPLITT + 0.37) / 2, FRONT + 0.085, 0.05);
+    boks(BREDDE - 0.14, 0.012, 0.02, morkPlast, 0, SPLITT + 0.002, FRONT + 0.175);
     for (const s of [-1, 1]) {
       const lx = s * LX;
-      // Lyktehuset: kvadratisk boks som går litt rundt hjørnet
-      fboks(LB, LH, 0.04, klart, lx, LY, FF + 0.002, 0.015);
+      // Lyktehuset: trapesformet ramme med et trinn i underkanten som følger støtfangerlinjen
+      // (u går utover fra lyktas midte, y opp)
+      const u = [[-LB / 2, LH / 2], [LB / 2, LH / 2], [LB / 2, -LH / 2], [0.02, -LH / 2], [0, -LH / 2 + 0.05], [-LB / 2 + 0.05, -LH / 2 + 0.05]];
+      const husForm = new THREE.Shape(u.map(([a, y]) => new THREE.Vector2(lx + s * a, LY + y)));
+      const hus = new THREE.Mesh(new THREE.ExtrudeGeometry(husForm, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelOffset: -0.008, bevelSegments: 1 }), klart);
+      hus.position.z = FF - 0.008;
+      karosseri.add(hus);
       fboks(0.03, LH - 0.02, 0.24, klart, s * (SIDE - 0.005), LY, FRONT - 0.08, 0.01);
-      const oy = LY + 0.045;                   // øvre rad i lykta
-      // Projektorlinse med markant ring, øverst ytterst
+      // Runde enheter i lykta: projektorlinse med markant ring ytterst, parabol i midten, svinglys innerst
+      const oy = LY + 0.04;
       const px = lx + s * 0.12;
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.012, 8, 20), krom);
       ring.position.set(px, oy, FF + 0.026);
       karosseri.add(ring);
       rund(0.04, 0.012, lykt, px, oy, FF + 0.026, karosseri, 20);
-      // Dyp, skålformet parabol (fjernlys) ved siden av, inn mot midten
-      // (tegnet som blank skive med mønstrede ringer rundt en pære, så den ser dyp ut)
-      const fx = lx - s * 0.015;
-      rund(0.062, 0.01, std({ color: 0xb8bdc3, metalness: 1, roughness: 0.25 }), fx, oy, FF + 0.026, karosseri, 24);
-      for (const rr of [0.05, 0.036, 0.022]) {
+      const fx = lx - s * 0.005;
+      rund(0.058, 0.01, std({ color: 0xb8bdc3, metalness: 1, roughness: 0.25 }), fx, oy, FF + 0.026, karosseri, 24);
+      for (const rr of [0.046, 0.032, 0.02]) {
         const r2 = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.004, 4, 20), krom);
         r2.position.set(fx, oy, FF + 0.032);
         karosseri.add(r2);
       }
       rund(0.012, 0.02, lykt, fx, oy, FF + 0.036, karosseri, 12);
-      // Svinglys innerst: liten reflektor med loddrette riller, vinklet 45° utover
-      const sving = new THREE.Group();
-      sving.position.set(lx - s * 0.145, oy + 0.005, FF + 0.022);
-      sving.rotation.y = s * Math.PI / 4;
-      karosseri.add(sving);
-      boks(0.07, 0.09, 0.012, klart, 0, 0, 0, sving);
-      for (let i = -2; i <= 2; i++) boks(0.005, 0.085, 0.006, krom, i * 0.012, 0, 0.008, sving);
-      // Nederst: blinklys med riller ytterst, klart felt med en liten pære innerst
-      const by = LY - 0.09;
-      boks(LB / 2 - 0.03, 0.075, 0.012, blinklys, lx + s * (LB / 4), by, FF + 0.024);
-      for (let i = 0; i < 7; i++) boks(0.004, 0.07, 0.006, blinklys, lx + s * (0.025 + i * 0.022), by, FF + 0.032);
-      boks(LB / 2 - 0.03, 0.075, 0.012, klart, lx - s * (LB / 4), by, FF + 0.024);
-      rund(0.016, 0.014, lykt, lx - s * (LB / 4), by - 0.012, FF + 0.03, karosseri, 12);
+      const sx = lx - s * 0.125;
+      const sring = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.008, 6, 18), krom);
+      sring.position.set(sx, oy - 0.01, FF + 0.026);
+      karosseri.add(sring);
+      rund(0.028, 0.01, std({ color: 0xc9cdd2, metalness: 1, roughness: 0.3 }), sx, oy - 0.01, FF + 0.026, karosseri, 18);
+      rund(0.01, 0.016, lykt, sx, oy - 0.01, FF + 0.032, karosseri, 10);
+      // Blinklys nede i det ytre, lavere feltet under trinnet
+      boks(0.16, 0.035, 0.012, blinklys, lx + s * 0.11, LY - LH / 2 + 0.025, FF + 0.024);
       // Lyktespyler: lite, mørkt plastdeksel under lykta, over delelinjen
-      fboks(0.08, 0.04, 0.03, plast, lx, SPLITT, FRONT + 0.165, 0.008);
-      // Tåkelys: dype, traktformede hull med blank, konveks linse
-      const tx = s * (SIDE - 0.19), ty = 0.52;
-      const trakt = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.048, 0.06, 24, 1, true),
-        std({ color: 0x0a0a0b, roughness: 0.6, side: THREE.DoubleSide }));
-      trakt.rotation.x = Math.PI / 2;
-      trakt.position.set(tx, ty, STF + 0.028);
-      karosseri.add(trakt);
-      const linse = new THREE.Mesh(new THREE.SphereGeometry(0.048, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: 0xf2f4f6, metalness: 0.4, roughness: 0.05, emissive: 0x444038 }));
+      fboks(0.08, 0.04, 0.03, plast, lx, SPLITT, FRONT + 0.185, 0.008);
+      // Tåkelys langt ute i hjørnene, i en innstøpt, mangekantet fordypning
+      const tx = s * (MB / 2 + (BREDDE + 0.02 - MB) / 4), ty = 0.55, TF = FRONT + 0.176;
+      fboks(0.19, 0.15, 0.02, morkPlast, tx, ty, TF - 0.006, 0.04);
+      const tring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 20), krom);
+      tring.position.set(tx, ty, TF + 0.006);
+      karosseri.add(tring);
+      const linse = new THREE.Mesh(new THREE.SphereGeometry(0.046, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: 0xf2f4f6, metalness: 0.4, roughness: 0.05, emissive: 0x444038 }));
       linse.rotation.x = Math.PI / 2;
-      linse.scale.y = 0.45;
-      linse.position.set(tx, ty, STF + 0.002);
+      linse.scale.y = 0.4;
+      linse.position.set(tx, ty, TF + 0.004);
       karosseri.add(linse);
     }
     // Grill: fyller hele rommet mellom lyktene. Overkanten buer svakt opp ytterst for å møte panseret.
@@ -358,7 +384,7 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     const merke = rund(0.03, 0.012, merkeMat, -GB / 2 + 0.11, GTOPP - 0.035, FF + 0.04, karosseri, 20);
     merke.scale.x = 2;
     // Nedre luftinntak med grovt rutenett, mellom tåkelysene
-    const IB = 2 * (SIDE - 0.19) - 0.28;
+    const IB = MB - 0.16;
     boks(IB, 0.12, 0.02, morkPlast, 0, 0.53, STF + 0.001);
     for (let x = -IB / 2 + 0.07; x < IB / 2 - 0.03; x += 0.075) boks(0.012, 0.11, 0.02, gitter, x, 0.53, STF + 0.006);
     boks(IB - 0.02, 0.012, 0.02, gitter, 0, 0.53, STF + 0.007);
@@ -451,20 +477,22 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     boks(0.52, 0.11, 0.008, skiltMat, SX, SY - 0.005, BF - 0.018);
     boks(0.045, 0.11, 0.009, euMat, SX + 0.237, SY - 0.005, BF - 0.019);                // blått felt til venstre
     fboks(0.5, 0.035, 0.035, morkPlast, SX, SY + 0.13, BF - 0.012, 0.012);
-    // Baklys: høye, smale rektangler på D-stolpene. To runde linser over hverandre, under dem blinklys og ryggelys.
+    // Baklys: slanke, loddrette lykter helt ytterst, fra midjehøyde nesten opp til taket.
+    // Runde lysgrafikker for bremselys og blinklys, ryggelys nederst.
     const hus = std({ color: 0x3a0c0c, metalness: 0.3, roughness: 0.25 });
+    const ravGlass = std({ color: 0xffa21f, emissive: 0x6a3300, roughness: 0.25 });
     for (const s of [-1, 1]) {
-      const lx = s * (lukeB - 0.095), ly = 1.47;
-      fboks(0.15, 0.6, 0.04, hus, lx, ly, BF - 0.01, 0.015);
-      for (const y of [ly + 0.2, ly + 0.07]) {
+      const lx = s * (lukeB - 0.095), ly = 1.48, lh = 0.72;
+      fboks(0.15, lh, 0.04, hus, lx, ly, BF - 0.01, 0.015);
+      const sirkler = [[ly + 0.25, bakledd], [ly + 0.11, bakledd], [ly - 0.03, ravGlass]];
+      for (const [y, m] of sirkler) {
         const ring = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.008, 6, 18), krom);
         ring.position.set(lx, y, BF - 0.032);
         karosseri.add(ring);
-        rund(0.042, 0.012, bakledd, lx, y, BF - 0.03, karosseri, 18);
+        rund(0.042, 0.012, m, lx, y, BF - 0.03, karosseri, 18);
       }
-      boks(0.12, 0.07, 0.01, blinklys, lx, ly - 0.07, BF - 0.032);
-      boks(0.12, 0.08, 0.01, klart, lx, ly - 0.17, BF - 0.032);
-      boks(0.012, 0.6, 0.12, rodtGlass, s * (lukeB - inn(ly) + 0.002), ly, BAK + 0.05);   // litt rundt hjørnet
+      boks(0.12, 0.1, 0.01, klart, lx, ly - 0.22, BF - 0.032);                              // ryggelys
+      boks(0.012, lh, 0.05, rodtGlass, s * (lukeB - inn(ly) + 0.002), ly, BAK + 0.015);     // litt rundt hjørnet
     }
     // Dyp, mørk støtfanger med mønstret trinn oppå, røde reflekser nederst og deksel for hengerfestet
     fboks(BREDDE + 0.02, 0.42, 0.12, kledning, 0, 0.6, BAK - 0.055, 0.06);
