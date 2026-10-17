@@ -28,7 +28,22 @@ const SMAL = 0.95;               // Meshy-bilen er litt for bred
 const HJULRADIUS = 0.39;
 
 // Panseret i scenens mål: flatene som vender opp mellom frontruta og fronten, innenfor skjermene
-const PANSER = { fraZ: 1.12, tilZ: 2.32, halvB: 0.8, overY: 1.0 };
+const PANSER = { fraZ: 1.12, tilZ: 2.25, overY: 1.0 };
+// Panserets form: z, halv bredde, høyde midt på. Det ligger mellom skjermkantene og smalner inn mellom lyktene.
+const PANSER_FORM = [
+  [1.12, 0.78, 1.318],
+  [1.95, 0.77, 1.225],
+  [2.14, 0.7, 1.16],
+  [2.24, 0.6, 1.1],
+];
+const panserBredde = (z) => {
+  const f = PANSER_FORM;
+  if (z <= f[0][0]) return f[0][1];
+  for (let i = 1; i < f.length; i++) {
+    if (z <= f[i][0]) return f[i - 1][1] + (f[i][1] - f[i - 1][1]) * (z - f[i - 1][0]) / (f[i][0] - f[i - 1][0]);
+  }
+  return f[f.length - 1][1];
+};
 const HENGSEL = { y: 1.3, z: 1.12 };
 
 const fraBase64 = (tekst) => Uint8Array.from(atob(tekst), (c) => c.charCodeAt(0));
@@ -75,7 +90,7 @@ function delPanser(pos, idx) {
   for (let t = 0; t < idx.length; t += 3) {
     const [a, b, c] = [idx[t], idx[t + 1], idx[t + 2]].map((i) => tilScene(pos, i));
     const [x, y, z] = [0, 1, 2].map((k) => (a[k] + b[k] + c[k]) / 3);   // midtpunktet
-    const inne = z > PANSER.fraZ && z < PANSER.tilZ && Math.abs(x) < PANSER.halvB && y > PANSER.overY
+    const inne = z > PANSER.fraZ && z < PANSER.tilZ && Math.abs(x) < panserBredde(z) + 0.015 && y > PANSER.overY
       && !(Math.abs(x) > 0.5 && z > 2.1 && y < 1.04);   // lyktene står igjen
     (inne ? panser : kropp).push(idx[t], idx[t + 1], idx[t + 2]);
   }
@@ -99,7 +114,7 @@ function tilpassMateriale(m, mat) {
             lakkMaske = smoothstep(0.36, 0.44, lys) * (1.0 - smoothstep(0.2, 0.28, metning));
             lakkMaske *= 1.0 - smoothstep(0.3, 0.45, texture2D(roughnessMap, vRoughnessMapUv).g);   // lakken er blank, lykteglasset matt i teksturen
             // Lakken blir én jevn farge (som resten av Mekkoo), med litt av teksturens skygge igjen
-            float skygge = 0.85 * mix(1.0, clamp(lys / 0.62, 0.6, 1.25), 0.3);   // lakken er mindre metallisk her enn på kodebilene
+            float skygge = 0.88 * mix(1.0, clamp(lys / 0.62, 0.6, 1.25), 0.12);   // lakken er mindre metallisk her enn på kodebilene
             diffuseColor.rgb = mix(diffuseColor.rgb, uLakk * skygge, lakkMaske);
           }`)
         .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
@@ -180,15 +195,10 @@ function byggMotorrom(karosseri, mat, boks, fboks) {
 // Panseret: lavpoly-plate som følger formen i nettet (målt), litt hvelvet på tvers og bøyd ned foran.
 // Koordinatene er i forhold til hengselet. Lakken følger bilens farge, som resten av nettet.
 function byggPanser(mat) {
-  const stasjoner = [   // z, halv bredde, høyde midt på
-    [HENGSEL.z, 0.81, 1.318],
-    [1.95, 0.8, 1.222],
-    [2.2, 0.72, 1.12],
-    [2.29, 0.66, 1.07],
-  ];
+  const stasjoner = PANSER_FORM;
   // Jevn flate: stasjonene interpoleres (Catmull-Rom) til et fint rutenett med glatte normaler
   const NZ = 14, NX = 12;
-  const hvelv = 0.03, tykk = 0.035;
+  const hvelv = 0.025, tykk = 0.025, lepp = 0.05;   // kanten bøyer ned og dekker sprekken mot skjermene
   const stasjon = (t) => {
     const u = t * (stasjoner.length - 1);
     const i = Math.min(Math.floor(u), stasjoner.length - 2), f = u - i;
@@ -197,10 +207,10 @@ function byggPanser(mat) {
     return [0, 1, 2].map((k) => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * f
       + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * f * f + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * f * f * f));
   };
-  const punkt = (i, j, under = false) => {
+  const punkt = (i, j, under = 0) => {
     const [z, b, y] = stasjon(i / NZ);
     const x = -1 + 2 * j / NX;
-    return [x * b, y - hvelv * x * x - (under ? tykk : 0) - HENGSEL.y, z - HENGSEL.z];
+    return [x * b, y - hvelv * x * x - (under === true ? tykk : under) - HENGSEL.y, z - HENGSEL.z];
   };
   // Oversiden: indeksert, så normalene blir glatte
   const pos = [], idx = [];
@@ -216,9 +226,9 @@ function byggPanser(mat) {
   const firkant = (a, b, c, d) => tri.push(a, b, c, a, c, d);
   for (let i = 0; i < NZ; i++) {
     for (let j = 0; j < NX; j++) firkant(punkt(i, j, true), punkt(i + 1, j, true), punkt(i + 1, j + 1, true), punkt(i, j + 1, true));
-    for (const j of [0, NX]) firkant(punkt(i, j), punkt(i + 1, j), punkt(i + 1, j, true), punkt(i, j, true));
+    for (const j of [0, NX]) firkant(punkt(i, j), punkt(i + 1, j), punkt(i + 1, j, lepp), punkt(i, j, lepp));
   }
-  for (let j = 0; j < NX; j++) firkant(punkt(NZ, j), punkt(NZ, j, true), punkt(NZ, j + 1, true), punkt(NZ, j + 1));
+  for (let j = 0; j < NX; j++) firkant(punkt(NZ, j), punkt(NZ, j, lepp), punkt(NZ, j + 1, lepp), punkt(NZ, j + 1));
   const kant = new THREE.BufferGeometry();
   kant.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
   kant.computeVertexNormals();
@@ -227,7 +237,7 @@ function byggPanser(mat) {
     shader.uniforms.uLakk = { value: mat.solv.color };
     shader.uniforms.uGlod = { value: mat.solv.emissive };
     shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uGlod;\n' + shader.fragmentShader
-      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = uLakk * 0.85;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = uLakk * 0.88;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uGlod;');
   };
   const gruppe = new THREE.Group();
