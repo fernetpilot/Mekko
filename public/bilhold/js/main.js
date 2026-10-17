@@ -11,7 +11,15 @@ let scene = null;
 // Bilen får fargen den er registrert med, og delene lyser i samme farge som statusen på kortene
 // (forside-kort.js). Lyttes på før scenen er lastet, så ingenting går tapt mens Three.js hentes.
 const bilVisning = { lakk: null, status: null };
-document.addEventListener('mekko:lakk', (e) => { bilVisning.lakk = e.detail.farge; scene?.settLakk(bilVisning.lakk); });
+document.addEventListener('mekko:lakk', (e) => {
+  bilVisning.lakk = e.detail.farge;
+  scene?.settLakk(bilVisning.lakk);
+  // Spillet (/spill/) bruker samme farge og viser skiltet, også når man går rett dit
+  try {
+    if (e.detail.skilt) localStorage.setItem('mekko-spill-bil', JSON.stringify({ lakk: e.detail.farge, skilt: e.detail.skilt }));
+    else localStorage.removeItem('mekko-spill-bil');
+  } catch { /* bare en snarvei */ }
+});
 document.addEventListener('mekko:delstatus', (e) => { bilVisning.status = e.detail.status; scene?.settDelStatus(bilVisning.status); });
 try {
   const { lagScene } = await import('./scene.js');
@@ -99,8 +107,8 @@ for (const lenke of document.querySelectorAll('a.glasskort, .hotspot')) {
 window.addEventListener('pageshow', () => {
   document.body.classList.remove('forlater');
   visBil(false);
-  if (rot.classList.contains('til-innlogging')) {
-    rot.classList.remove('til-innlogging');
+  if (rot.classList.contains('til-innlogging') || rot.classList.contains('til-spill')) {
+    rot.classList.remove('til-innlogging', 'til-spill');
     scene?.settModus(aapen ?? 'scroll');
     aktivIndeks = -1;
     vedScroll();
@@ -158,6 +166,41 @@ document.addEventListener('click', (e) => {
   };
   scene.zoomTilSjiraff().then(videre);
   setTimeout(videre, 2500);
+});
+
+// ---------- Ta bilen en tur: kameraet legger seg bak bilen, og spillet tar over ----------
+// Spillet bruker samme bil, vei og lys og starter med akkurat denne kameravinkelen. Forsiden
+// tar et stillbilde når kameraet er framme, og spillsiden viser det til første bilde er tegnet.
+document.addEventListener('click', (e) => {
+  const lenke = e.target.closest('a[data-spill]');
+  if (!lenke || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  if (!scene || redusertBevegelse) return;          // vanlig lenke
+  e.preventDefault();
+  for (const [rel, url] of [['prefetch', lenke.href], ['modulepreload', '/spill/js/spill.js'], ['modulepreload', '/spill/js/bane-3d.js']]) {
+    const l = document.createElement('link');
+    l.rel = rel;
+    l.href = url;
+    document.head.append(l);
+  }
+  visSkilt(false);
+  visBil(false);
+  rot.classList.add('til-spill');
+  rot.dataset.theme = 'dark';
+  scene.settTema('dark');
+  let gatt = false;
+  const videre = (data) => {
+    if (gatt || !rot.classList.contains('til-spill')) return;
+    gatt = true;
+    if (data) {
+      const lagre = (d) => sessionStorage.setItem('mekko-spill-overgang', JSON.stringify({ ...d, naa: Date.now() }));
+      try { lagre(data); } catch {
+        try { lagre({ ...data, bilde: null }); } catch { /* uten lagring starter spillet bare uten overgang */ }
+      }
+    }
+    window.location.href = lenke.href;
+  };
+  scene.tilSpill().then(videre);
+  setTimeout(() => videre(null), 5000);              // treg telefon: bytt side uansett
 });
 
 // ---------- Tilhengeren og bilen: peke/trykke og sidevisning ----------

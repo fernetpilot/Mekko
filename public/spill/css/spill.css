@@ -1,0 +1,202 @@
+/* Spillsiden. Bygger på bilhold.css (farger, header, glassfelt), så den ser ut som forsiden. */
+
+html { scroll-snap-type: none; overflow: hidden; height: 100%; }
+body { height: 100%; overflow: hidden; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+
+#scene { touch-action: none; }
+
+/* Stillbildet fra forsiden ligger over lerretet til spillet har tegnet sitt første bilde */
+#overgang {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 450ms ease-out;
+}
+#overgang:not([src]) { display: none; }
+#overgang.borte { opacity: 0; }
+
+.styre-sone {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  touch-action: none;
+  cursor: grab;
+}
+.styre-sone:active { cursor: grabbing; }
+
+/* Joysticken: glassring som dukker opp under fingeren */
+.styre-ring {
+  position: fixed;
+  z-index: 3;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-kant);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.1));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 150ms, transform 150ms;
+}
+.styre-ring.synlig { opacity: 1; transform: none; }
+.styre-knott {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(242, 243, 245, 0.85);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Visningen over spillet ---------- */
+.spill-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  padding: calc(env(safe-area-inset-top) + 72px) 16px calc(env(safe-area-inset-bottom) + 16px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  opacity: 0;
+  transition: opacity 600ms 200ms;
+}
+.i-gang .spill-hud { opacity: 1; }
+.spill-hud button, .spill-hud a { pointer-events: auto; }
+
+.skjult-tekst {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.hud-tider { display: flex; gap: 8px; }
+.hud-felt {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 16px;
+  gap: 2px;
+  min-width: 96px;
+}
+.hud-felt span, .hud-fart span {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tekst-dempet);
+}
+.hud-felt b {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.hud-melding {
+  position: fixed;
+  left: 50%;
+  top: 34%;
+  margin: 0;
+  transform: translate(-50%, 8px);
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--tekst);
+  color: var(--bg);
+  font-weight: 700;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 250ms, transform 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hud-melding.synlig { opacity: 1; transform: translate(-50%, 0); }
+
+.hud-hint {
+  align-self: center;
+  margin: auto 0 14px;
+  max-width: 22rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  text-align: center;
+  transition: opacity 400ms, transform 400ms;
+}
+.glassfelt.hud-hint > span { font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--tekst); }
+.hud-hint.skjult { opacity: 0; transform: translateY(8px); }
+.kun-tastatur { display: none; }
+@media (pointer: fine) {
+  .kun-beroring { display: none; }
+  .kun-tastatur { display: inline; }
+}
+
+.hud-bunn { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.hud-fart {
+  margin: 0;
+  padding: 8px 16px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.hud-fart b {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.2ch;
+  text-align: right;
+}
+.hud-knapper { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.hud-knapp {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-kant);
+  background: var(--glass);
+  color: var(--tekst);
+  font: 500 13px var(--font);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+.hud-knapp[aria-pressed="false"] { color: var(--tekst-dempet); }
+.hud-knapp:active { transform: scale(0.97); }
+
+.spill-kreditt {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 2px);
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  font-size: 10px;
+  color: var(--tekst-dempet);
+  white-space: nowrap;
+}
+.spill-kreditt a { color: inherit; }
+.spill-uten {
+  position: fixed;
+  inset: 40% 20px auto;
+  z-index: 6;
+  text-align: center;
+  color: var(--tekst);
+}
+.spill-uten a { color: inherit; }
+
+@media (min-width: 720px) {
+  .spill-hud { padding-left: 24px; padding-right: 24px; }
+  .hud-knapper { flex-direction: row; }
+}
