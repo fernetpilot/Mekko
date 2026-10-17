@@ -10,12 +10,20 @@ const temaMeta = document.querySelector('meta[name="theme-color"]');
 let scene = null;
 // Bilen får fargen den er registrert med, og delene lyser i samme farge som statusen på kortene
 // (forside-kort.js). Lyttes på før scenen er lastet, så ingenting går tapt mens Three.js hentes.
-const bilVisning = { lakk: null, status: null };
+// Bilmodellen følger også bilen (forside-kort.js). `?bilmodell=discovery4` i adressen tvinger en modell, til testing.
+const tvungenModell = new URLSearchParams(location.search).get('bilmodell');
+const bilVisning = { lakk: null, status: null, modell: tvungenModell };
 document.addEventListener('mekko:lakk', (e) => { bilVisning.lakk = e.detail.farge; scene?.settLakk(bilVisning.lakk); });
+document.addEventListener('mekko:modell', (e) => {
+  if (tvungenModell) return;
+  bilVisning.modell = e.detail.modell;
+  scene?.settModell(bilVisning.modell);
+});
 document.addEventListener('mekko:delstatus', (e) => { bilVisning.status = e.detail.status; scene?.settDelStatus(bilVisning.status); });
 try {
   const { lagScene } = await import('./scene.js');
   scene = lagScene(document.getElementById('scene'));
+  scene.settModell(bilVisning.modell);
   scene.settLakk(bilVisning.lakk);
   scene.settDelStatus(bilVisning.status);
 } catch (feil) {
