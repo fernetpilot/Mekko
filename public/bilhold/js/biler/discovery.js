@@ -91,14 +91,30 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   // ---------- Hjulbuer ----------
   // Nesten rektangulære buer med avrundede hjørner, så hjulene ser ut til å stå i firkantede kasser.
   // Punktene (z, y) over hjulet, bakfra og fram. r styrer størrelsen (BUE_R er selve åpningen).
-  const buePunkter = (aksel, bunnBak, bunnFram, r = BUE_R, n = 4) => {
-    const w = r * 0.98, topp = 0.38 + r * 0.9, rh = 0.15 * r / BUE_R;
+  const buePunkter = (aksel, bunnBak, bunnFram, r = BUE_R, n = 6) => {
+    const w = r * 0.98, topp = 0.38 + r * 0.9, rh = 0.27 * r / BUE_R;
     const hjorne = (cz, cy, fra, til) => Array.from({ length: n + 1 }, (_, i) => {
       const a = fra + (til - fra) * (i / n);
       return [cz + Math.cos(a) * rh, cy + Math.sin(a) * rh];
     });
     return [[aksel - w, bunnBak], ...hjorne(aksel - w + rh, topp - rh, Math.PI, Math.PI / 2),
       ...hjorne(aksel + w - rh, topp - rh, Math.PI / 2, 0), [aksel + w, bunnFram]];
+  };
+  // Runder av hjørnene i en mangekant: radier[i] er radiusen i hjørne i (0 = skarpt). Gir en THREE.Shape.
+  const rundForm = (punkter, radier, n = 5) => {
+    const ut = [];
+    punkter.forEach((p, i) => {
+      const r = radier[i] || 0;
+      if (!r) { ut.push(p); return; }
+      const a = punkter[(i + punkter.length - 1) % punkter.length], b = punkter[(i + 1) % punkter.length];
+      const mot = (q) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); const t = Math.min(r, d / 2) / d; return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; };
+      const fra = mot(a), til = mot(b);
+      for (let k = 0; k <= n; k++) {
+        const t = k / n, u = 1 - t;   // kvadratisk kurve med hjørnet som kontrollpunkt
+        ut.push([u * u * fra[0] + 2 * u * t * p[0] + t * t * til[0], u * u * fra[1] + 2 * u * t * p[1] + t * t * til[1]]);
+      }
+    });
+    return new THREE.Shape(ut.map(([x, y]) => new THREE.Vector2(x, y)));
   };
   // Ring langs buen (mellom radius r1 og r2), brukt til kledningen utenpå og innerskjermen inni
   const bueRing = (aksel, bunnBak, bunnFram, r1, r2) => {
@@ -159,11 +175,20 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   panser.position.set(0, BELTE + 0.005, HENGSEL_Z);
   karosseri.add(panser);
   const panserL = Math.hypot(FRONT - HENGSEL_Z, BELTE - PANSER_FRONT) + 0.03;
-  // Helt flatt i midten, med markerte kanter som faller brått ned mot skjermene (tverrsnitt trukket langs panseret)
+  // Flatt i midten, med kanter som runder mykt ned mot skjermene (tverrsnitt trukket langs panseret)
   const PB = BREDDE / 2 - 0.005;
-  const snitt = new THREE.Shape([[-PB, -0.06], [-PB + 0.16, 0.035], [PB - 0.16, 0.035], [PB, -0.06], [PB - 0.02, -0.075], [-PB + 0.02, -0.075]]
-    .map(([x, y]) => new THREE.Vector2(x, y)));
-  const panserPlate = new THREE.Mesh(new THREE.ExtrudeGeometry(snitt, { depth: panserL, bevelEnabled: false }), solv);
+  const snitt = rundForm([[-PB, -0.06], [-PB + 0.16, 0.035], [PB - 0.16, 0.035], [PB, -0.06], [PB - 0.02, -0.075], [-PB + 0.02, -0.075]],
+    [0.02, 0.13, 0.13, 0.02], 8);
+  const panserGeo = new THREE.ExtrudeGeometry(snitt, { depth: panserL, steps: 24, bevelEnabled: false, curveSegments: 8 });
+  // Forkanten runder svakt nedover mot grillen
+  const BOY = 0.13, FALL = 0.06;
+  const pos = panserGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const t = (pos.getZ(i) - (panserL - BOY)) / BOY;
+    if (t > 0) pos.setY(i, pos.getY(i) - FALL * t * t);
+  }
+  panserGeo.computeVertexNormals();
+  const panserPlate = new THREE.Mesh(panserGeo, solv);
   panserPlate.castShadow = true;
   panserPlate.receiveShadow = true;
   panser.add(panserPlate);
@@ -186,7 +211,7 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     bokstaver.position.set(0, 0.037, panserL - 0.11);
     panser.add(bokstaver);
   }
-  fboks(BREDDE - 0.01, 0.1, 0.08, solv, 0, -0.035, panserL - 0.04, 0.04, panser);    // forkanten bøyer ned, med bred fas
+  fboks(BREDDE - 0.03, 0.075, 0.06, solv, 0, -0.07, panserL - 0.035, 0.035, panser);    // forkanten bøyer ned, med bred fas
   const panserGrunn = Math.atan2(BELTE - PANSER_FRONT, FRONT - HENGSEL_Z);           // senker fronten
 
   // ---------- Kupé ----------
@@ -306,20 +331,32 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     fboks(BREDDE - 0.02, PANSER_FRONT - SPLITT, 0.05, solv, 0, (PANSER_FRONT + SPLITT) / 2, FRONT + 0.002, 0.02);
     // Støtfanger i mørk plast under delelinjen, tredelt: midtparti og to hjørner i ulakkert, strukturert plast
     const struktur = std({ color: 0x2b2c2f, roughness: 1 });
-    const MB = 1.12;
-    fboks(MB, SPLITT - 0.36, 0.16, kledning, 0, (SPLITT + 0.36) / 2, FRONT + 0.08, 0.04);
-    for (const s of [-1, 1]) fboks((BREDDE + 0.02 - MB) / 2 - 0.01, SPLITT - 0.35, 0.18, struktur, s * (MB / 2 + (BREDDE + 0.02 - MB) / 4), (SPLITT + 0.37) / 2, FRONT + 0.085, 0.05);
+    const MB = 1.12, SF = FRONT + 0.165, SW = BREDDE / 2 + 0.005;
+    // Én sammenhengende kropp sett ovenfra (x, -z) med runde hjørner, trukket opp og avrundet i over- og underkant
+    const sForm = rundForm([[-SW, -(FRONT - 0.01)], [-SW, -SF], [SW, -SF], [SW, -(FRONT - 0.01)]], [0, 0.15, 0.15, 0], 8);
+    const sGeo = new THREE.ExtrudeGeometry(sForm, { depth: SPLITT - 0.42, curveSegments: 8, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.025, bevelOffset: -0.025, bevelSegments: 4 });
+    sGeo.rotateX(-Math.PI / 2);
+    const sKropp = new THREE.Mesh(sGeo, struktur);
+    sKropp.position.y = 0.37 + 0.025;
+    sKropp.castShadow = true;
+    karosseri.add(sKropp);
+    // Midtpartiet i glattere plast, lagt utenpå med myke ender som glir over i hjørnene
+    const mForm = rundForm([[-MB / 2, 0.385], [MB / 2, 0.385], [MB / 2, SPLITT - 0.02], [-MB / 2, SPLITT - 0.02]], [0.08, 0.08, 0.08, 0.08], 6);
+    const midt = new THREE.Mesh(new THREE.ExtrudeGeometry(mForm, { depth: 0.004, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.03, bevelOffset: -0.03, bevelSegments: 4 }), kledning);
+    midt.position.z = SF;
+    karosseri.add(midt);
     boks(BREDDE - 0.14, 0.012, 0.02, morkPlast, 0, SPLITT + 0.002, FRONT + 0.175);
     for (const s of [-1, 1]) {
       const lx = s * LX;
       // Lyktehuset: trapesformet ramme med et trinn i underkanten som følger støtfangerlinjen
       // (u går utover fra lyktas midte, y opp)
       const u = [[-LB / 2, LH / 2], [LB / 2, LH / 2], [LB / 2, -LH / 2], [0.02, -LH / 2], [0, -LH / 2 + 0.05], [-LB / 2 + 0.05, -LH / 2 + 0.05]];
-      const husForm = new THREE.Shape(u.map(([a, y]) => new THREE.Vector2(lx + s * a, LY + y)));
-      const hus = new THREE.Mesh(new THREE.ExtrudeGeometry(husForm, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelOffset: -0.008, bevelSegments: 1 }), klart);
+      // Mykere hjørner, mest øverst og ytterst der lykta svinger rundt hjørnet
+      const husForm = rundForm(u.map(([a, y]) => [lx + s * a, LY + y]), [0.03, 0.07, 0.05, 0.012, 0.012, 0.025], 6);
+      const hus = new THREE.Mesh(new THREE.ExtrudeGeometry(husForm, { depth: 0.018, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelOffset: -0.012, bevelSegments: 4 }), klart);
       hus.position.z = FF - 0.008;
       karosseri.add(hus);
-      fboks(0.03, LH - 0.02, 0.24, klart, s * (SIDE - 0.005), LY, FRONT - 0.08, 0.01);
+      fboks(0.03, LH - 0.08, 0.2, klart, s * (SIDE - 0.005), LY + 0.01, FRONT - 0.06, 0.03);
       // Runde enheter i lykta: projektorlinse med markant ring ytterst, parabol i midten, svinglys innerst
       const oy = LY + 0.04;
       const px = lx + s * 0.12;
@@ -347,7 +384,11 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
       fboks(0.08, 0.04, 0.03, plast, lx, SPLITT, FRONT + 0.185, 0.008);
       // Tåkelys langt ute i hjørnene, i en innstøpt, mangekantet fordypning
       const tx = s * (MB / 2 + (BREDDE + 0.02 - MB) / 4), ty = 0.55, TF = FRONT + 0.176;
-      fboks(0.19, 0.15, 0.02, morkPlast, tx, ty, TF - 0.006, 0.04);
+      // Fordypningen har buede, myke kanter
+      const nForm = rundForm([[tx - 0.095, ty - 0.075], [tx + 0.095, ty - 0.075], [tx + 0.095, ty + 0.075], [tx - 0.095, ty + 0.075]], [0.05, 0.05, 0.05, 0.05], 6);
+      const nisje = new THREE.Mesh(new THREE.ExtrudeGeometry(nForm, { depth: 0.002, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.015, bevelOffset: -0.015, bevelSegments: 3 }), morkPlast);
+      nisje.position.z = TF - 0.01;
+      karosseri.add(nisje);
       const tring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 20), krom);
       tring.position.set(tx, ty, TF + 0.006);
       karosseri.add(tring);
@@ -385,13 +426,14 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     merke.scale.x = 2;
     // Nedre luftinntak med grovt rutenett, mellom tåkelysene
     const IB = MB - 0.16;
-    boks(IB, 0.12, 0.02, morkPlast, 0, 0.53, STF + 0.001);
-    for (let x = -IB / 2 + 0.07; x < IB / 2 - 0.03; x += 0.075) boks(0.012, 0.11, 0.02, gitter, x, 0.53, STF + 0.006);
-    boks(IB - 0.02, 0.012, 0.02, gitter, 0, 0.53, STF + 0.007);
+    const IZ = FRONT + 0.172;
+    fboks(IB, 0.12, 0.02, morkPlast, 0, 0.53, IZ, 0.02);
+    for (let x = -IB / 2 + 0.07; x < IB / 2 - 0.03; x += 0.075) boks(0.012, 0.1, 0.02, gitter, x, 0.53, IZ + 0.005);
+    boks(IB - 0.04, 0.012, 0.02, gitter, 0, 0.53, IZ + 0.006);
     // Lys beskyttelsesplate under, vinklet opp under bilen
     const plate = fboks(IB + 0.1, 0.025, 0.24, std({ color: 0xa4a8ad, metalness: 0.7, roughness: 0.45 }), 0, 0.37, FRONT + 0.03, 0.01);
     plate.rotation.x = 0.32;
-    fboks(0.08, 0.05, 0.02, kledning, -0.45, 0.66, STF + 0.002, 0.01);                         // deksel for slepekrok
+    fboks(0.08, 0.05, 0.02, kledning, -0.45, 0.68, SF + 0.012, 0.01);                          // deksel for slepekrok
     // Delelinje (panserfuge) rett over lykter og grill
     boks(BREDDE - 0.04, 0.008, 0.01, morkPlast, 0, PANSER_FRONT - 0.004, FF + 0.006);
   }
