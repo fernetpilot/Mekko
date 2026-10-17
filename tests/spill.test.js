@@ -107,13 +107,22 @@ test('autopiloten holder bilen i høyre felt i omtrent samme fart', () => {
   assert.ok(Math.abs(kmt(b) - 60) < 6);
 });
 
-test('spillkameraet starter der følgekameraet blir stående i jevn fart', () => {
+test('spillkameraet starter der følgekameraet blir stående bak bilen', () => {
   for (const aspekt of [0.46, 1.6]) {
     const k = spillKamera(aspekt);
     const start = startKamera(aspekt, 0, 0, 0, 16);
-    const ledd = { x: 0, z: 0 };
-    let mal;
-    for (let i = 0; i < 600; i++) mal = folgKamera(ledd, k, 0, 0, 0, 16, 1 / 60);
-    assert.ok(Math.hypot(mal.x - start.mal.x, mal.z - start.mal.z) < 0.01);
+    const tilstand = { retning: 1 };
+    let b;
+    for (let i = 0; i < 600; i++) b = folgKamera(tilstand, k, 0, 0, 0, 1 / 60);
+    assert.ok(Math.hypot(b.mal.x - start.mal.x, b.mal.z - start.mal.z) < 0.01);
+    assert.ok(Math.hypot(b.pos.x - start.pos.x, b.pos.z - start.pos.z) < 0.01);
   }
+});
+
+test('spillkameraet står bak bilen og dreier med den', () => {
+  const k = spillKamera(1.6);
+  const b = folgKamera({ retning: Math.PI / 2 }, k, 10, 5, Math.PI / 2, 1 / 60);
+  assert.ok(b.pos.x < 10 && b.mal.x > 10, 'kameraet står bak og ser fram langs +x');
+  assert.ok(Math.abs(b.pos.z - 5) < 1e-9);
+  assert.deepEqual([Math.round(b.frem.x), Math.round(b.frem.z)], [1, 0]);
 });

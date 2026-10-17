@@ -316,6 +316,11 @@ export function lagScene(canvas) {
     bilHover = THREE.MathUtils.damp(bilHover, modus === 'scroll' ? bilSkannMal : 0, 10, dt);
     bil.skann(bilSkann, bevegelsestid, bilHover);
     tilhenger.oppdater({ strekning: veistrekning, hjulvinkel, tid: bevegelsestid, hover, blink });
+    // På vei til spillet hektes hengeren av: den ruller ut mot veikanten og blir liggende igjen,
+    // så kameraet får fri sikt bak bilen. Går man tilbake, kommer den på plass igjen.
+    const avhekt = spillT * spillT;
+    tilhenger.gruppe.position.set(-3.2 * THREE.MathUtils.smoothstep(spillT, 0, 0.6), 0, -32 * avhekt);
+    tilhenger.gruppe.rotation.y = -0.25 * Math.sin(Math.PI * Math.min(1, spillT / 0.6));
     // Litt liv i karosseriet
     bil.karosseri.position.y = veiHump(veistrekning);
     bil.karosseri.rotation.z = Math.sin(veistrekning * 0.5) * 0.004;
