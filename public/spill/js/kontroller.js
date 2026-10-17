@@ -57,7 +57,7 @@ export function lagKontroller(sone) {
 
   return {
     /**
-     * Leser styringen. kam = spillKamera(): brukes til å gjøre retningen på skjermen om til
+     * Leser styringen. kam = kameraets bilde fra folgKamera() (frem og høyre): brukes til å gjøre retningen på skjermen om til
      * en retning i verden. Svarer { x, z } (tastatur) eller { retning } (finger), og om noe er trykket.
      */
     les(kam) {

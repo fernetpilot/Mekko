@@ -1,4 +1,4 @@
-// Spillet: kjør din egen Mekko-bil (med hengeren og sjiraffen) rundt en landevei.
+// Spillet: kjør din egen Mekko-bil rundt en landevei. Hengeren blir igjen på forsiden.
 // Bygget på ideene fra Starter Kit Racing av mrdoob og Kenney (MIT, se ../LISENS-starter-kit-racing.txt),
 // men med bilen, veien og lyset fra forsiden (bilhold/js/scene.js og tilhenger.js).
 //
@@ -9,16 +9,14 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { lagBil } from '/bilhold/js/scene.js';
-import { lagTilhenger, veiHump } from '/bilhold/js/tilhenger.js';
+import { veiHump } from '/bilhold/js/tilhenger.js';
 import { lagBane, naermeste, punktVed, lagRundeteller, VEI_BREDDE, GRENSE, MIDTSTRIPE_X } from './banedata.js';
 import { lagBane3d } from './bane-3d.js';
 import { nyBil, kjor, kmt, stoppMotVegg, autopilot, VMAKS } from './kjoring.js';
-import { spillKamera, startKamera, folgKamera } from './kamera.js';
+import { spillKamera, folgKamera } from './kamera.js';
 import { lagKontroller } from './kontroller.js';
 
 const START_FART = 60 / 3.6;          // samme fart som bilen har på forsiden
-const KULE_Z = -2.6;                  // hengerkula, målt fra midten av bilen
-const HENGER_AKSEL = 4.75 - 2.6;      // fra kula til hengerens boggi
 const BIL_HALV = 1.05;                // halv bredde: så nær autovernet kan midten av bilen komme
 const BESTE_NOKKEL = 'mekko-spill-beste';
 
@@ -31,7 +29,6 @@ const hud = {
   fart: document.getElementById('hud-fart'),
   hint: document.getElementById('hint'),
   melding: document.getElementById('melding'),
-  henger: document.getElementById('henger-knapp'),
   nyStart: document.getElementById('ny-start'),
 };
 
@@ -84,7 +81,7 @@ function tilpassStorrelse() {
 tilpassStorrelse();
 addEventListener('resize', tilpassStorrelse);
 
-// ---------- Banen, bilen og hengeren ----------
+// ---------- Banen og bilen ----------
 const bane = lagBane();
 const bane3d = lagBane3d(scene, bane);
 
@@ -98,16 +95,11 @@ for (const i of [0, 2]) {                   // forhjulene (venstre og høyre) sv
 }
 if (minBil?.skilt) leggTilSkilt(bil3d, minBil.skilt);
 
-const henger3d = lagTilhenger();
-scene.add(henger3d.gruppe);
-let medHenger = true;
-try { medHenger = localStorage.getItem('mekko-spill-henger') !== 'av'; } catch { /* standard: med henger */ }
-
 // Midtstripene skal ligge der de lå på forsiden i overgangen: bilen starter litt ut på startrettas
 const fase = overgang?.stripeFase ?? 1.5;
 const startZ = (((1.5 - fase) % 9) + 9) % 9;
 
-let bil, henger, kamLedd, runder, spor, tattOver, strekning, hjulvinkel;
+let bil, kamTilstand, kamBilde, runder, spor, tattOver, strekning, hjulvinkel;
 let sistFart = -1, meldingTimer = null;
 // Sjiraffen fortsetter bevegelsen fra forsiden
 const tidStart = performance.now() / 1000 - (overgang ? overgang.tid + (Date.now() - overgang.naa) / 1000 : 0);
@@ -115,9 +107,8 @@ const tid = () => performance.now() / 1000 - tidStart;
 
 function nyRunde() {
   bil = nyBil({ x: 0, z: startZ, retning: 0, fart: START_FART });
-  henger = { x: 0, z: startZ + KULE_Z - HENGER_AKSEL };
-  const s = startKamera(kamera.aspect, bil.x, bil.z, bil.vx, bil.vz);
-  kamLedd = { x: s.mal.x - bil.x + kam.frem.x * kam.skift, z: s.mal.z - bil.z + kam.frem.z * kam.skift };
+  kamTilstand = { retning: bil.retning };
+  kamBilde = folgKamera(kamTilstand, kam, bil.x, bil.z, bil.retning, 0);
   runder = lagRundeteller(bane.lengde);
   try {
     const lagret = Number(localStorage.getItem(BESTE_NOKKEL));
@@ -182,7 +173,7 @@ function tegn() {
   const dt = Math.min(klokke.getDelta(), 0.05);
 
   // Styring: bilen kjører selv i høyre felt til man rører noe
-  const inn = kontroller.les(kam);
+  const inn = kontroller.les(kamBilde);
   if (!tattOver && inn.aktiv) {
     tattOver = true;
     hud.hint.classList.add('skjult');
@@ -234,33 +225,13 @@ function tegn() {
     bil3d.hjulStille[i].rotation.y = bil.styr;
   }
 
-  // Hengeren følger kula: akslingen dras etter, som en ekte henger
-  henger3d.gruppe.visible = medHenger;
-  if (medHenger) {
-    const sin = Math.sin(bil.retning), cos = Math.cos(bil.retning);
-    const kx = bil.x + sin * KULE_Z, kz = bil.z + cos * KULE_Z;
-    let dx = kx - henger.x, dz = kz - henger.z;
-    let r = Math.atan2(dx, dz);
-    // Hengeren kan ikke knekke helt sammen
-    let knekk = r - bil.retning;
-    while (knekk > Math.PI) knekk -= Math.PI * 2;
-    while (knekk < -Math.PI) knekk += Math.PI * 2;
-    if (Math.abs(knekk) > 1.2) r = bil.retning + Math.sign(knekk) * 1.2;
-    henger.x = kx - Math.sin(r) * HENGER_AKSEL;
-    henger.z = kz - Math.cos(r) * HENGER_AKSEL;
-    henger3d.gruppe.position.set(kx - Math.sin(r) * KULE_Z, 0, kz - Math.cos(r) * KULE_Z);
-    henger3d.gruppe.rotation.y = r;
-    henger3d.oppdater({ strekning, hjulvinkel, tid: tid(), hover: 0 });
-  }
-
   bane3d.oppdater(bil.x, bil.z, bil.vx, bil.vz, dt);
   if (bil.skrens > 0.14 && Math.abs(naer.avvik) < VEI_BREDDE / 2 && Math.abs(bil.s) > 0.25) dekkspor.oppdater(bil, forX, forZ);
 
   // Kameraet og sola følger bilen
-  const kamPunkt = folgKamera(kamLedd, kam, bil.x, bil.z, bil.vx, bil.vz, dt);
-  tmpMal.set(kamPunkt.x, 0, kamPunkt.z);
-  kamera.position.set(kamPunkt.x + kam.offset.x, kam.offset.y, kamPunkt.z + kam.offset.z);
-  kamera.lookAt(tmpMal);
+  kamBilde = folgKamera(kamTilstand, kam, bil.x, bil.z, bil.retning, dt);
+  kamera.position.set(kamBilde.pos.x, kamBilde.pos.y, kamBilde.pos.z);
+  kamera.lookAt(tmpMal.set(kamBilde.mal.x, kamBilde.mal.y, kamBilde.mal.z));
   sol.position.set(bil.x + 6, 10, bil.z + 2.2);
   sol.target.position.set(bil.x, 0, bil.z - 1.8);
 
@@ -303,18 +274,6 @@ function visMelding(tekst) {
   meldingTimer = setTimeout(() => hud.melding.classList.remove('synlig'), 2200);
 }
 
-function visHenger() {
-  hud.henger.setAttribute('aria-pressed', String(medHenger));
-  hud.henger.querySelector('span').textContent = medHenger ? 'Henger på' : 'Henger av';
-}
-visHenger();
-hud.henger.addEventListener('click', () => {
-  medHenger = !medHenger;
-  try { localStorage.setItem('mekko-spill-henger', medHenger ? 'på' : 'av'); } catch { /* bare en snarvei */ }
-  if (medHenger) henger = { x: bil.x - Math.sin(bil.retning) * (HENGER_AKSEL - KULE_Z), z: bil.z - Math.cos(bil.retning) * (HENGER_AKSEL - KULE_Z) };
-  visHenger();
-  hud.henger.blur();
-});
 hud.nyStart.addEventListener('click', () => { nyRunde(); hud.hint.classList.remove('skjult'); hud.nyStart.blur(); });
 addEventListener('keydown', (e) => { if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey) { nyRunde(); hud.hint.classList.remove('skjult'); } });
 

@@ -1,53 +1,48 @@
-// Spillkameraet står skrått bak og over bilen og har samme retning hele tiden, som i Starter Kit Racing
-// (MIT, se ../LISENS-starter-kit-racing.txt). Det ser litt foran bilen i fartsretningen.
-// Forsiden bruker startKamera() til å fly kameraet hit før den bytter side, så det siste bildet
-// på forsiden og det første i spillet blir like. Ren logikk, ingen Three.js.
-
-const grad = (g) => (g * Math.PI) / 180;
+// Spillkameraet henger fast bak bilen og dreier med den, så man alltid ser veien som kommer.
+// Det ser et stykke foran bilen, ikke på selve bilen. Dreiningen glir litt etter bilen, så
+// bildet ikke rykker i svinger. Forsiden bruker startKamera() til å fly kameraet hit før den
+// bytter side, så det siste bildet på forsiden og det første i spillet blir like. Ren logikk, ingen Three.js.
 
 export function spillKamera(aspekt) {
   const staaende = aspekt < 1;
-  const avstand = staaende ? 21 : 17;
-  const hoyde = grad(staaende ? 48 : 36);     // vinkel over bakken
-  const side = grad(staaende ? 10 : 16);      // dreid litt ut mot bilens venstre side, der kameraet står på forsiden
-  const ox = Math.sin(side) * Math.cos(hoyde) * avstand;
-  const oz = -Math.cos(side) * Math.cos(hoyde) * avstand;
-  const l = Math.hypot(ox, oz);
-  const frem = { x: -ox / l, z: -oz / l };    // «opp» på skjermen, langs bakken
   return {
-    fov: staaende ? 50 : 38,                  // samme som forsiden
-    offset: { x: ox, y: Math.sin(hoyde) * avstand, z: oz },
-    frem,
-    hoyre: { x: -frem.z, z: frem.x },         // «høyre» på skjermen, langs bakken
-    ledd: 0.15,                               // sekunder: hvor langt foran bilen kameraet ser
-    radius: 3.5,                              // ser aldri lenger foran bilen enn dette (meter)
-    myk: 1.5,
-    skift: staaende ? 2.5 : 0.5,             // meter: flytter bildet så bilen og hengeren står midt på
+    fov: staaende ? 60 : 50,
+    bak: staaende ? 9 : 8,        // meter bak bilen, langs bakken
+    hoyde: staaende ? 4.6 : 3.8,  // meter over bakken
+    framfor: staaende ? 10 : 8,   // kameraet ser på et punkt så langt foran bilen (meter)
+    malHoyde: 0.8,
+    myk: 4,                       // hvor fort kameraet dreier etter bilen (høyere = strammere)
   };
 }
 
-const klemLengde = (x, z, maks) => {
-  const l = Math.hypot(x, z);
-  return l > maks ? [(x * maks) / l, (z * maks) / l] : [x, z];
-};
+/** Kameraets plass og retning når det står rett bak en bil med retning r. */
+function bakBilen(k, bilX, bilZ, r) {
+  const sx = Math.sin(r), sz = Math.cos(r);
+  return {
+    pos: { x: bilX - sx * k.bak, y: k.hoyde, z: bilZ - sz * k.bak },
+    mal: { x: bilX + sx * k.framfor, y: k.malHoyde, z: bilZ + sz * k.framfor },
+    frem: { x: sx, z: sz },       // «opp» på skjermen, langs bakken
+    hoyre: { x: -sz, z: sx },     // «høyre» på skjermen, langs bakken
+  };
+}
 
-/** Hvor kameraet står og ser når bilen har kjørt jevnt en stund. */
+/** Hvor kameraet står og ser når bilen har kjørt rett fram en stund. */
 export function startKamera(aspekt, bilX, bilZ, vx, vz) {
   const k = spillKamera(aspekt);
-  const [lx, lz] = klemLengde(vx * k.ledd, vz * k.ledd, k.radius);
-  const mal = { x: bilX + lx - k.frem.x * k.skift, y: 0, z: bilZ + lz - k.frem.z * k.skift };
-  return { fov: k.fov, mal, pos: { x: mal.x + k.offset.x, y: k.offset.y, z: mal.z + k.offset.z } };
+  const r = vx || vz ? Math.atan2(vx, vz) : 0;
+  const { pos, mal } = bakBilen(k, bilX, bilZ, r);
+  return { fov: k.fov, pos, mal };
 }
 
 /**
- * Følgekamera: ser på et punkt foran bilen i fartsretningen. Hvor langt foran glir mykt etter
- * farten, så kameraet ikke rykker når man svinger eller bremser. tilstand = { x, z } er hvor langt
- * foran bilen kameraet ser (meter); den endres. Svarer med punktet kameraet skal se på.
+ * Følgekamera: står bak bilen og dreier mykt etter bilens retning. tilstand = { retning } er
+ * kameraets retning nå (radianer); den endres. Svarer med pos, mal, og hva som er frem og høyre
+ * på skjermen (brukes av styringen med fingeren).
  */
-export function folgKamera(tilstand, k, bilX, bilZ, vx, vz, dt) {
-  const [lx, lz] = klemLengde(vx * k.ledd, vz * k.ledd, k.radius);
-  const a = 1 - Math.exp(-dt * k.myk);
-  tilstand.x += (lx - tilstand.x) * a;
-  tilstand.z += (lz - tilstand.z) * a;
-  return { x: bilX + tilstand.x - k.frem.x * k.skift, z: bilZ + tilstand.z - k.frem.z * k.skift };
+export function folgKamera(tilstand, k, bilX, bilZ, retning, dt) {
+  let d = retning - tilstand.retning;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  tilstand.retning += d * (1 - Math.exp(-dt * k.myk));
+  return bakBilen(k, bilX, bilZ, tilstand.retning);
 }
