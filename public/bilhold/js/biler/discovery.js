@@ -52,7 +52,7 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const MIDT_B = 1.28;       // innenfor hjulenes innerkant (0,8 − 0,128)
   const BUE_R = 0.48;        // hjulbuens radius (dekket er 0,38)
   const HENGSEL_Z = 1.0;     // panseret er hengslet ved frontruta
-  const KUPE_B = 1.84;       // kupéens bredde ved beltelinjen
+  const KUPE_B = 1.78;       // kupéens bredde ved beltelinjen (smalere enn karosseriet: tydelig skulder)
   const HELNING = 0.13;      // sideveggene heller tydelig innover mot taket (ca. 7,5°)
   const TAK_F = 1.86;        // takets underkant foran
   const TAK_B = 1.9;         // det hevede taket bak (over bakerste rad)
@@ -147,15 +147,13 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const panserL = Math.hypot(FRONT - HENGSEL_Z, BELTE - PANSER_FRONT) + 0.03;
   fboks(BREDDE - 0.01, 0.06, panserL, solv, 0, 0, panserL / 2, 0.035, panser);
   fboks(BREDDE - 0.5, 0.025, panserL - 0.12, solv, 0, 0.035, panserL / 2 - 0.02, 0.02, panser);
-  fboks(BREDDE - 0.01, 0.08, 0.04, solv, 0, -0.03, panserL - 0.02, 0.015, panser);   // forkanten bøyer ned
+  fboks(BREDDE - 0.01, 0.1, 0.08, solv, 0, -0.035, panserL - 0.04, 0.04, panser);    // forkanten bøyer ned, med bred fas
   const panserGrunn = Math.atan2(BELTE - PANSER_FRONT, FRONT - HENGSEL_Z);           // senker fronten
 
   // ---------- Kupé ----------
   // Taket: to nivåer med skrå kanter, soltak foran og alpine-glass i det hevede taket
-  fboks(TAK_HALV * 2, 0.07, RUTE_TOPP.z + 0.06 - TRINN_Z, solv, 0, TAK_F + 0.035, (RUTE_TOPP.z + 0.06 + TRINN_Z - 0.02) / 2, 0.035);
-  fboks(TAK_HALV * 2, 0.07, TRINN_Z - BAK + 0.01, solv, 0, TAK_B + 0.035, (TRINN_Z + BAK - 0.01) / 2, 0.035);
-  boks(0.9, 0.006, 0.55, glass, 0, TAK_F + 0.071, -0.3);
-  boks(1.1, 0.006, 0.42, glass, 0, TAK_B + 0.071, TRINN_Z - 0.4);
+  fboks(TAK_HALV * 2 + 0.02, 0.08, RUTE_TOPP.z + 0.06 - TRINN_Z, solv, 0, TAK_F + 0.04, (RUTE_TOPP.z + 0.06 + TRINN_Z - 0.02) / 2, 0.04);
+  fboks(TAK_HALV * 2 + 0.02, 0.08, TRINN_Z - BAK + 0.01, solv, 0, TAK_B + 0.04, (TRINN_Z + BAK - 0.01) / 2, 0.04);
   // Takrails med føtter
   const RAIL_Y = TAK_B + 0.13;
   const railMat = d4 ? titan : plast;
@@ -190,10 +188,6 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
     // Sorte B- og C-stolper: vinduene blir ett mørkt bånd, D-stolpen er lakkert
     boks(0.012, VT - VF + 0.02, 0.13, plast, glassX, (VT + VF) / 2 - BELTE, 0, vegg);
     boks(0.012, VT_BAK - VF + 0.02, 0.14, plast, glassX, (VT_BAK + VF) / 2 - BELTE, -0.92, vegg);
-    // A-stolpe i lakk, bred nok til å ramme inn frontruta, skrå langs ruta
-    const aLengde = Math.hypot(RUTE_FOT.z - RUTE_TOPP.z, RUTE_TOPP.y - RUTE_FOT.y);
-    fboks(0.12, aLengde + 0.04, 0.09, solv, ytre - s * 0.035, (RUTE_TOPP.y - RUTE_FOT.y) / 2, (RUTE_FOT.z + RUTE_TOPP.z) / 2, 0.015, vegg)
-      .rotation.x = -Math.atan2(RUTE_FOT.z - RUTE_TOPP.z, RUTE_TOPP.y - RUTE_FOT.y);
     // Sort tetningslist langs vinduenes underkant
     boks(0.02, 0.015, aStolpeZ(VF) - 0.07 - BAK - 0.32, plast, ytre + s * 0.012, VF - BELTE - 0.012, (BAK + 0.32 + aStolpeZ(VF) - 0.07) / 2, vegg);
     // Speil: sort hus på en fot ved A-stolpen (Discovery 4: blinklys i speilet)
@@ -211,6 +205,16 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   rute.position.set(0, RUTE_FOT.y, RUTE_FOT.z - 0.02);
   rute.rotation.x = Math.atan2(ruteDz, ruteDy);       // formens y peker opp langs ruta, bakover
   karosseri.add(rute);
+  // Ramme i lakk rundt ruta: A-stolpene og takkanten, så ruta sitter i karosseriet
+  const rB = 0.075, rT = 0.06;                          // stolpebredde og takkant
+  const yb = bunnB + 0.045, yt = toppB + 0.045;
+  const rammeForm = new THREE.Shape([[-yb, 0], [yb, 0], [yt, ruteL + 0.03], [-yt, ruteL + 0.03]].map(([x, y]) => new THREE.Vector2(x, y)));
+  rammeForm.holes.push(new THREE.Path([[-yb + rB, 0.02], [yb - rB, 0.02], [yt - rB, ruteL + 0.03 - rT], [-yt + rB, ruteL + 0.03 - rT]].map(([x, y]) => new THREE.Vector2(x, y))));
+  const ramme = new THREE.Mesh(new THREE.ExtrudeGeometry(rammeForm, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelOffset: -0.012, bevelSegments: 1 }), solv);
+  ramme.position.copy(rute.position);
+  ramme.rotation.x = rute.rotation.x;
+  ramme.castShadow = true;
+  karosseri.add(ramme);
   // Viskere i hvilestilling
   for (const x of [-0.35, 0.25]) fboks(0.5, 0.012, 0.02, plast, x, BELTE + 0.035, RUTE_FOT.z - 0.03, 0.004).rotation.z = 0.06;
 
@@ -295,14 +299,17 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   luke.castShadow = true;
   karosseri.add(luke);
   // Stor bakrute over hele bredden mellom D-stolpene, og et bremselys øverst
-  fboks(KUPE_B - 0.6, 0.48, 0.02, glass, 0, (BELTE + TAK_B) / 2 + 0.03, BF - 0.012, 0.01);
+  fboks(KUPE_B - 0.36, 0.52, 0.02, glass, 0, (BELTE + TAK_B) / 2 + 0.02, BF - 0.012, 0.012);
   fboks(0.5, 0.03, 0.02, bakledd, 0, TAK_B - 0.025, BF - 0.014, 0.008);
   fboks(KUPE_B - 0.4, 0.012, 0.02, plast, 0, BELTE + 0.035, BF - 0.012, 0.004);           // delt bakluke
-  fboks(0.6, 0.18, 0.02, plast, 0, 1.03, BF - 0.006, 0.02);                              // skiltnisje
-  boks(0.52, 0.11, 0.008, skiltMat, 0, 1.02, BF - 0.018);
-  boks(0.045, 0.11, 0.009, euMat, -0.237, 1.02, BF - 0.019);                            // blått felt til venstre (sett bakfra)
-  fboks(0.12, 0.03, 0.02, titan, 0, 1.15, BF - 0.008, 0.006);                            // håndtak over skiltet
-  if (d4) fboks(0.7, 0.024, 0.02, titan, 0, 1.13, BF - 0.006, 0.006);                   // pyntelist over skiltet
+  // Den asymmetriske bakluka: skiltet sitter forskjøvet mot venstre (sett bakfra), med en loddrett fuge ved siden av
+  const SX = 0.2;
+  fboks(0.6, 0.18, 0.02, plast, SX, 1.03, BF - 0.006, 0.02);                             // skiltnisje
+  boks(0.52, 0.11, 0.008, skiltMat, SX, 1.02, BF - 0.018);
+  boks(0.045, 0.11, 0.009, euMat, SX + 0.237, 1.02, BF - 0.019);                        // blått felt til venstre (sett bakfra)
+  fboks(0.12, 0.03, 0.02, titan, SX, 1.15, BF - 0.008, 0.006);                           // håndtak over skiltet
+  boks(0.008, BELTE - 0.84, 0.01, plast, -0.2, (BELTE + 0.84) / 2, BF - 0.012);          // fuge
+  if (d4) fboks(0.7, 0.024, 0.02, titan, SX, 1.13, BF - 0.006, 0.006);                   // pyntelist over skiltet
   // Høye baklys i hjørnene under bakruta, som går rundt hjørnet
   for (const s of [-1, 1]) {
     const lx = s * 0.8;
@@ -313,16 +320,16 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
       boks(0.012, 0.38, 0.012, bakledd, lx + s * 0.06, 1.08, BF - 0.02);
     } else {
       // Rødt øverst og nederst, blinklys i midten
-      fboks(0.16, 0.46, 0.04, rodtGlass, lx, 1.08, BF, 0.015);
-      fboks(0.165, 0.07, 0.04, blinklys, lx, 1.07, BF - 0.004, 0.012);
+      fboks(0.2, 0.48, 0.04, rodtGlass, s * 0.83, 1.08, BF, 0.015);
+      fboks(0.205, 0.07, 0.04, blinklys, s * 0.83, 1.07, BF - 0.004, 0.012);
     }
-    boks(0.012, 0.44, 0.12, d4 ? baklykt : rodtGlass, s * (SIDE + 0.004), 1.08, BAK + 0.05);
+    boks(0.012, 0.46, 0.16, d4 ? baklykt : rodtGlass, s * (SIDE + 0.004), 1.08, BAK + 0.07);
   }
   // Støtfanger med sort trinn oppå og plass til hengerfestet under (Discovery 3: sort, Discovery 4: lakkert)
-  fboks(BREDDE + 0.02, 0.42, 0.15, d4 ? solv : kledning, 0, 0.6, BAK - 0.075, 0.05);
-  fboks(1.5, 0.02, 0.12, plast, 0, 0.815, BAK - 0.08, 0.006);
+  fboks(BREDDE + 0.02, 0.42, 0.12, d4 ? solv : kledning, 0, 0.6, BAK - 0.055, 0.06);
+  fboks(1.5, 0.02, 0.1, plast, 0, 0.815, BAK - 0.065, 0.006);
   if (d4) fboks(BREDDE - 0.2, 0.06, 0.155, kledning, 0, 0.42, BAK - 0.07, 0.02);
-  for (const s of [-1, 1]) boks(0.12, 0.03, 0.01, baklykt, s * 0.72, 0.66, BAK - 0.153);  // reflekser
+  for (const s of [-1, 1]) boks(0.12, 0.03, 0.01, baklykt, s * 0.72, 0.66, BAK - 0.118);  // reflekser
 
   return { panser, oljelokk, panserGrunn };
 }
