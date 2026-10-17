@@ -58,14 +58,32 @@ export function lagBil(modell) {
     foreldre.add(m);
     return m;
   };
-  // Plate i sideprofil (z, y), lagt i planet x = posX. Med to materialer får kantene det andre.
-  const sideplate = (punkter, tykkelse, materiale, posX, hull = [], foreldre = karosseri) => {
+  // Plate i sideprofil (z, y), lagt i planet x = posX. `fas` gir skrå kanter rundt hele platen (lavpoly-stil).
+  const sideplate = (punkter, tykkelse, materiale, posX, hull = [], foreldre = karosseri, fas = 0) => {
     const form = new THREE.Shape(punkter.map(([z, y]) => new THREE.Vector2(z, y)));
     for (const h of hull) form.holes.push(new THREE.Path(h.map(([z, y]) => new THREE.Vector2(z, y))));
-    const geo = new THREE.ExtrudeGeometry(form, { depth: tykkelse, bevelEnabled: false });
+    const geo = new THREE.ExtrudeGeometry(form, fas
+      ? { depth: tykkelse - 2 * fas, bevelEnabled: true, bevelThickness: fas, bevelSize: fas, bevelOffset: -fas, bevelSegments: 1 }
+      : { depth: tykkelse, bevelEnabled: false });
     const m = new THREE.Mesh(geo, materiale);
     m.rotation.y = -Math.PI / 2;            // formens x blir bilens z
-    m.position.x = posX + tykkelse / 2;
+    m.position.x = posX + tykkelse / 2 - fas;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    foreldre.add(m);
+    return m;
+  };
+  // Boks med skrå kanter (fas) på alle tolv kantene, i stedet for skarpe hjørner
+  const fboks = (b, h, l, materiale, x, y, z, fas = 0.02, foreldre = karosseri) => {
+    const f = Math.min(fas, b / 2 - 0.001, h / 2 - 0.001, l / 2 - 0.001);
+    const hb = b / 2 - f, hh = h / 2 - f;
+    // Åttekant i (x, y): rektangelet med hjørnene skåret av, så også kantene på langs blir skrå
+    const form = new THREE.Shape([[-hb + f, -hh], [hb - f, -hh], [hb, -hh + f], [hb, hh - f], [hb - f, hh], [-hb + f, hh], [-hb, hh - f], [-hb, -hh + f]]
+      .map(([px, py]) => new THREE.Vector2(px, py)));
+    const geo = new THREE.ExtrudeGeometry(form, { depth: Math.max(l - 2 * f, 0.001), bevelEnabled: true, bevelThickness: f, bevelSize: f, bevelSegments: 1 });
+    geo.translate(0, 0, -(l / 2 - f));
+    const m = new THREE.Mesh(geo, materiale);
+    m.position.set(x, y, z);
     m.castShadow = true;
     m.receiveShadow = true;
     foreldre.add(m);
@@ -81,7 +99,7 @@ export function lagBil(modell) {
   };
 
   const { panser, oljelokk, panserGrunn = 0, panserMaks = 1.05 } =
-    modell.karosseri({ karosseri, gruppe, mat, boks, sideplate, rund });
+    modell.karosseri({ karosseri, gruppe, mat, boks, fboks, sideplate, rund });
 
   // Hjul
   const hjul = [];
@@ -245,14 +263,16 @@ function lagHjul(mat, side, modell) {
     vegg.position.x = x * B / 2;
     spinn.add(vegg);
   }
-  // Dekkmønster: klosser rundt hele dekket i to forskjøvne rader
-  const antall = 30;
-  const klossGeo = new THREE.BoxGeometry(B * 0.37, 0.035, 0.055);
+  // Dekkmønster: klosser rundt hele dekket i to forskjøvne rader. Veidekk ('vei') har lavere og tettere klosser.
+  const vei = modell.dekk === 'vei';
+  const antall = vei ? 42 : 30;
+  const klossGeo = new THREE.BoxGeometry(B * 0.37, vei ? 0.018 : 0.035, vei ? 0.038 : 0.055);
   for (let i = 0; i < antall; i++) {
     for (const rad of [-1, 1]) {
       const a = (i + (rad > 0 ? 0.5 : 0)) / antall * Math.PI * 2;
       const k = new THREE.Mesh(klossGeo, mat.dekkMat);
-      k.position.set(rad * B * 0.25, Math.cos(a) * (R - 0.01), Math.sin(a) * (R - 0.01));
+      const kr = vei ? R - 0.016 : R - 0.01;
+      k.position.set(rad * B * 0.25, Math.cos(a) * kr, Math.sin(a) * kr);
       k.rotation.x = a;
       spinn.add(k);
     }
