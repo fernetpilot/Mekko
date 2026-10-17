@@ -74,11 +74,10 @@ function delPanser(pos, idx) {
   const kropp = [], panser = [];
   for (let t = 0; t < idx.length; t += 3) {
     const [a, b, c] = [idx[t], idx[t + 1], idx[t + 2]].map((i) => tilScene(pos, i));
-    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
-    const opp = Math.abs(n[1]) / (Math.hypot(...n) || 1);
-    const inne = [a, b, c].every(([x, y, z]) => z > PANSER.fraZ && z < PANSER.tilZ && Math.abs(x) < PANSER.halvB && y > PANSER.overY);
-    (inne && opp > 0.5 ? panser : kropp).push(idx[t], idx[t + 1], idx[t + 2]);
+    const [x, y, z] = [0, 1, 2].map((k) => (a[k] + b[k] + c[k]) / 3);   // midtpunktet
+    const inne = z > PANSER.fraZ && z < PANSER.tilZ && Math.abs(x) < PANSER.halvB && y > PANSER.overY
+      && !(Math.abs(x) > 0.5 && z > 2.1 && y < 1.04);   // lyktene står igjen
+    (inne ? panser : kropp).push(idx[t], idx[t + 1], idx[t + 2]);
   }
   return { kropp: new Uint32Array(kropp), panser: new Uint32Array(panser) };
 }
@@ -90,7 +89,7 @@ function tilpassMateriale(m, mat) {
     shader.uniforms.uLakk = { value: mat.solv.color };
     shader.uniforms.uGlod = { value: mat.solv.emissive };
     shader.uniforms.uGlass = { get value() { return mat.glass.opacity; } };
-    shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uGlod; uniform float uGlass;\nfloat lakkMaske = 0.0;\n' +
+    shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uGlod; uniform float uGlass;\nfloat lakkMaske = 0.0;\nfloat glassVekt = 0.0;\n' +
       shader.fragmentShader
         .replace('#include <map_fragment>', `#include <map_fragment>
           {
@@ -108,7 +107,14 @@ function tilpassMateriale(m, mat) {
             vec3 s = pow(sampledDiffuseColor.rgb, vec3(1.0 / 2.2));
             float glassMaske = (1.0 - smoothstep(0.22, 0.3, dot(s, vec3(0.333)))) * (1.0 - smoothstep(0.2, 0.3, texelRoughness.g));
             diffuseColor.a *= mix(1.0, uGlass, glassMaske);
+            // Matt lakk og jevnt mørkt glass: blanke flater speiler ujevnhetene i nettet
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.035, 0.04), glassMaske);
+            roughnessFactor = mix(roughnessFactor, 0.62, lakkMaske);
+            roughnessFactor = mix(roughnessFactor, 0.45, glassMaske);
+            glassVekt = glassMaske;
           }`)
+        .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+          metalnessFactor = mix(metalnessFactor, 0.1, max(lakkMaske, glassVekt));`)
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uGlod * lakkMaske;');
   };
 }
@@ -129,7 +135,7 @@ async function lastNett(mat) {
   catch (e) { console.warn('Meshy-bilen vises uten tekstur', e); }
   const materiale = new THREE.MeshStandardMaterial({
     color: map ? 0xffffff : 0xc9bfa8, map, metalnessMap: mr, roughnessMap: mr,
-    roughness: 1, metalness: mr ? 1 : 0.1, side: THREE.DoubleSide, envMapIntensity: 0.7,
+    roughness: 1, metalness: mr ? 1 : 0.1, side: THREE.DoubleSide, envMapIntensity: 0.5,
   });
   if (map && mr) tilpassMateriale(materiale, mat);
   const lagNett = (indekser) => {
@@ -171,6 +177,75 @@ function byggMotorrom(karosseri, mat, boks, fboks) {
   return oljelokk;
 }
 
+// Panseret: lavpoly-plate som følger formen i nettet (målt), litt hvelvet på tvers og bøyd ned foran.
+// Koordinatene er i forhold til hengselet. Lakken følger bilens farge, som resten av nettet.
+function byggPanser(mat) {
+  const stasjoner = [   // z, halv bredde, høyde midt på
+    [HENGSEL.z, 0.81, 1.318],
+    [1.95, 0.8, 1.222],
+    [2.2, 0.72, 1.12],
+    [2.29, 0.66, 1.07],
+  ];
+  // Jevn flate: stasjonene interpoleres (Catmull-Rom) til et fint rutenett med glatte normaler
+  const NZ = 14, NX = 12;
+  const hvelv = 0.03, tykk = 0.035;
+  const stasjon = (t) => {
+    const u = t * (stasjoner.length - 1);
+    const i = Math.min(Math.floor(u), stasjoner.length - 2), f = u - i;
+    const s = (k) => stasjoner[Math.max(0, Math.min(stasjoner.length - 1, k))];
+    const [p0, p1, p2, p3] = [s(i - 1), s(i), s(i + 1), s(i + 2)];
+    return [0, 1, 2].map((k) => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * f
+      + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * f * f + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * f * f * f));
+  };
+  const punkt = (i, j, under = false) => {
+    const [z, b, y] = stasjon(i / NZ);
+    const x = -1 + 2 * j / NX;
+    return [x * b, y - hvelv * x * x - (under ? tykk : 0) - HENGSEL.y, z - HENGSEL.z];
+  };
+  // Oversiden: indeksert, så normalene blir glatte
+  const pos = [], idx = [];
+  for (let i = 0; i <= NZ; i++) for (let j = 0; j <= NX; j++) pos.push(...punkt(i, j));
+  const v = (i, j) => i * (NX + 1) + j;
+  for (let i = 0; i < NZ; i++) for (let j = 0; j < NX; j++) idx.push(v(i, j), v(i, j + 1), v(i + 1, j + 1), v(i, j), v(i + 1, j + 1), v(i + 1, j));
+  const topp = new THREE.BufferGeometry();
+  topp.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  topp.setIndex(idx);
+  topp.computeVertexNormals();
+  // Underside og kanter
+  const tri = [];
+  const firkant = (a, b, c, d) => tri.push(a, b, c, a, c, d);
+  for (let i = 0; i < NZ; i++) {
+    for (let j = 0; j < NX; j++) firkant(punkt(i, j, true), punkt(i + 1, j, true), punkt(i + 1, j + 1, true), punkt(i, j + 1, true));
+    for (const j of [0, NX]) firkant(punkt(i, j), punkt(i + 1, j), punkt(i + 1, j, true), punkt(i, j, true));
+  }
+  for (let j = 0; j < NX; j++) firkant(punkt(NZ, j), punkt(NZ, j, true), punkt(NZ, j + 1, true), punkt(NZ, j + 1));
+  const kant = new THREE.BufferGeometry();
+  kant.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+  kant.computeVertexNormals();
+  const lakk = new THREE.MeshStandardMaterial({ roughness: 0.62, metalness: 0.1, side: THREE.DoubleSide, envMapIntensity: 0.5 });
+  lakk.onBeforeCompile = (shader) => {
+    shader.uniforms.uLakk = { value: mat.solv.color };
+    shader.uniforms.uGlod = { value: mat.solv.emissive };
+    shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uGlod;\n' + shader.fragmentShader
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = uLakk * 0.85;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uGlod;');
+  };
+  const gruppe = new THREE.Group();
+  for (const g of [topp, kant]) {
+    const plate = new THREE.Mesh(g, lakk);
+    plate.castShadow = true;
+    plate.receiveShadow = true;
+    gruppe.add(plate);
+  }
+  // Mørk innside, litt inn fra kantene
+  const fall = Math.atan2(stasjoner[0][2] - stasjoner[2][2], stasjoner[2][0] - stasjoner[0][0]);
+  const inni = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.01, 1.0), mat.motorrom);
+  inni.position.set(0, (stasjoner[0][2] + stasjoner[2][2]) / 2 - HENGSEL.y - tykk - 0.012, (stasjoner[2][0] - HENGSEL.z) / 2);
+  inni.rotation.x = fall;
+  gruppe.add(inni);
+  return gruppe;
+}
+
 export const discovery3Meshy = {
   navn: 'Discovery 3',
   hjulradius: HJULRADIUS,
@@ -198,13 +273,14 @@ export const discovery3Meshy = {
       rund: (r, t, m, x, y, z, f = reserve, seg = 24) => ctx.rund(r, t, m, x, y, z, f, seg),
     });
     const oljelokk = byggMotorrom(karosseri, mat, boks, fboks);
-    // Panseret er hengslet ved frontruta. Delen fra nettet legges i hengselgruppen når filen er lastet.
+    // Panseret er hengslet ved frontruta. Panseret i nettet er ujevnt, så det byttes med et rent panser i lakk
+    // (samme form) som vises når filen er lastet. Under det ligger en mørk innside.
     const panser = new THREE.Group();
     panser.position.set(0, HENGSEL.y, HENGSEL.z);
     karosseri.add(panser);
-    // Mørk innside under panseret, så de ujevne kantene fra nettet ikke synes når det står åpent
-    const fall = Math.atan2(0.2, 1.13);
-    boks(1.24, 0.02, 0.98, mat.motorrom, 0, -0.08 - 0.09, 0.52, panser).rotation.x = fall;
+    const nyttPanser = byggPanser(mat);
+    nyttPanser.visible = false;
+    panser.add(nyttPanser);
     const klar = lastNett(mat)
       .then(({ kropp, panser: panserNett }) => {
         if (!gruppe.parent) {
@@ -218,9 +294,8 @@ export const discovery3Meshy = {
         reserve.removeFromParent();
         reserve.traverse((o) => o.geometry?.dispose());
         karosseri.add(kropp);
-        panserNett.position.y -= HENGSEL.y;
-        panserNett.position.z -= HENGSEL.z;
-        panser.add(panserNett);
+        panserNett.geometry.dispose();
+        nyttPanser.visible = true;
       })
       .catch((e) => console.error('Kunne ikke laste Meshy-bilen', e));
     return { panser, oljelokk, klar, panserMaks: 0.95 };
