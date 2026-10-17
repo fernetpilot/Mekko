@@ -24,8 +24,6 @@ const M_HJULRADIUS = 0.175;  // litt større enn dekket (0,163), så hele dekket
 const M_HJUL_INNSIDE = 0.24;     // |z| større enn dette er hjulet (resten er hjulbrønn og undervogn)
 
 const SKALA = (FORAKSEL - BAKAKSEL) / (M_BAKAKSEL - M_FORAKSEL);
-// Lakkfargen i teksturen (omtrent). Lakken skaleres med forholdet mellom bilens farge og denne.
-const LAKK_MESHY = 0xbdb9ac;
 const SMAL = 0.95;               // Meshy-bilen er litt for bred
 const HJULRADIUS = 0.39;
 
@@ -87,14 +85,12 @@ function delPanser(pos, idx) {
 
 // Lakk og ruter gjenkjennes på fargen i teksturen (og ruhet for rutene)
 function tilpassMateriale(m, mat) {
-  const lakkGrunn = new THREE.Color(LAKK_MESHY);
   m.transparent = true;
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uLakk = { value: mat.solv.color };
-    shader.uniforms.uLakkGrunn = { value: lakkGrunn };
     shader.uniforms.uGlod = { value: mat.solv.emissive };
     shader.uniforms.uGlass = { get value() { return mat.glass.opacity; } };
-    shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uLakkGrunn; uniform vec3 uGlod; uniform float uGlass;\nfloat lakkMaske = 0.0;\n' +
+    shader.fragmentShader = 'uniform vec3 uLakk; uniform vec3 uGlod; uniform float uGlass;\nfloat lakkMaske = 0.0;\n' +
       shader.fragmentShader
         .replace('#include <map_fragment>', `#include <map_fragment>
           {
@@ -103,7 +99,9 @@ function tilpassMateriale(m, mat) {
             float metning = (max(s.r, max(s.g, s.b)) - min(s.r, min(s.g, s.b))) / (max(s.r, max(s.g, s.b)) + 0.004);
             lakkMaske = smoothstep(0.36, 0.44, lys) * (1.0 - smoothstep(0.2, 0.28, metning));
             lakkMaske *= 1.0 - smoothstep(0.3, 0.45, texture2D(roughnessMap, vRoughnessMapUv).g);   // lakken er blank, lykteglasset matt i teksturen
-            diffuseColor.rgb *= mix(vec3(1.0), uLakk / max(uLakkGrunn, vec3(0.001)), lakkMaske);
+            // Lakken blir én jevn farge (som resten av Mekkoo), med litt av teksturens skygge igjen
+            float skygge = 0.85 * mix(1.0, clamp(lys / 0.62, 0.6, 1.25), 0.3);   // lakken er mindre metallisk her enn på kodebilene
+            diffuseColor.rgb = mix(diffuseColor.rgb, uLakk * skygge, lakkMaske);
           }`)
         .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
           {
@@ -204,6 +202,9 @@ export const discovery3Meshy = {
     const panser = new THREE.Group();
     panser.position.set(0, HENGSEL.y, HENGSEL.z);
     karosseri.add(panser);
+    // Mørk innside under panseret, så de ujevne kantene fra nettet ikke synes når det står åpent
+    const fall = Math.atan2(0.2, 1.13);
+    boks(1.24, 0.02, 0.98, mat.motorrom, 0, -0.08 - 0.09, 0.52, panser).rotation.x = fall;
     const klar = lastNett(mat)
       .then(({ kropp, panser: panserNett }) => {
         if (!gruppe.parent) {

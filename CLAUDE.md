@@ -58,7 +58,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   samme karosseri med ulik front og bak). `public/js/bilmodell.js` (ren, testet) velger modell ut fra merke, modell og
   førstegangsregistrering; `forside-kort.js` sender den til scenen. `?bilmodell=discovery4` i adressen tvinger en modell.
   Ny modell: lag en fil i `biler/`, legg den i `biler/index.js` og i `velgBilmodell`.
-  Discovery 3 vises med en ferdig Meshy-modell (`discovery-meshy.js`, fil i `public/bilhold/modeller/`, 5,6 MB, lastes bare når den velges;
+  Discovery 3 vises med en ferdig Meshy-modell (`discovery-meshy.js`, fil i `public/bilhold/modeller/`, 3,4 MB (2,2 MB komprimert), lastes bare når den velges;
   den kodebygde bilen vises mens filen lastes og med `?bilmodell=discovery3kode`). Hjulene i nettet byttes med de vanlige, panseret skjæres
   ut så det kan åpnes (motorrommet under er bygget i kode), lakken (lyse, blanke punkter i teksturen) får bilens farge, og rutene blir
   gjennomsiktige ved skanning. Begge deler gjøres i en shader i `tilpassMateriale`.
