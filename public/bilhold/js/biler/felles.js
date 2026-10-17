@@ -98,7 +98,8 @@ export function lagBil(modell) {
     return m;
   };
 
-  const { panser, oljelokk, panserGrunn = 0, panserMaks = 1.05 } =
+  // klar: løfte som oppfylles når en modell som lastes fra fil, står ferdig
+  const { panser, oljelokk, panserGrunn = 0, panserMaks = 1.05, klar = Promise.resolve() } =
     modell.karosseri({ karosseri, gruppe, mat, boks, fboks, sideplate, rund });
 
   // Hjul
@@ -235,11 +236,11 @@ export function lagBil(modell) {
     gruppe.removeFromParent();
     gruppe.traverse((o) => {
       o.geometry?.dispose();
-      for (const m of [].concat(o.material ?? [])) { m.map?.dispose(); m.dispose(); }
+      for (const m of [].concat(o.material ?? [])) { m.map?.dispose(); m.metalnessMap?.dispose(); m.dispose(); }
     });
   }
 
-  return { modell, gruppe, karosseri, hjul, hotspots, marker, skann, apnePanser, knappepunkter, lakk: solv, fjern };
+  return { modell, gruppe, karosseri, hjul, hotspots, marker, skann, apnePanser, knappepunkter, lakk: solv, fjern, klar };
 }
 
 // Hjul: dekk med mønster, felg med eiker og bremse. Målene kan settes per modell:
