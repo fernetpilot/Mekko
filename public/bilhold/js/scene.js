@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { lagTilhenger, lagSjiraff, sjiraffKamera, veiHump } from './tilhenger.js';
+import { startKamera } from '/spill/js/kamera.js';
 
 const FARTKMT = 60;
 const FART = FARTKMT / 3.6;              // meter per sekund
@@ -111,7 +112,7 @@ export function lagScene(canvas) {
   const onsketPos = new THREE.Vector3();
   const onsketMal = new THREE.Vector3();
   const aktivitet = { motor: 0, bremser: 0, dekk: 0 };
-  let modus = 'scroll';              // 'scroll', 'kalkulator', 'bil' eller 'sjiraff' (på vei til innlogging)
+  let modus = 'scroll';              // 'scroll', 'kalkulator', 'bil', 'sjiraff' (på vei til innlogging) eller 'spill'
   let sideValg = 'kalkulator';       // hvilken sidevisning kameraet går til: hele vogntoget eller bare bilen
   const sidekamera = {};             // { kalkulator: {...}, bil: {...} }
   let bilSkannMal = 0;
@@ -122,6 +123,13 @@ export function lagScene(canvas) {
   const sjiraffMal = new THREE.Vector3();
   const hodePos = new THREE.Vector3();
   let vedSjiraff = null;             // kalles når kameraet er helt inne ved sjiraffen
+  let spillT = 0;                    // 0..1, hvor langt kameraet har kommet til spillets kameravinkel
+  const spillPos = new THREE.Vector3();
+  const spillMal = new THREE.Vector3();
+  let vedSpill = null;               // kalles med et stillbilde når kameraet står der spillet starter
+  const kuleFra = new THREE.Spherical();
+  const kuleTil = new THREE.Spherical();
+  const spillTmp = new THREE.Vector3();
   let kalkBlend = 0;                 // 0 = scroll-kamera, 1 = kalkulator-kamera
   let hoverMal = 0;
   let hover = 0;
@@ -245,7 +253,29 @@ export function lagScene(canvas) {
       onsketPos.lerp(sjiraffPos, sj);
       onsketMal.lerp(sjiraffMal, sj);
     }
-    if ((kalkBlend > 0 && kalkBlend < 1) || sjiraffT > 0 || (side && kalkBlend === 1)) {
+    // Spillet: kameraet legger seg skrått bak og over bilen, der spillet (/spill/) starter
+    spillT = THREE.MathUtils.clamp(spillT + (modus === 'spill' ? dt / 1.6 : -dt / 0.8), 0, 1);
+    if (spillT > 0) {
+      // Bilen står i origo og «kjører» mot +z med veiens fart (verden flytter seg, ikke bilen)
+      const s = startKamera(window.innerWidth / window.innerHeight, 0, 0, 0, FART);
+      spillPos.set(s.pos.x, s.pos.y, s.pos.z);
+      spillMal.set(s.mal.x, s.mal.y, s.mal.z);
+      // Kameraet går i en bue rundt bilen (ikke rett linje, som ville gått tett forbi den)
+      const sp = kurve(spillT);
+      kuleFra.setFromVector3(spillTmp.subVectors(onsketPos, onsketMal));
+      kuleTil.setFromVector3(spillTmp.subVectors(spillPos, spillMal));
+      let dreiing = kuleTil.theta - kuleFra.theta;
+      if (dreiing > Math.PI) dreiing -= Math.PI * 2;
+      if (dreiing < -Math.PI) dreiing += Math.PI * 2;
+      kuleFra.set(
+        THREE.MathUtils.lerp(kuleFra.radius, kuleTil.radius, sp),
+        THREE.MathUtils.lerp(kuleFra.phi, kuleTil.phi, sp),
+        kuleFra.theta + dreiing * sp,
+      );
+      onsketMal.lerp(spillMal, sp);
+      onsketPos.setFromSpherical(kuleFra).add(onsketMal);
+    }
+    if ((kalkBlend > 0 && kalkBlend < 1) || sjiraffT > 0 || spillT > 0 || (side && kalkBlend === 1)) {
       kamPos.copy(onsketPos);                             // følger kurven direkte under overgangen
       kamMal.copy(onsketMal);
     } else {
@@ -309,6 +339,18 @@ export function lagScene(canvas) {
     maalYtelse(dt);
     hoppOver = lett && !hoppOver;          // lett versjon: tegn annenhver frame (ca. 30 i sekundet)
     if (!hoppOver) renderer.render(scene, kamera);
+    // Framme ved spillets kameravinkel: ta et stillbilde (samme frame, før lerretet tømmes)
+    if (!hoppOver && spillT === 1 && vedSpill) {
+      let bilde = null;
+      try { bilde = canvas.toDataURL('image/jpeg', 0.82); } catch { /* uten bilde blir overgangen litt mindre sømløs */ }
+      vedSpill({
+        bilde,
+        tid: bevegelsestid,                                // så sjiraffen fortsetter der den var
+        stripeFase: ((((-70 - veistrekning) % 9) + 9) % 9), // så midtstripene ligger likt
+        lakk: lakkMal.getHex(),
+      });
+      vedSpill = null;
+    }
     requestAnimationFrame(tegn);
   }
   let hoppOver = false;
@@ -344,7 +386,7 @@ export function lagScene(canvas) {
   return {
     settFremdrift(p) { fremdrift = p; },
     settModus(m) {
-      modus = ['kalkulator', 'bil', 'sjiraff'].includes(m) ? m : 'scroll';
+      modus = ['kalkulator', 'bil', 'sjiraff', 'spill'].includes(m) ? m : 'scroll';
       if (modus === 'kalkulator' || modus === 'bil') velgSide(modus);
     },
     settBilSkann(on) { bilSkannMal = on ? 1 : 0; },
@@ -364,6 +406,11 @@ export function lagScene(canvas) {
     zoomTilSjiraff() {
       modus = 'sjiraff';
       return new Promise((ferdig) => { vedSjiraff = ferdig; });
+    },
+    // Flyr kameraet til der spillet starter og svarer med et stillbilde og litt tilstand
+    tilSpill() {
+      modus = 'spill';
+      return new Promise((ferdig) => { vedSpill = ferdig; });
     },
     settHover(on) { hoverMal = on ? 1 : 0; },
     // Treffer et punkt på skjermen (px) hengeren eller sjiraffen?
@@ -502,8 +549,9 @@ function lagTilfeldig(frø) {
 
 // ---------------------------------------------------------------------------
 // Land Rover – forenklet realisme med skarpe, enkle linjer
+// Brukes også i spillet (/spill), så man kjører den samme bilen der.
 // ---------------------------------------------------------------------------
-function lagBil() {
+export function lagBil() {
   const gruppe = new THREE.Group();
   const karosseri = new THREE.Group();
   gruppe.add(karosseri);
@@ -700,6 +748,7 @@ function lagBil() {
   const klossMat = new THREE.MeshStandardMaterial({ color: 0x3a3b3e, roughness: 0.8 });
 
   const hjul = [];
+  const hjulStille = [];             // bremsene, som ikke snurrer (men svinger med i spillet)
   const hotspots = {};
   for (const s of [-1, 1]) {
     for (const z of [FORAKSEL_Z, BAKAKSEL_Z]) {
@@ -708,6 +757,7 @@ function lagBil() {
       stille.position.copy(spinn.position);
       gruppe.add(spinn, stille);
       hjul.push(spinn);
+      hjulStille.push(stille);
       if (s === 1 && z === FORAKSEL_Z) {
         hotspots.bremser = stille.getObjectByName('bremsepunkt');
         hotspots.dekk = mønsterpunkt;
@@ -834,7 +884,7 @@ function lagBil() {
     skannRamme.material.opacity = styrke * (0.55 + 0.25 * Math.sin(tid * 3));
   }
 
-  return { gruppe, karosseri, panser, hjul, hotspots, marker, skann, knappepunkter, lakk: solv };
+  return { gruppe, karosseri, panser, hjul, hjulStille, hotspots, marker, skann, knappepunkter, lakk: solv };
 }
 
 function lagHjul(mat, side) {

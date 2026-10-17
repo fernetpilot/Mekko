@@ -774,6 +774,22 @@ html.til-innlogging .tilhenger-skilt {
   transition: opacity 450ms;
 }
 
+/* ---------- Overgang til spillet (kameraet legger seg bak bilen) ---------- */
+.spill-cta { margin-left: 8px; }
+html.til-spill { overflow: hidden; }
+html.til-spill main,
+html.til-spill .topp-meny,
+html.til-spill .kalk-panel,
+html.til-spill .styrelinjer,
+html.til-spill .hotspot,
+html.til-spill .eksempeldata,
+html.til-spill .tilhenger-skilt,
+html.til-spill .bil-knapper {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 450ms;
+}
+
 /* ---------- Lastkalkulator (skiltoppslag) i tilhenger-visningen ---------- */
 .glassfelt input[type="text"] { text-transform: uppercase; }
 .glassfelt input[type="text"]::placeholder { text-transform: none; }

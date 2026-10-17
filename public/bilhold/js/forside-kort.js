@@ -31,7 +31,7 @@ let fargeFor = null;
 async function visFarge(bil) {
   const skilt = bil?.kjennemerke;
   fargeFor = skilt;
-  if (!skilt) return sendFarge(null);
+  if (!skilt) return sendFarge(null, null);
   let navn;
   try { navn = localStorage.getItem(FARGE_NOKKEL + skilt); } catch { /* ingen lagring */ }
   if (navn == null) {
@@ -42,10 +42,10 @@ async function visFarge(bil) {
       try { localStorage.setItem(FARGE_NOKKEL + skilt, navn); } catch { /* bare en snarvei */ }
     } catch { return; }
   }
-  if (fargeFor === skilt) sendFarge(lakkFor(navn));
+  if (fargeFor === skilt) sendFarge(lakkFor(navn), skilt);
 }
-function sendFarge(farge) {
-  document.dispatchEvent(new CustomEvent('mekko:lakk', { detail: { farge } }));
+function sendFarge(farge, skilt) {
+  document.dispatchEvent(new CustomEvent('mekko:lakk', { detail: { farge, skilt } }));
 }
 
 function visBil(bil) {

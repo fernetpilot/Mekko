@@ -104,6 +104,13 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   gjettes delene fra notatet likevel, så kostnaden ikke havner i «Annet». Velger brukeren deler selv (også ingen), lagres valget med `lagreDeler` og gjettes aldri over: ingen deler = «Annet» (`annet-arbeid`), og «Annet» i listen stopper gjettingen. Kostnad på besøk med flere kategorier fordeles likt på alle, også «Annet». I økonomi-fanen kan hver post åpnes for å se hendelsene som inngår; kategorier uten kostnad vises med 0 kr.
   Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
 - `public/personvern.html` – personvernerklæring, lenket diskret nederst på forsiden og i profilmenyen.
+- `public/spill/` – spillet «Ta bilen en tur» (`/spill/`): kjør Mekko-bilen med hengeren og sjiraffen rundt en landevei.
+  Bygget på Starter Kit Racing (MIT, `public/spill/LISENS-starter-kit-racing.txt`), men bruker `lagBil` fra `scene.js` og
+  `lagTilhenger` fra `tilhenger.js`, samme Three.js-versjon, lys og vei som forsiden. Ren logikk (testet i `tests/spill.test.js`):
+  banen og rundetid i `js/banedata.js`, kjørefysikk i `js/kjoring.js`, kamera i `js/kamera.js`. 3D-banen: `js/bane-3d.js`.
+  Overgang: «Ta bilen en tur» i heroen (`data-spill`) får forsiden (`scene.tilSpill()`) til å fly kameraet til spillets
+  startvinkel (`startKamera`), ta et stillbilde og lagre det i sessionStorage (`mekko-spill-overgang`); spillsiden viser
+  bildet til første bilde er tegnet. Bilens farge og skilt huskes i `mekko-spill-bil` (fjernes ved utlogging).
 - `public/js/supabase.js` – Supabase-klienten (URL + publishable key).
 - Service og EU-fanen (`fane-service.js`): EU-kontroll, service og slitasje de neste 12 mnd. Vedlikehold-fanen
   (`fane-vedlikehold.js`): alt vedlikehold per år med kostnad og vedlegg. Ren logikk i `public/js/dashboard.js` (testet).

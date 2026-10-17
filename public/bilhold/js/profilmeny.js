@@ -70,6 +70,8 @@ document.getElementById("profil-logg-ut").addEventListener("click", async (e) =>
     // Får vi ikke kontakt, fjern innloggingen lokalt så brukeren likevel blir logget ut her
     try { localStorage.removeItem(NOKKEL); } catch { /* ignorer */ }
   }
+  // Spillet husker bilens farge og skilt; det skal ikke bli liggende etter utlogging
+  try { localStorage.removeItem("mekko-spill-bil"); } catch { /* ignorer */ }
   location.replace("/min-side?neste=%2F");
 });
 

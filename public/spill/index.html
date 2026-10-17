@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="nb" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0d">
+  <title>Ta bilen en tur – Mekkoo</title>
+  <!-- Kommer man fra forsiden, ligger det siste bildet derfra klart, så overgangen blir sømløs (se spill.js) -->
+  <script>
+    try {
+      var o = JSON.parse(sessionStorage.getItem("mekko-spill-overgang") || "null");
+      if (o && o.bilde && Date.now() - o.naa < 8000) {
+        window.mekkoOvergang = o.bilde;
+        document.documentElement.classList.add("fra-forsiden");
+      }
+    } catch (e) { /* uten lagring starter spillet bare uten overgang */ }
+  </script>
+  <link rel="stylesheet" href="/bilhold/css/bilhold.css">
+  <link rel="stylesheet" href="/spill/css/spill.css">
+  <!-- Samme Three.js som forsiden, så bilen kan gjenbrukes direkte -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topp" id="topp">
+    <a class="logo" href="/">MEKKOO</a>
+    <nav class="topp-meny">
+      <a class="topp-knapp" href="/"><span aria-hidden="true">‹</span> Tilbake</a>
+    </nav>
+  </header>
+
+  <canvas id="scene" aria-label="Spill: kjør bilen din rundt banen"></canvas>
+  <img id="overgang" alt="" aria-hidden="true">
+  <script>if (window.mekkoOvergang) document.getElementById("overgang").src = window.mekkoOvergang;</script>
+
+  <!-- Hele skjermen er styreflate. Knappene ligger over den. -->
+  <div class="styre-sone" id="styre-sone"></div>
+
+  <main class="spill-hud" id="innhold">
+    <h1 class="skjult-tekst">Ta bilen en tur</h1>
+    <div class="hud-tider">
+      <p class="glassfelt hud-felt"><span>Runde</span><b id="hud-runde">–</b></p>
+      <p class="glassfelt hud-felt"><span>Beste</span><b id="hud-beste">–</b></p>
+    </div>
+
+    <p class="hud-melding" id="melding" role="status" aria-live="polite"></p>
+
+    <p class="glassfelt hud-hint" id="hint">
+      <span class="kun-beroring">Dra fingeren dit du vil kjøre. Slipp for å rulle ut.</span>
+      <span class="kun-tastatur">Styr med piltastene eller WASD. R starter på nytt.</span>
+    </p>
+
+    <div class="hud-bunn">
+      <p class="glassfelt hud-fart"><b id="hud-fart">60</b><span>km/t</span></p>
+      <div class="hud-knapper">
+        <button class="hud-knapp" type="button" id="henger-knapp" aria-pressed="true"><span>Henger på</span></button>
+        <button class="hud-knapp" type="button" id="ny-start">Start på nytt</button>
+      </div>
+    </div>
+  </main>
+
+  <noscript><p class="spill-uten">Spillet trenger JavaScript. <a href="/">Tilbake til forsiden</a></p></noscript>
+  <p class="spill-uten" id="ingen-3d" hidden>Spillet kunne ikke starte på denne enheten. <a href="/">Tilbake til forsiden</a></p>
+  <p class="spill-kreditt">Inspirert av <a href="https://github.com/mrdoob/Starter-Kit-Racing" rel="noopener">Starter Kit Racing</a></p>
+
+  <script type="module">
+    try {
+      await import("/spill/js/spill.js");
+    } catch (feil) {
+      console.warn("Spillet kunne ikke starte:", feil);
+      document.getElementById("ingen-3d").hidden = false;
+      document.getElementById("overgang").remove();
+    }
+  </script>
+</body>
+</html>
