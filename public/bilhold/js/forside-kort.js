@@ -5,6 +5,7 @@ import { bilNavn, velgBil } from '/js/dashboard.js';
 import { bilLenke } from '/js/bilstatus.js';
 import { forsideKort } from '/js/forside.js';
 import { lakkFor, registrertFarge } from '/js/bilfarge.js';
+import { velgBilmodell } from '/js/bilmodell.js';
 import { hentBiler, lagretBil } from './bil-data.js';
 
 const merknad = document.querySelector('.eksempeldata');
@@ -49,6 +50,7 @@ function sendFarge(farge) {
 }
 
 function visBil(bil) {
+  sendModell(velgBilmodell(bil));
   visFarge(bil);
   const kort = forsideKort(bil, new Date());
   for (const del of ['motor', 'bremser', 'dekk']) tegnKort(del, kort[del], bilLenke(bil, kort[del].fane));
@@ -57,11 +59,17 @@ function visBil(bil) {
   if (merknad) merknad.textContent = `Viser ${bilNavn(bil)}${bil.kjennemerke ? ` (${bil.kjennemerke})` : ''}`;
 }
 
+// 3D-bilen bytter til en egen modell når vi har en for bilen (ellers standardbilen)
+function sendModell(modell) {
+  document.dispatchEvent(new CustomEvent('mekko:modell', { detail: { modell } }));
+}
+
 function sendStatus(status) {
   document.dispatchEvent(new CustomEvent('mekko:delstatus', { detail: { status } }));
 }
 
 function ingenBil() {
+  sendModell(null);
   sendStatus({ motor: 'tom', bremser: 'tom', dekk: 'tom' });
   const k = { status: 'tom', statusTekst: 'Ingen bil ennå', tekst: 'Legg til bilen din, så ser du status her.' };
   for (const [del, tittel] of [['motor', 'Motorolje & filter'], ['bremser', 'Bremseklosser'], ['dekk', 'Dekk']]) {

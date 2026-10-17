@@ -53,6 +53,12 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Innlogget får 3D-bilen fargen den er registrert med hos Vegvesenet (`public/js/bilfarge.js`, testet; huskes i
   nettleseren per skilt), og motor/bremser/dekk lyser i kortets statusfarge når kameraet zoomer inn
   (hele bremsen farges; kritisk status blinker rolig rødt, også på kortet og punktet).
+  Bilmodellene ligger i `public/bilhold/js/biler/`: `felles.js` (hjul, bremser, kupé, skanning, statusfarger),
+  `standard.js` (Discovery 2-aktig, vises utlogget og for biler uten egen modell) og `discovery.js` (Discovery 3 og 4,
+  samme karosseri med ulik front og bak). `public/js/bilmodell.js` (ren, testet) velger modell ut fra merke, modell og
+  førstegangsregistrering; `forside-kort.js` sender den til scenen. `?bilmodell=discovery4` i adressen tvinger en modell.
+  Ny modell: lag en fil i `biler/`, legg den i `biler/index.js` og i `velgBilmodell`.
+  Designet er beskrevet i prosjektmappen (`design/3d-bil-designbeskrivelse.md`).
   Svake telefoner får en lett 3D-versjon (lav oppløsning, ingen skygger, 30 fps): slås på av lite minne/datasparing
   eller hvis de første sekundene går tregt. `?lett` i adressen tvinger den på.
   Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
