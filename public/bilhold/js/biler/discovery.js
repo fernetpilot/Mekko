@@ -48,7 +48,7 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const { solv, plast, glass, krom, titan, lykt, lyktglass, led, blinklys, baklykt, bakledd, motorrom, motorMat, oljeMat } = mat;
   const UNDER = 0.44;        // underkant av sidene mellom hjulene
   const BELTE = 1.25;        // der vinduene begynner (høy beltelinje, som på bilen)
-  const PANSER_FRONT = 1.17; // panseret er nesten flatt og faller litt mot fronten
+  const PANSER_FRONT = 1.12; // panseret er nesten flatt og faller litt mot fronten
   const MIDT_B = 1.28;       // innenfor hjulenes innerkant (0,8 − 0,128)
   const BUE_R = 0.48;        // hjulbuens radius (dekket er 0,38)
   const HENGSEL_Z = 1.0;     // panseret er hengslet ved frontruta
@@ -267,9 +267,9 @@ function byggL319({ karosseri, mat, boks, fboks, sideplate, rund }, d4) {
   const lyktHus = d4 ? lyktglass : std({ color: 0xdfe3e6, metalness: 0.55, roughness: 0.12 });
   for (const s of [-1, 1]) {
     const lx = s * 0.7;
-    const ly = 1.01;
-    fboks(0.48, 0.27, 0.04, lyktHus, lx, ly, FF + 0.002, 0.02);
-    fboks(0.03, 0.25, 0.26, lyktHus, s * (SIDE - 0.005), ly, FRONT - 0.09, 0.012);          // lykta går rundt hjørnet
+    const ly = 0.995;
+    fboks(0.48, 0.25, 0.04, lyktHus, lx, ly, FF + 0.002, 0.02);
+    fboks(0.03, 0.23, 0.26, lyktHus, s * (SIDE - 0.005), ly, FRONT - 0.09, 0.012);          // lykta går rundt hjørnet
     for (const dx of [-0.07, 0.08]) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.01, 6, 16), krom);
       ring.position.set(lx - s * dx, ly + 0.015, FF + 0.026);

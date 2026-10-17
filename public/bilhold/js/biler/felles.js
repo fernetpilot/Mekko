@@ -15,7 +15,7 @@ function lagMaterialer() {
     solv: std({ color: LAKK, metalness: 0.75, roughness: 0.3 }),
     plast: std({ color: 0x17181a, metalness: 0.1, roughness: 0.75 }),
     // Glasset kan bli gjennomsiktig når bilen «skannes», så man ser sjåføren
-    glass: std({ color: 0x0b0f14, metalness: 0.9, roughness: 0.08, transparent: true, opacity: 1 }),
+    glass: std({ color: 0x2a323b, metalness: 0.5, roughness: 0.2, transparent: true, opacity: 1 }),
     krom: std({ color: 0xe8eaec, metalness: 1, roughness: 0.15 }),
     titan: std({ color: 0x9a9da2, metalness: 0.85, roughness: 0.35 }),
     lykt: std({ color: 0xf4f6f8, emissive: 0xfff4dc, emissiveIntensity: 0.6, roughness: 0.2 }),
@@ -215,7 +215,7 @@ export function lagBil(modell) {
   const glod = new THREE.Color(0x9cc8ff);
   function skann(styrke, tid, hover = 0) {
     glass.opacity = 1 - styrke * 0.9;
-    glass.metalness = 0.9 - styrke * 0.8;              // mindre speiling, så man ser inn
+    glass.metalness = 0.5 - styrke * 0.4;              // mindre speiling, så man ser inn
     solv.emissive.copy(glod).multiplyScalar(hover * 0.14 * (0.8 + 0.2 * Math.sin(tid * 3)));
     glass.depthWrite = styrke < 0.05;
     interior.visible = styrke > 0.02;
