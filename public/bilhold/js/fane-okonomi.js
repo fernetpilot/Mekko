@@ -6,7 +6,7 @@ import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { estimerVerdi, maned, manederMellom, oppsummer, standardPeriode } from '/js/bilokonomi.js';
 import { alleFrister } from '/js/dashboard.js';
 import { lagPrognose, PRISVEKST } from '/js/prognose.js';
-import { finnAlleDeler, finnLenke, finnLignendeBiler, markedspris, tolkPriser } from '/js/finn-sok.js';
+import { finnAlleDeler, finnLenke, finnLignendeBiler } from '/js/finn-sok.js';
 import { ansvar, el, finnKnapp, flis, fliser, liten } from './bil-visning.js';
 
 const kr = (n) => `${Math.round(n).toLocaleString('nb-NO')} kr`;
@@ -632,8 +632,11 @@ export function okonomiFane(bil, idag, ctx) {
     steg.append(sumLi);
     const forklaring = el('details');
     forklaring.append(el('summary', null, 'Slik er det regnet'), steg);
-    // «Sammenlign med biler til salgs» rett under «Slik er det regnet»
-    v.append(forklaring, lignendeBiler(bil, verdi));
+    v.append(forklaring);
+    // «Finn lignende biler» til høyre i ruten (under på smale skjermer): samme bil på finn.no, filtrert på km
+    const finn = finnKnapp(finnLignendeBiler(bil).href, 'Finn lignende biler ↗');
+    finn.classList.add('flis-finn');
+    v.append(finn);
     ut.push(fliser(v,
       flis('Totalkostnad siden kjøp', kr(totalt), oKjop.ar >= 0.5 ? `${kr(totalt / oKjop.ar)} per år, inkl. verditap` : `Verditap ${kr(verditap)}`),
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
@@ -641,9 +644,7 @@ export function okonomiFane(bil, idag, ctx) {
 
   // Uten verdianslag (ingen kjøpspris) står sammenligningen i en egen rute
   if (!verdi) {
-    const egen = el('section', 'bil-kort finn-biler');
-    egen.append(lignendeBiler(bil, null));
-    ut.push(egen);
+    ut.push(lignendeBiler(bil));
   }
   ut.push(kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
   ut.push(ansvar('Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer, ikke en takst. '
@@ -651,64 +652,19 @@ export function okonomiFane(bil, idag, ctx) {
   return ut;
 }
 
-/** «Sammenlign med biler til salgs»: samme bil på finn.no, med omtrent samme kilometerstand. */
-// Prisene fra annonsene huskes i nettleseren per bil (bare en hjelp, ikke lagret i databasen)
-const PRIS_NOKKEL = 'mekko-finn-priser-';
-const hentPriser = (id) => { try { return localStorage.getItem(PRIS_NOKKEL + id) ?? ''; } catch { return ''; } };
-const lagrePriser = (id, tekst) => {
-  try { tekst ? localStorage.setItem(PRIS_NOKKEL + id, tekst) : localStorage.removeItem(PRIS_NOKKEL + id); } catch { /* ingen lagring */ }
-};
-
-/** Prisene brukeren har skrevet inn fra lignende annonser: median og spenn, mot Mekkos anslag. */
-function annonsepriser(bil, verdi) {
-  const boks = el('div', 'bil-skjema finn-priser');
-  const l = el('label', null, 'Priser fra lignende annonser (én per linje)');
-  const felt = document.createElement('textarea');
-  felt.rows = 4;
-  felt.inputMode = 'numeric';
-  felt.placeholder = '89 900\n95 000\n105 000';
-  felt.value = hentPriser(bil.id);
-  l.append(felt);
-  const svar = el('div', 'finn-priser-svar');
-  const tegn = () => {
-    const m = markedspris(tolkPriser(felt.value));
-    if (!m) {
-      svar.replaceChildren(liten('Åpne søket, finn 3–5 biler som ligner mest på din (utstyr, tilstand, år), og skriv inn prisene her.'));
-      return;
-    }
-    const f = flis('Annonsepris på finn.no', `ca. ${kr(m.median)}`,
-      m.antall > 1 ? `${kr(m.lav)} – ${kr(m.hoy)} · ${m.antall} annonser` : '1 annonse, legg inn flere for et sikrere tall');
-    f.classList.add('hoved');
-    const ut = [f];
-    if (verdi) {
-      const diff = m.median - verdi.verdi;
-      ut.push(liten(Math.abs(diff) < 5000
-        ? `Omtrent det samme som Mekkos anslag (${kr(verdi.verdi)}).`
-        : `${kr(Math.abs(diff))} ${diff > 0 ? 'over' : 'under'} Mekkos anslag (${kr(verdi.verdi)}).`));
-    }
-    ut.push(liten('Annonsepris er det selgerne ber om. Salgsprisen ender ofte litt lavere.'));
-    svar.replaceChildren(...ut);
-  };
-  felt.addEventListener('input', () => { lagrePriser(bil.id, felt.value.trim()); tegn(); });
-  tegn();
-  boks.append(l, svar);
-  return boks;
-}
-
-/** «Sammenlign med biler til salgs»: nedtrekk i markedsverdi-ruten (eller egen rute uten verdianslag). */
-function lignendeBiler(bil, verdi) {
+/** Uten verdianslag (ingen kjøpspris): søket etter lignende biler i en egen liten rute. */
+function lignendeBiler(bil) {
   const { href, km, ar } = finnLignendeBiler(bil);
-  const d = el('details', 'finn-sammenlign');
-  d.append(el('summary', null, 'Sammenlign med biler til salgs'));
+  const s = el('section', 'bil-kort finn-biler');
   const navn = [bil.merke, bil.modell].filter(Boolean).join(' ') || 'bilen din';
   const filter = [km && `${formaterKm(km.fra)} – ${formaterKm(km.til)}`, ar && `årsmodell ${ar.fra}–${ar.til}`].filter(Boolean);
-  d.append(liten(filter.length
+  s.append(liten(filter.length
     ? `Se hva ${navn} med ${filter.join(' og ')} koster på finn.no.`
-    : `Se hva ${navn} koster på finn.no. Legg inn kilometerstanden, så filtrerer vi på den også.`));
+    : `Se hva ${navn} koster på finn.no.`));
   const rad = el('div', 'bil-knapperad');
   rad.append(finnKnapp(href, 'Finn lignende biler ↗'));
-  d.append(rad, annonsepriser(bil, verdi));
-  return d;
+  s.append(rad);
+  return s;
 }
 
 /** «Kjøp deler på finn.no»: ferdig filtrerte søk etter delene som snart bør byttes, og alle deler til bilen. */

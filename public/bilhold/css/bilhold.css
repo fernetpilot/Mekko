@@ -1439,13 +1439,13 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .periode-rader { display: grid; gap: 10px; }
 @media (min-width: 560px) { .periode-rader { grid-template-columns: 1fr 1fr; } }
 
-/* Økonomi: priser fra lignende annonser på finn.no */
-.finn-priser { margin-top: 12px; display: grid; gap: 10px; }
-.finn-priser-svar { display: grid; gap: 6px; }
-/* «Sammenlign med biler til salgs»: nedtrekk i markedsverdi-ruten */
-.finn-sammenlign > .bil-liten { margin: 6px 0 0; }
-.finn-sammenlign .bil-knapperad { margin-top: 8px; }
-.finn-biler .finn-sammenlign > summary { margin-top: 0; font-weight: 600; color: var(--tekst); }
+/* Økonomi: «Finn lignende biler» til høyre i markedsverdi-ruten */
+.bil-flis.hoved:has(.flis-finn) { position: relative; padding-right: 200px; }
+.bil-flis .flis-finn { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); }
+@media (max-width: 520px) {
+  .bil-flis.hoved:has(.flis-finn) { padding-right: 14px; }
+  .bil-flis .flis-finn { position: static; transform: none; display: inline-block; margin-top: 12px; }
+}
 
 /* Økonomi: prognose for de neste fem årene */
 .diagram-forklaring { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--tekst-dempet); }
