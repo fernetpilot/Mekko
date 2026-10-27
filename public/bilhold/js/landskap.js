@@ -1,5 +1,5 @@
 // Norsk landskap langs veien: skog med gran, bjørk og furu, et slåtteng med skigard,
-// mosegrodde steiner og steinrøyser, en grusvei med bom og postkassestativ, og en tursti
+// mosegrodde steiner og steinrøyser, en grusvei med bom, og en tursti
 // med rød T inn i skogen. Verden flytter seg bakover mens bilen står stille.
 //
 // Alt som står langs veien er delt i «biter» på 14 meter. Hver bit er slått sammen til
@@ -294,7 +294,7 @@ export function lagOmgivelser(scene, farger) {
     }
   }
 
-  // ---------- Grusvei inn i skogen, med bom og postkassestativ ----------
+  // ---------- Grusvei inn i skogen, med bom ----------
   {
     const veiGeo = baand((x) => GRUSVEI_Z + grusveiSving(x), VEIKANT_H + 0.1, VEIKANT_H - 46, 3.0, 40);
     legg('naer', flytt(veiGeo, 0, 0.012, 0), 0x57503f, GRUSVEI_Z);
@@ -309,18 +309,6 @@ export function lagOmgivelser(scene, farger) {
       const del = new THREE.CylinderGeometry(0.04, 0.04, 0.56, 10);
       del.rotateX(Math.PI / 2);
       legg('naer', flytt(del, bx, 0.95, bz - 1.4 + i * 0.56), i % 2 ? 0xe8e6e0 : 0xb5241c, GRUSVEI_Z);
-    }
-    // Postkassestativ ved veikanten, med fire kasser i ulike farger
-    const px = VEIKANT_H - 1.1, pz = GRUSVEI_Z + 2.3;
-    for (const dz of [-0.75, 0.75]) legg('naer', flytt(new THREE.BoxGeometry(0.08, 1.15, 0.08), px, 0.57, pz + dz), 0x5a4b3a, GRUSVEI_Z);
-    legg('naer', flytt(new THREE.BoxGeometry(0.42, 0.05, 1.8), px, 1.08, pz), 0x5a4b3a, GRUSVEI_Z);
-    legg('naer', flytt(new THREE.BoxGeometry(0.5, 0.04, 1.95), px, 1.52, pz), 0x3a3a3c, GRUSVEI_Z);  // tak
-    for (const [i, farge] of [[0, 0x2e6b3a], [1, 0xb5241c], [2, 0x9ea3a8], [3, 0x2a4f8a]]) {
-      const kasse = new THREE.CylinderGeometry(0.17, 0.17, 0.4, 14, 1, false, 0, Math.PI);
-      kasse.rotateZ(Math.PI / 2);
-      kasse.rotateX(-Math.PI / 2);
-      legg('naer', flytt(kasse, px + 0.02, 1.12, pz - 0.63 + i * 0.42), farge, GRUSVEI_Z);
-      legg('naer', flytt(new THREE.BoxGeometry(0.4, 0.17, 0.34), px + 0.02, 1.19, pz - 0.63 + i * 0.42), farge, GRUSVEI_Z);
     }
   }
 
