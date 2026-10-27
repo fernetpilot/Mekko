@@ -503,9 +503,13 @@ function flyttEtterScroll(p) {
   const andel = sideMaal.maks ? forskyv / sideMaal.maks : 0;
   veiSkygge.style.height = `${Math.max(0, sideMaal.midtlinje - forskyv + 1)}px`;
   veiSkygge.style.opacity = String(Math.min(1, Math.max(0, (andel - 0.55) / 0.4)));
+  // Gress og vei mister detaljene på vei ned, så det ikke synes at veien stopper opp helt nede
+  const d = Math.min(1, Math.max(0, (andel - 0.25) / 0.7));
+  scene.settDetalj(helt ? 0 : 1 - d * d * (3 - 2 * d));
 }
 function nullstillForskyvning() {
   scene?.settSideForskyvning(0, false);
+  scene?.settDetalj(1);
   veiSkygge.style.opacity = '0';
 }
 for (const p of Object.values(PANELER)) {
