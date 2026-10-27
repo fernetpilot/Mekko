@@ -1381,6 +1381,9 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
   cursor: pointer;
 }
 .bil-utsett:disabled { opacity: 0.5; }
+.bil-liste li:has(.bil-finn) { flex-wrap: wrap; }
+.bil-utsett-rad { display: flex; flex-wrap: wrap; gap: 8px; }
+a.bil-finn { display: inline-block; text-decoration: none; }
 
 /* Service og EU: «Fulgt etter boka?» – hver jobb mot anbefalt intervall */
 .bil-etter-boka { display: grid; gap: 10px; }

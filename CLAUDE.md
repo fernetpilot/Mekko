@@ -125,6 +125,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Nederst i Service og EU: «Fulgt etter boka?» – per del alle utførte jobber mot anbefalt intervall (stolper i % av
   intervallet). Første bytte regnes fra første registrering og 0 km («Fra ny»), og teller med i snittet.
   Trykk på en del i listene over åpner den. Ren logikk i `public/js/etter-boka.js` (testet).
+  Deler som bør byttes/sjekkes og delene i «Fulgt etter boka?» har «Søk på finn.no»: ferdig filtrert søk i Torget › Bildeler
+  (merke-id, modell og del i fritekst). Ren logikk i `public/js/finn-sok.js` (testet); merke-id-er i `FINN_MERKER`, søkeord i `SOKEORD`.
 - Dekk-fanen (`fane-dekk.js`): sommer- og vinterdekksett (tabell `dekksett`,
   se `supabase/07-dekksett.sql`), hvilket sett som står på, og «Registrer dekkskift» (lagres også som vedlikehold
   med komponent `dekk`). Reglene ligger i `public/js/dekk.js` (ren, testet): piggdekkperioden (sør/nord, påske),
