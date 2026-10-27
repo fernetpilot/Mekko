@@ -436,6 +436,8 @@ export function lagScene(canvas) {
     sideLinjer() { const k = sidekamera[sideValg]; return { bunn: k.bunnPx, kantlinje: k.kantlinjePx, midtlinje: k.midtlinjePx }; },
     // Flytter bildet opp (px) når man blar ned i et panel. stille = alt stopper opp (som et stillbilde).
     settSideForskyvning(px, stille = false) { sideForskyv = Math.max(0, px); stillbilde = stille; },
+    // Gress og vei glir fra detaljert (1) til ensfarget (0)
+    settDetalj(d) { omgivelser.settDetalj(d); },
     settTema(t) { temaMal = t === 'light' ? 'light' : 'dark'; },
     // Skjermposisjon (px) for en bildel, brukt til hotspot og styrelinje
     skjermpunkt(navn) {

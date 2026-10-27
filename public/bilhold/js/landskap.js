@@ -63,6 +63,7 @@ export function lagOmgivelser(scene, farger) {
   const gressTekstur = flekkTekstur(11, 256, [[0.82, 1.12], 5000, 1, 3], true);
   gressTekstur.repeat.set(20, 20);
   const gressMat = new THREE.MeshStandardMaterial({ color: farger.gress, roughness: 1, vertexColors: true, map: gressTekstur });
+  const gressDetalj = medDetalj(gressMat);
   const gress = new THREE.Mesh(gressGeo, gressMat);
   gress.rotation.x = -Math.PI / 2;
   gress.position.y = -0.01;
@@ -73,7 +74,9 @@ export function lagOmgivelser(scene, farger) {
   // Asfalt med fin struktur, sprekker og ujevnheter (bump-kart). Teksturen flytter seg
   // med samme fart som stripene.
   const veiTekstur = asfaltTekstur();
-  const veiMat = new THREE.MeshStandardMaterial({ color: farger.vei, roughness: 0.92, map: veiTekstur, bumpMap: veiTekstur, bumpScale: 1.6 });
+  const VEI_BUMP = 1.6;
+  const veiMat = new THREE.MeshStandardMaterial({ color: farger.vei, roughness: 0.92, map: veiTekstur, bumpMap: veiTekstur, bumpScale: VEI_BUMP });
+  const veiDetalj = medDetalj(veiMat);
   const vei = new THREE.Mesh(new THREE.PlaneGeometry(VEI_B, 200), veiMat);
   vei.rotation.x = -Math.PI / 2;
   vei.position.x = MIDTSTRIPE_X;
@@ -354,7 +357,7 @@ export function lagOmgivelser(scene, farger) {
 
   // ---------- Bitene blir figurer ----------
   const naturMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
-  const flekkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const flekkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, transparent: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   flekkMat.color = veiMat.color;                 // samme farge som veien, også når temaet skifter
   const vannMat = new THREE.MeshStandardMaterial({ color: 0x14171b, roughness: 0.03, metalness: 0.1, envMapIntensity: 0.45, transparent: true, opacity: 0.6, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const fjerne = [];
@@ -376,6 +379,15 @@ export function lagOmgivelser(scene, farger) {
     veiMat,
     // Lett versjon: den ytterste skogen tegnes ikke
     settLett() { for (const m of fjerne) m.visible = false; },
+    // 1 = full detalj, 0 = ensfarget gress og vei uten lapper og pytter. Brukes når man blar ned i et
+    // panel, så det ikke synes at veien stopper opp.
+    settDetalj(d) {
+      gressDetalj.value = veiDetalj.value = d;
+      veiMat.bumpScale = VEI_BUMP * d;
+      flekkMat.opacity = d;
+      vannMat.opacity = 0.6 * d;
+      flekkMat.visible = vannMat.visible = d > 0.01;
+    },
     oppdater(strekning) {
       // Verden flytter seg bakover (-z) mens bilen står stille
       for (const f of flyttbare) {
@@ -502,6 +514,31 @@ function farget(geo, farge) {
 }
 
 // Pyttene har ingen farge per hjørne; de andre får samme sett med attributter
+// Lar teksturen på et materiale gli over i sin egen snittfarge (uniform detalj: 1 = tekstur, 0 = ensfarget)
+function medDetalj(mat) {
+  const detalj = { value: 1 };
+  const snitt = snittfarge(mat.map);
+  mat.onBeforeCompile = (s) => {
+    s.uniforms.detalj = detalj;
+    s.fragmentShader = 'uniform float detalj;\n' + s.fragmentShader.replace('#include <map_fragment>', `
+      #ifdef USE_MAP
+        diffuseColor *= mix(vec4(${snitt.map((v) => v.toFixed(4)).join(', ')}, 1.0), texture2D(map, vMapUv), detalj);
+      #endif`);
+  };
+  return detalj;
+}
+
+// Gjennomsnittsfargen i en lerret-tekstur, lineær (slik shaderen ser den)
+function snittfarge(tex) {
+  const c = tex.image;
+  const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  const sum = [0, 0, 0];
+  for (let i = 0; i < data.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += srgbTilLineaer(data[i + k] / 255);
+  return sum.map((v) => v / (data.length / 4));
+}
+
+const srgbTilLineaer = (c) => (c < 0.04045 ? c * 0.0773993808 : Math.pow(c * 0.9478672986 + 0.0521327014, 2.4));
+
 function utenUv(geo) {
   const g = geo.index ? geo.toNonIndexed() : geo;
   if (g.attributes.uv) g.deleteAttribute('uv');
