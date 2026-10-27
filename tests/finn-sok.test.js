@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { finnAlleDeler, finnLenke, modellOrd, sokeord } from "../public/js/finn-sok.js";
+import { finnAlleDeler, finnLenke, finnLignendeBiler, finnVariant, modellOrd, sokeord } from "../public/js/finn-sok.js";
 import { allePunkter } from "../public/js/servicekatalog.js";
 
 const disco = { merke: "LAND ROVER", modell: "DISCOVERY 3" };
@@ -55,4 +55,34 @@ test("alle deler til bilen: bare modellen i søket", () => {
   const url = new URL(finnAlleDeler(disco));
   assert.equal(url.searchParams.get("brand"), "781");
   assert.equal(url.searchParams.get("q"), "discovery 3");
+});
+
+test("lignende biler: Discovery 3 får eget filter og km ± 25 000", () => {
+  const { href, km, ar } = finnLignendeBiler({ ...disco, kilometerstand: 250000, forstegangsregistrert: "2008-05-01" });
+  const url = new URL(href);
+  assert.equal(url.origin + url.pathname, "https://www.finn.no/mobility/search/car");
+  assert.equal(url.searchParams.get("variant"), "2.781.2680.2002262");
+  assert.equal(url.searchParams.get("mileage_from"), "225000");
+  assert.equal(url.searchParams.get("mileage_to"), "275000");
+  assert.equal(url.searchParams.get("q"), null);
+  assert.equal(url.searchParams.get("year_from"), null);
+  assert.deepEqual(km, { fra: 225000, til: 275000 });
+  assert.equal(ar, null);
+});
+
+test("lignende biler: Discovery 4 og Discovery Sport", () => {
+  assert.equal(finnVariant({ merke: "LAND ROVER", modell: "DISCOVERY 4 SDV6" }), "2.781.2680.2002263");
+  assert.equal(finnVariant({ merke: "Land Rover", modell: "Discovery Sport" }), "2.781.2680.2000319");
+});
+
+test("lignende biler: ukjent generasjon gir merke, modell og årsmodell ± 2", () => {
+  const url = new URL(finnLignendeBiler({ merke: "LAND ROVER", modell: "DEFENDER 110", forstegangsregistrert: "2015-03-01", kilometerstand: 10000 }).href);
+  assert.equal(url.searchParams.get("variant"), "0.781");
+  assert.equal(url.searchParams.get("q"), "defender");
+  assert.equal(url.searchParams.get("year_from"), "2013");
+  assert.equal(url.searchParams.get("year_to"), "2017");
+  assert.equal(url.searchParams.get("mileage_from"), "0");
+  const volvo = new URL(finnLignendeBiler({ merke: "VOLVO", modell: "V70" }).href);
+  assert.equal(volvo.searchParams.get("q"), "volvo v70");
+  assert.equal(volvo.searchParams.get("mileage_from"), null);
 });
