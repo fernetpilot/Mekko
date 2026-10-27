@@ -40,7 +40,7 @@ const bil = {
   ],
 };
 
-test("prognosen har planlagte jobber med kilde, EU-kontroll hvert andre år og uforutsett som spenn", () => {
+test("prognosen har planlagte jobber med kilde og EU-kontroll hvert andre år", () => {
   const p = lagPrognose(bil, { idag });
   assert.equal(p.perAar[0].ar, 2026);
   assert.equal(p.perAar.at(-1).ar, 2031);
@@ -50,19 +50,19 @@ test("prognosen har planlagte jobber med kilde, EU-kontroll hvert andre år og u
   const olje = p.poster.find((x) => x.id === "motorolje");
   assert.equal(olje.kilde, "egen");
   assert.ok(!p.poster.some((x) => x.id === "manuelt-gir" || x.id === "oljefilter"));
-  // Turboen (20 000 kr i 2024) er grunnlaget for uforutsett
-  assert.ok(p.uforutsettPerAar > 3000 && p.uforutsettPerAar < 5000);
-  assert.ok(p.total.lav < p.total.snitt && p.total.snitt < p.total.hoy);
-  assert.ok(Math.abs(p.total.snitt - p.perAar.reduce((n, a) => n + a.planlagt + a.uforutsett, 0)) < 1e-6);
+  // Bare planlagt vedlikehold: turboen fra 2024 gir ingen post
+  assert.ok(!p.poster.some((x) => x.id === "turbo"));
+  assert.equal(p.total, p.perAar.reduce((n, a) => n + a.planlagt, 0));
+  assert.equal(p.total, p.poster.reduce((n, x) => n + x.pris, 0));
   assert.equal(p.kurve.length, 61);
-  assert.ok(p.kurve.every((k, i) => i === 0 || k.snitt >= p.kurve[i - 1].snitt));
+  assert.equal(p.kurve.at(-1).sum, p.total);
+  assert.ok(p.kurve.every((k, i) => i === 0 || k.sum >= p.kurve[i - 1].sum));
 });
 
 test("bil uten serviceplan får årlig service", () => {
   const p = lagPrognose({ modell: "GOLF", kilometerstand: 50000, vedlikehold: [] }, { idag });
   assert.ok(p.poster.some((x) => x.id === "service" && x.kilde === "anslag"));
   assert.equal(p.harServiceplan, false);
-  assert.equal(p.uforutsettPerAar, 0);
   assert.ok(PRISER.service.pris > 0);
 });
 

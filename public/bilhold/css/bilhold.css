@@ -1445,7 +1445,6 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .diagram-forklaring .prikk { width: 10px; height: 10px; border-radius: 3px; }
 .diagram-forklaring .historikk { background: var(--serie-hoved); }
 .diagram-forklaring .prognose { background: var(--serie-prognose); }
-.diagram-forklaring .uforutsett { background: var(--serie-prognose); opacity: 0.45; }
 .bil-flis.prognose { border-left: 3px solid var(--serie-prognose); }
 .prognose-detaljer summary { cursor: pointer; font-weight: 600; }
 .prognose-ar { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
@@ -1453,5 +1452,4 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .prognose-jobber { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--serie-prognose); display: grid; gap: 4px; font-size: 13px; }
 .prognose-jobber li { display: grid; grid-template-columns: 74px 1fr; gap: 0 8px; }
 .prognose-jobber .post-belop { grid-column: 2; color: var(--tekst-dempet); font-size: 12px; }
-.prognose-jobber .uforutsett span:nth-child(2) { font-style: italic; }
 .prognose-jobber .tom { display: block; color: var(--tekst-dempet); }

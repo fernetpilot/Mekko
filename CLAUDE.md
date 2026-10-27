@@ -107,9 +107,8 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   vedlikehold fra serviceplanen (biler uten plan: årlig service), slitasjedeler, EU-kontroll hvert 2. år og dekk etter alder,
   regnet med km/år fra historikken. Pris: brukerens egen verkstedpris for samme jobb (KPI-justert; gjort selv/bare deler teller
   ikke), ellers Mekkoo-anslag i `PRISER` (2026-kr). KPI fra `INFLASJON` (SSB, legg til nytt år), `PRISVEKST` framover.
-  Uforutsett = snitt av reparasjoner siste 5 år, vist som spenn (`UFORUTSETT_SPENN`). Ikke verditap, ikke dekkskift.
-  Stolpene viser forventet i gul-brunt (`--serie-prognose`) med strek for spennet; kurven er glattet (monoton spline)
-  og fortsetter stiplet med bånd. «Forventet neste 5 år» og «Sett av per måned» står under diagrammene, med «Hva er med i prognosen?».
+  Bevisst bare planlagt vedlikehold: ikke uforutsette reparasjoner, ikke verditap, ikke dekkskift (positiv vinkling på bilprosjektet).
+  Stolpene viser forventet i gul-brunt (`--serie-prognose`); kurven er glattet (monoton spline) og fortsetter stiplet. «Forventet neste 5 år» og «Sett av per måned» står under diagrammene, med «Hva er med i prognosen?».
   Diagramfarger (`--serie-*`) står på `#bil-panel` i `public/bilhold/css/bilhold.css`.
 - **Kategorier og deler på hendelser: `public/js/kategorier.js` er eneste kilde** (ren, testet).
   `kategorierFor(h)`, `hendelseTittel(h)` og `kostnadPerKategori(h)` brukes av fanen Vedlikehold, Mine biler,

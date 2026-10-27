@@ -1,16 +1,16 @@
 // Prognose: forventede vedlikeholdskostnader de neste fem årene.
 // Ren logikk: ingen DOM, ingen nettverk. Brukes av Økonomi-fanen (fane-okonomi.js).
 //
-// Tre deler:
+// To deler:
 //  1. Planlagt vedlikehold: servicepunkter med intervall (serviceplan for modellen), slitasjedeler,
 //     EU-kontroll hvert andre år og dekk som går ut på alder. Neste gang regnes fra siste utførte
 //     og bilens kilometer per år (fra historikken).
 //  2. Pris per jobb: brukerens egen pris for samme jobb (KPI-justert) går foran Mekkoo-anslaget i PRISER.
-//  3. Uforutsett: snittet av reparasjoner utover planlagt vedlikehold de siste fem årene, som et spenn.
-// Verditap er bevisst ikke med: dette skal vise hva det koster å holde bilen ved like.
+// Uforutsette reparasjoner og verditap er bevisst ikke med: prognosen skal vise hva det koster å holde bilen
+// ved like, ikke skremme bort fra bilprosjektet.
 // Dekkskift er ikke med (gjøres ofte av brukeren selv).
 
-import { delerFor, kostnadPerKategori } from "./kategorier.js";
+import { delerFor } from "./kategorier.js";
 import { delId } from "./servicekatalog.js";
 import { aktuellePunkter, punkterFor } from "./servicepunkter.js";
 import { SLITASJE_PUNKTER } from "./slitasje.js";
@@ -53,8 +53,6 @@ export const INFLASJON = {
 };
 /** Antatt prisvekst per år framover. */
 export const PRISVEKST = 0.03;
-/** Spennet for uforutsette reparasjoner, som andel av snittet. */
-export const UFORUTSETT_SPENN = { lav: 0.6, hoy: 1.5 };
 /** Kilometer per år når historikken ikke sier noe. */
 export const STANDARD_KM_PER_AAR = 15000;
 /** Årlig service for biler uten serviceplan i Mekkoo. */
@@ -66,8 +64,6 @@ export const AAR = 5;
 // «Utført av» som betyr at brukeren gjorde jobben selv
 const GJORT_SELV = /\b(selv|sjøl|sjol|privat|meg|jeg)\b/i;
 
-// Kategorier som er vanlig service, ikke reparasjoner
-const RUTINE = new Set(["oljer", "service", "eu_kontroll", "dekk"]);
 
 const DAG = 86400000;
 const tilDato = (s) => new Date(`${s}T00:00:00Z`);
@@ -194,8 +190,7 @@ function forfall(punkt, sist, { iDag, slutt, kmNaa, kmAar }) {
  * @param {number} [p.aar]  antall år framover
  * @returns {{
  *   fra, til, kmPerAar, kmAnslatt, poster: Array<{dato, id, navn, pris, kilde, egenAar}>,
- *   perAar: Array<{ar, planlagt, uforutsett, lav, hoy, poster}>, uforutsettPerAar: number, uforutsettGrunnlag,
- *   total: {snitt, lav, hoy, planlagt, uforutsett}, perManed: number, kurve: Array<{dato, snitt, lav, hoy}>
+ *   perAar: Array<{ar, planlagt, poster}>, total: number, perManed: number, kurve: Array<{dato, sum}>
  * }}
  */
 export function lagPrognose(bil, { idag = new Date(), aar = AAR } = {}) {
@@ -229,8 +224,6 @@ export function lagPrognose(bil, { idag = new Date(), aar = AAR } = {}) {
     punkter = punkter.filter((p) => p.id !== "manuelt-gir");
   }
   punkter.push(...SLITASJE_PUNKTER);
-  const planlagteIder = new Set(punkter.map((p) => p.id));
-  if (planlagteIder.has("motorolje")) planlagteIder.add("oljefilter");
 
   const poster = [];
   const leggTil = (id, navn, dato) => {
@@ -261,49 +254,21 @@ export function lagPrognose(bil, { idag = new Date(), aar = AAR } = {}) {
   }
   poster.sort((a, b) => a.dato.localeCompare(b.dato));
 
-  // 3. Uforutsett: reparasjoner utover planlagt vedlikehold de siste fem årene, i dagens kroner
-  const fem = iso(new Date(idag.getTime() - aar * 365.25 * DAG));
-  let sumRep = 0;
-  for (const h of hendelser) {
-    if (h.dato < fem || h.dato > iDag || !(Number(h.kostnad) > 0)) continue;
-    const deler = delerUten(h);
-    if (deler.length && deler.every((d) => planlagteIder.has(d))) continue; // planlagt, ligger i prognosen
-    const rep = kostnadPerKategori(h).filter((k) => !RUTINE.has(k.id)).reduce((n, k) => n + k.belop, 0);
-    sumRep += kpiJuster(rep, Number(h.dato.slice(0, 4)), iAar);
-  }
-  const forste = hendelser.map((h) => h.dato).sort()[0];
-  const grunnlagAar = forste ? Math.min(aar, Math.max(1, aarMellom(forste > fem ? forste : fem, iDag))) : 0;
-  const uforutsettPerAar = grunnlagAar ? sumRep / grunnlagAar : 0;
-
   // Per kalenderår (første og siste år er delvise)
   const perAar = [];
   for (let a = iAar; a <= Number(slutt.slice(0, 4)); a++) {
-    const fra = a === iAar ? iDag : `${a}-01-01`;
-    const til = a === Number(slutt.slice(0, 4)) ? slutt : `${a + 1}-01-01`;
-    const andel = Math.max(0, aarMellom(fra, til));
     const mine = poster.filter((p) => p.dato.slice(0, 4) === String(a));
-    const planlagt = mine.reduce((n, p) => n + p.pris, 0);
-    const uforutsett = uforutsettPerAar * andel * (1 + PRISVEKST) ** Math.max(0, a - iAar);
-    perAar.push({
-      ar: a, planlagt, uforutsett,
-      lav: planlagt + uforutsett * UFORUTSETT_SPENN.lav,
-      hoy: planlagt + uforutsett * UFORUTSETT_SPENN.hoy,
-      poster: mine,
-    });
+    perAar.push({ ar: a, planlagt: mine.reduce((n, p) => n + p.pris, 0), poster: mine });
   }
-  const planlagt = perAar.reduce((n, x) => n + x.planlagt, 0);
-  const uforutsett = perAar.reduce((n, x) => n + x.uforutsett, 0);
+  const total = perAar.reduce((n, x) => n + x.planlagt, 0);
 
   // Kurve: akkumulert fra i dag, ett punkt per måned
   const kurve = [];
   for (let m = 0; m <= aar * 12; m++) {
     const dato = leggTilMåneder(iDag, m);
-    const pl = poster.filter((p) => p.dato <= dato).reduce((n, p) => n + p.pris, 0);
-    const uf = uforutsettPerAar * aarMellom(iDag, dato) * (1 + PRISVEKST) ** (aarMellom(iDag, dato) / 2);
-    kurve.push({ dato, snitt: pl + uf, lav: pl + uf * UFORUTSETT_SPENN.lav, hoy: pl + uf * UFORUTSETT_SPENN.hoy });
+    kurve.push({ dato, sum: poster.filter((p) => p.dato <= dato).reduce((n, p) => n + p.pris, 0) });
   }
 
-  const snitt = planlagt + uforutsett;
   return {
     fra: iDag,
     til: slutt,
@@ -312,14 +277,8 @@ export function lagPrognose(bil, { idag = new Date(), aar = AAR } = {}) {
     harServiceplan: plan.length > 0,
     poster,
     perAar,
-    uforutsettPerAar,
-    uforutsettGrunnlag: grunnlagAar,
-    total: {
-      snitt, planlagt, uforutsett,
-      lav: planlagt + uforutsett * UFORUTSETT_SPENN.lav,
-      hoy: planlagt + uforutsett * UFORUTSETT_SPENN.hoy,
-    },
-    perManed: snitt / (aar * 12),
+    total,
+    perManed: total / (aar * 12),
     kurve,
   };
 }

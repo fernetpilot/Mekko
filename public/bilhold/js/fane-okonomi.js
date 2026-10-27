@@ -5,7 +5,7 @@ import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { estimerVerdi, maned, manederMellom, oppsummer, standardPeriode } from '/js/bilokonomi.js';
 import { alleFrister } from '/js/dashboard.js';
-import { lagPrognose, PRISVEKST, UFORUTSETT_SPENN } from '/js/prognose.js';
+import { lagPrognose, PRISVEKST } from '/js/prognose.js';
 import { finnAlleDeler, finnLenke, finnLignendeBiler } from '/js/finn-sok.js';
 import { ansvar, el, finnKnapp, flis, fliser, liten } from './bil-visning.js';
 
@@ -212,11 +212,10 @@ function stolpeSti(x, b, y0, y1, rund) {
   return `M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + b - r} Q${x + b},${y1} ${x + b},${y1 + r} V${y0} Z`;
 }
 
-const tegnforklaringDiagram = (pr, spennTekst) => {
+const tegnforklaringDiagram = () => {
   const l = el('ul', 'diagram-forklaring');
   const punkt = (klasse, tekst) => { const li = el('li'); li.append(el('span', `prikk ${klasse}`), el('span', null, tekst)); return li; };
-  l.append(punkt('historikk', 'Registrert'), punkt('prognose', 'Forventet'));
-  if (pr.uforutsettPerAar) l.append(punkt('uforutsett', spennTekst));
+  l.append(punkt('historikk', 'Registrert'), punkt('prognose', 'Forventet vedlikehold'));
   return l;
 };
 
@@ -225,24 +224,24 @@ function stolper(o, perManed, pr) {
   if (pr) perManed = false;
   const iAar = pr ? pr.perAar[0].ar : null;
   const kol = perManed
-    ? o.perManed.map((p) => ({ navn: manedTekst(p.maned, true), kort: MANEDER[Number(p.maned.slice(5, 7)) - 1].replace('.', ''), ar: p.maned.slice(0, 4), hist: p.sum, plan: 0, uf: 0 }))
-    : o.perAr.map((p) => ({ navn: String(p.ar), kort: String(p.ar), hist: p.sum, plan: 0, uf: 0 }));
+    ? o.perManed.map((p) => ({ navn: manedTekst(p.maned, true), kort: MANEDER[Number(p.maned.slice(5, 7)) - 1].replace('.', ''), ar: p.maned.slice(0, 4), hist: p.sum, plan: 0 }))
+    : o.perAr.map((p) => ({ navn: String(p.ar), kort: String(p.ar), hist: p.sum, plan: 0 }));
   if (pr) {
     for (const f of pr.perAar) {
       let k = kol.find((x) => x.kort === String(f.ar));
       if (!k) { k = { navn: String(f.ar), kort: String(f.ar), hist: 0 }; kol.push(k); }
-      Object.assign(k, { plan: f.planlagt, uf: f.uforutsett, poster: f.poster, framtid: f.ar > iAar, iAar: f.ar === iAar });
+      Object.assign(k, { plan: f.planlagt, poster: f.poster, framtid: f.ar > iAar, iAar: f.ar === iAar });
     }
   }
   const tittel = perManed ? 'Kostnader per måned' : pr ? 'Kostnader per år, med forventet' : 'Kostnader per år';
-  const k = diagramkort(tittel, pr ? `Gult er forventet ${pr.perAar[0].ar}–${pr.perAar.at(-1).ar}. Streken viser spennet for uforutsette reparasjoner.` : null);
+  const k = diagramkort(tittel, pr ? `Gult er forventet vedlikehold ${pr.perAar[0].ar}–${pr.perAar.at(-1).ar}.` : null);
   if (!kol.length || (!o.total && !pr)) {
     k.append(liten('Ingen kostnader å vise i perioden.'));
     return k;
   }
-  const topp = (p) => p.hist + p.plan + p.uf * (pr ? UFORUTSETT_SPENN.hoy : 1);
+  const topp = (p) => p.hist + p.plan;
   const s = svg('svg', { viewBox: '0 0 340 200', role: 'img',
-    'aria-label': `${tittel}: ${kol.map((p) => `${p.navn}: ${kr(p.hist + p.plan + p.uf)}${p.plan || p.uf ? ' (forventet)' : ''}`).join(', ')}` });
+    'aria-label': `${tittel}: ${kol.map((p) => `${p.navn}: ${kr(p.hist + p.plan)}${p.plan ? ' (med forventet)' : ''}`).join(', ')}` });
   const ticks = fineSteg(Math.max(...kol.map(topp)));
   const ymaks = ticks[ticks.length - 1];
   const bunn = PLOT.H - PLOT.b, ovre = PLOT.t;
@@ -255,7 +254,7 @@ function stolper(o, perManed, pr) {
   const visHvert = Math.ceil(n / 8); // ikke flere enn ~8 etiketter under aksen
   kol.forEach((p, i) => {
     const x = PLOT.v + i * bredde + (bredde - stolpe) / 2;
-    const deler = [['hist', 'var(--serie-hoved)', 1], ['plan', 'var(--serie-prognose)', 1], ['uf', 'var(--serie-prognose)', 0.45]]
+    const deler = [['hist', 'var(--serie-hoved)', 1], ['plan', 'var(--serie-prognose)', 1]]
       .filter(([nokkel]) => p[nokkel] > 0);
     let bunnV = 0;
     deler.forEach(([nokkel, fyll, op], j) => {
@@ -263,19 +262,11 @@ function stolper(o, perManed, pr) {
       if (d) s.append(svg('path', { d, fill: fyll, opacity: op }));
       bunnV += p[nokkel];
     });
-    // Spennet for uforutsett
-    if (p.uf > 0) {
-      const lav = y(p.hist + p.plan + p.uf * UFORUTSETT_SPENN.lav), hoy = y(p.hist + p.plan + p.uf * UFORUTSETT_SPENN.hoy);
-      const midt = x + stolpe / 2, ving = Math.min(4, stolpe / 3);
-      s.append(svg('path', { d: `M${midt},${lav} V${hoy} M${midt - ving},${hoy} H${midt + ving} M${midt - ving},${lav} H${midt + ving}`,
-        stroke: 'var(--tekst)', 'stroke-width': 1, opacity: 0.7, fill: 'none' }));
-    }
     // Treffflate i hele kolonnens høyde, større enn stolpen
     const treff = svg('rect', { x: PLOT.v + i * bredde, y: ovre, width: bredde, height: bunn - ovre, fill: 'transparent' });
     const linjer = [];
     if (p.hist) linjer.push(`${p.iAar ? 'Registrert så langt' : 'Registrert'}: ${kr(p.hist)}`);
-    if (p.plan) linjer.push(`Forventet planlagt: ${kr(p.plan)}`);
-    if (p.uf) linjer.push(`Uforutsett: ${kr(p.uf * UFORUTSETT_SPENN.lav)}–${kr(p.uf * UFORUTSETT_SPENN.hoy)}`);
+    if (p.plan) linjer.push(`Forventet vedlikehold: ${kr(p.plan)}`);
     if (!linjer.length) linjer.push(kr(0));
     medTips(treff, `<strong>${esc(p.navn)}</strong>${linjer.join('<br>')}`);
     s.append(treff);
@@ -290,7 +281,7 @@ function stolper(o, perManed, pr) {
   });
   s.append(svg('line', { x1: PLOT.v, x2: PLOT.B - PLOT.h, y1: bunn, y2: bunn, stroke: 'var(--akse)', 'stroke-width': 1 }));
   k.append(s);
-  if (pr) k.append(tegnforklaringDiagram(pr, 'Uforutsett, med spenn'));
+  if (pr) k.append(tegnforklaringDiagram());
   return k;
 }
 
@@ -323,17 +314,17 @@ function kurve(o, periode, idag, pr) {
   const hist = o.akkumulert.length ? maanedspunkter(o) : [{ dato: o.slutt, sum: 0 }];
   const sisteHist = { dato: o.slutt, sum: o.total, idag: iDag, slutt: true };
   if (hist.at(-1).dato !== o.slutt) hist.push(sisteHist); else Object.assign(hist.at(-1), sisteHist);
-  const prog = pr ? pr.kurve.slice(1).filter((_, i, l) => i % 3 === 2 || i === l.length - 1).map((p) => ({ dato: p.dato, sum: o.total + p.snitt, lav: o.total + p.lav, hoy: o.total + p.hoy, prognose: true })) : [];
+  const prog = pr ? pr.kurve.slice(1).filter((_, i, l) => i % 3 === 2 || i === l.length - 1).map((p) => ({ dato: p.dato, sum: o.total + p.sum, prognose: true })) : [];
   const alle = [...hist, ...prog];
   const t0 = tid(alle[0].dato), t1 = Math.max(tid(alle.at(-1).dato), t0 + 86400000);
-  const ticks = fineSteg(Math.max(o.total, ...prog.map((p) => p.hoy)));
+  const ticks = fineSteg(Math.max(o.total, ...prog.map((p) => p.sum)));
   const ymaks = ticks[ticks.length - 1];
   const bunn = PLOT.H - PLOT.b, topp = PLOT.t;
   const x = (d) => PLOT.v + ((tid(d) - t0) / (t1 - t0)) * (PLOT.B - PLOT.h - PLOT.v);
   const y = (v) => bunn - (v / ymaks) * (bunn - topp);
   const s = svg('svg', { viewBox: '0 0 340 200', role: 'img',
     'aria-label': `Akkumulerte kostnader fra ${formaterDato(alle[0].dato)} til ${formaterDato(o.slutt)}: ${kr(o.total)}`
-      + (pr ? `. Forventet ${kr(o.total + pr.total.snitt)} om fem år (${kr(o.total + pr.total.lav)}–${kr(o.total + pr.total.hoy)}).` : '') });
+      + (pr ? `. Forventet ${kr(o.total + pr.total)} om fem år.` : '') });
   tegnYakse(s, ticks, y);
 
   // Langs x-aksen: årstall, eller måneder når hele aksen er kort
@@ -362,13 +353,9 @@ function kurve(o, periode, idag, pr) {
     s.append(svg('path', { d: `${d} L${x(o.slutt)},${bunn} L${x(hist[0].dato)},${bunn} Z`, fill: 'var(--serie-hoved)', opacity: 0.12 }));
     s.append(svg('path', { d, fill: 'none', stroke: 'var(--serie-hoved)', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
   }
-  // Prognosen: stiplet linje videre fra dagens sum, med et bånd for spennet
+  // Prognosen: stiplet linje videre fra dagens sum
   if (prog.length) {
-    const start = { dato: o.slutt, sum: o.total, lav: o.total, hoy: o.total };
-    const linje = [start, ...prog];
-    const ovre = glattSti(linje.map((p) => pkt(p, p.hoy)));
-    const nedre = [...linje].reverse().map((p) => pkt(p, p.lav)).map(([a, b]) => `L${a},${b}`).join(' ');
-    s.append(svg('path', { d: `${ovre} ${nedre} Z`, fill: 'var(--serie-prognose)', opacity: 0.16 }));
+    const linje = [{ dato: o.slutt, sum: o.total }, ...prog];
     s.append(svg('path', { d: glattSti(linje.map((p) => pkt(p))), fill: 'none', stroke: 'var(--serie-prognose)', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
     s.append(svg('circle', { cx: x(prog.at(-1).dato), cy: y(prog.at(-1).sum), r: 4, fill: 'var(--serie-prognose)', stroke: '#16171a', 'stroke-width': 2 }));
   }
@@ -391,7 +378,7 @@ function kurve(o, periode, idag, pr) {
     sikte.setAttribute('visibility', 'visible'); markor.setAttribute('visibility', 'visible');
     const navn = best.idag ? 'I dag' : best.slutt ? 'Slutten av perioden' : best.prognose ? `Forventet ${esc(manedTekst(best.dato.slice(0, 7)))}` : esc(manedTekst(best.dato.slice(0, 7)));
     visTips(e, best.prognose
-      ? `<strong>${navn}</strong>ca. ${kr(best.sum)} totalt<br>${kr(best.lav)}–${kr(best.hoy)}`
+      ? `<strong>${navn}</strong>ca. ${kr(best.sum)} totalt`
       : `<strong>${navn}</strong>${kr(best.sum)} totalt`);
   };
   flate.addEventListener('pointermove', finn);
@@ -401,14 +388,13 @@ function kurve(o, periode, idag, pr) {
   });
   s.append(flate);
   k.append(s);
-  if (pr) k.append(tegnforklaringDiagram(pr, 'Mulig spenn'));
+  if (pr) k.append(tegnforklaringDiagram());
   return k;
 }
 
 /** «Forventet neste 5 år»: nøkkeltall og hva som er med, per år. */
 function prognoseFliser(pr) {
-  const total = flis('Forventet neste 5 år', `ca. ${kr(Math.round(pr.total.snitt / 1000) * 1000)}`,
-    `${kr(Math.round(pr.total.lav / 1000) * 1000)} – ${kr(Math.round(pr.total.hoy / 1000) * 1000)}`);
+  const total = flis('Forventet neste 5 år', `ca. ${kr(Math.round(pr.total / 1000) * 1000)}`, 'Planlagt vedlikehold');
   const mnd = flis('Sett av per måned', `ca. ${kr(Math.round(pr.perManed / 100) * 100)}`, 'Snitt de neste 5 årene');
   total.classList.add('prognose');
   mnd.classList.add('prognose');
@@ -421,19 +407,12 @@ function prognoseDetaljer(pr) {
   const ul = el('ul', 'prognose-ar');
   for (const a of pr.perAar) {
     const li = el('li');
-    const sum = a.planlagt + a.uforutsett;
-    li.append(el('h4', null, `${a.ar}${a === pr.perAar[0] ? ' (resten av året)' : a === pr.perAar.at(-1) ? ' (fram til ' + formaterDato(pr.til) + ')' : ''} · ca. ${kr(Math.round(sum / 100) * 100)}`));
+    li.append(el('h4', null, `${a.ar}${a === pr.perAar[0] ? ' (resten av året)' : a === pr.perAar.at(-1) ? ' (fram til ' + formaterDato(pr.til) + ')' : ''} · ca. ${kr(Math.round(a.planlagt / 100) * 100)}`));
     const jobber = el('ul', 'prognose-jobber');
     for (const p of a.poster) {
       const j = el('li');
       j.append(el('span', 'post-dato', manedTekst(p.dato.slice(0, 7))), el('span', null, p.navn),
         el('span', 'post-belop', `${kr(p.pris)} · ${p.kilde === 'egen' ? `din pris (${p.egenAar})` : 'Mekkoo-anslag'}`));
-      jobber.append(j);
-    }
-    if (a.uforutsett) {
-      const j = el('li', 'uforutsett');
-      j.append(el('span', 'post-dato', 'Hele året'), el('span', null, 'Uforutsette reparasjoner'),
-        el('span', 'post-belop', `${kr(a.uforutsett * UFORUTSETT_SPENN.lav)}–${kr(a.uforutsett * UFORUTSETT_SPENN.hoy)}`));
       jobber.append(j);
     }
     if (!jobber.children.length) jobber.append(el('li', 'tom', 'Ingenting planlagt'));
@@ -445,10 +424,7 @@ function prognoseDetaljer(pr) {
     `Regnet med ${pr.kmPerAar.toLocaleString('nb-NO')} km i året${pr.kmAnslatt ? ' (anslag, for lite kilometerhistorikk)' : ' (fra kilometerstandene dine)'}`,
     `${Math.round(PRISVEKST * 100)} % prisvekst i året`,
     pr.harServiceplan ? 'serviceplanen for modellen' : 'årlig service (vi har ikke serviceplan for denne modellen ennå)',
-    pr.uforutsettPerAar
-      ? `uforutsett ut fra reparasjonene dine de siste ${Math.round(pr.uforutsettGrunnlag)} årene (${kr(pr.uforutsettPerAar)} i året)`
-      : 'ingen uforutsette reparasjoner (ingen registrert de siste fem årene)',
-  ].join(' · ') + '. Prisene er verkstedpriser: gjør du jobben selv, blir det billigere. Dekkskift og verditap er ikke med.'));
+  ].join(' · ') + '. Prisene er verkstedpriser: gjør du jobben selv, blir det billigere. Dekkskift er ikke med.'));
   return d;
 }
 
