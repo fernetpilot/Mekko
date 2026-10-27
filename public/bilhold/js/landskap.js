@@ -70,7 +70,7 @@ export function lagOmgivelser(scene, farger) {
   scene.add(gress);
 
   // ---------- Veien ----------
-  // Asfalt med fin struktur, hjulspor, sprekker og ujevnheter (bump-kart). Teksturen flytter seg
+  // Asfalt med fin struktur, sprekker og ujevnheter (bump-kart). Teksturen flytter seg
   // med samme fart som stripene.
   const veiTekstur = asfaltTekstur();
   const veiMat = new THREE.MeshStandardMaterial({ color: farger.vei, roughness: 0.92, map: veiTekstur, bumpMap: veiTekstur, bumpScale: 1.6 });
@@ -102,7 +102,7 @@ export function lagOmgivelser(scene, farger) {
     leggTil(s, z);
   }
 
-  // Lappet asfalt og sølepytter langs veikantene og i hjulsporene
+  // Lappet asfalt og sølepytter langs veikantene
   for (let i = 0; i < 12; i++) {
     const z = -LENGDE / 2 + (i + t()) * (LENGDE / 12);
     const x = MIDTSTRIPE_X + (t() < 0.5 ? -1 : 1) * (0.6 + t() * 2.4);
@@ -509,7 +509,7 @@ function utenUv(geo) {
   return g;
 }
 
-// Asfalt: fin, lys/mørk struktur (blir mørk av materialfargen), hjulspor og sprekker
+// Asfalt: fin, lys/mørk struktur (blir mørk av materialfargen) og sprekker
 function asfaltTekstur() {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 512;
@@ -522,9 +522,6 @@ function asfaltTekstur() {
     g.fillStyle = `rgb(${v},${v},${v})`;
     g.fillRect(t() * 256, t() * 512, 1 + t() * 2, 1 + t() * 2);
   }
-  // Hjulspor: litt mørkere striper i begge felt
-  g.fillStyle = 'rgba(0,0,0,0.07)';
-  for (const x of [30, 80, 160, 210]) g.fillRect(x, 0, 18, 512);
   // Sprekker
   g.strokeStyle = 'rgba(0,0,0,0.35)';
   g.lineWidth = 1.2;

@@ -122,6 +122,11 @@ export function lagBil() {
   midt.lineTo(2.08, MOTORROM_GULV);
   midt.lineTo(PANSER_Z + 0.04, MOTORROM_GULV);
   midt.lineTo(PANSER_Z, BELTE);                                         // brannvegg
+  // Kupéen er hul (bare gulv, brannvegg og bakvegg), så setene synes helt ned når glasset blir klart
+  midt.lineTo(PANSER_Z - 0.05, BELTE);
+  midt.lineTo(PANSER_Z - 0.05, 0.6);
+  midt.lineTo(-2.1, 0.6);
+  midt.lineTo(-2.1, BELTE);
   midt.lineTo(-2.12, BELTE);
   midt.quadraticCurveTo(BAK, BELTE, BAK, 1.04);
   midt.lineTo(BAK, 0.6);
