@@ -744,12 +744,7 @@ export function lagBil() {
   sjafor.gruppe.position.set(0.42, 0.47, -0.14);
   interior.add(sjafor.gruppe);
 
-  // Skanning: en lysende flate som glir over bilen og en tynn ramme rundt
-  const skannMat = new THREE.MeshBasicMaterial({ color: 0x9cc8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-  const skannFlate = new THREE.Mesh(new THREE.BoxGeometry(BREDDE + 0.12, 2.2, 0.04), skannMat);
-  skannFlate.position.y = 1.1;
-  skannFlate.visible = false;
-  gruppe.add(skannFlate);
+  // Skanning: en tynn ramme rundt bilen
   const skannRamme = new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(BREDDE + 0.4, 2.35, FRONT - BAK + 0.6)),
     new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthTest: false }),
@@ -786,10 +781,6 @@ export function lagBil() {
     solv.emissive.copy(glod).multiplyScalar(hover * 0.14 * (0.8 + 0.2 * Math.sin(tid * 3)));
     interior.visible = styrke > 0.02;
     if (interior.visible) sjafor.oppdater(tid + 3);
-    skannFlate.visible = styrke > 0.02;
-    skannMat.opacity = styrke * 0.28;
-    const t = (tid * 0.45) % 1;                       // glir fra front til bak og starter på nytt
-    skannFlate.position.z = THREE.MathUtils.lerp(FRONT + 0.15, BAK - 0.15, t);
     skannRamme.material.opacity = styrke * (0.55 + 0.25 * Math.sin(tid * 3));
   }
 

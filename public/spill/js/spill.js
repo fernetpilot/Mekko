@@ -124,38 +124,97 @@ function nyRunde() {
 }
 
 // ---------- Dekkspor når bilen skrenser ----------
+// Hvert bakhjul tegner et sammenhengende bånd: hvert nytt stykke starter der det forrige sluttet,
+// så sporet blir en jevn stripe gjennom svingen. Kantene er myke, og sporet er mørkere jo mer
+// bilen skrenser. Stykkene ligger i en ringbuffer, så de eldste forsvinner når den er full.
 const dekkspor = (() => {
-  const ANTALL = 900;
-  const mesh = new THREE.InstancedMesh(
-    new THREE.PlaneGeometry(0.24, 0.4).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: 0x050506, transparent: true, opacity: 0.45, depthWrite: false }),
-    ANTALL,
-  );
+  const ANTALL = 1600;                 // stykker totalt (begge hjul)
+  const BREDDE = 0.22;
+  const STEG = 0.12;                   // nytt stykke for hver 12. cm
+  const pos = new Float32Array(ANTALL * 4 * 3);
+  const farge = new Float32Array(ANTALL * 4 * 4);
+  const uv = new Float32Array(ANTALL * 4 * 2);
+  const indeks = new Uint32Array(ANTALL * 6);
+  for (let i = 0; i < ANTALL; i++) {
+    uv.set([0, 0, 1, 0, 0, 1, 1, 1], i * 8);
+    indeks.set([i * 4, i * 4 + 2, i * 4 + 1, i * 4 + 1, i * 4 + 2, i * 4 + 3], i * 6);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(farge, 4));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.setIndex(new THREE.BufferAttribute(indeks, 1));
+  // Myke kanter på tvers av sporet
+  const kant = (() => {
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 1;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 32, 0);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(0.25, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.75, 'rgba(255,255,255,1)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 32, 1);
+    return new THREE.CanvasTexture(c);
+  })();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    color: 0x050506, map: kant, vertexColors: true, transparent: true, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  }));
   mesh.frustumCulled = false;
+  mesh.renderOrder = 1;
   scene.add(mesh);
-  const m = new THREE.Matrix4();
-  const skjult = new THREE.Matrix4().makeScale(0, 0, 0);
-  let neste = 0, sidenSist = 0;     // sidenSist: meter igjen til neste spor
+  let neste = 0;
+  // Per hjul: forrige punkt på bakken, kantene der, og styrken der
+  const hjul = [-1, 1].map((side) => ({ side, sist: null }));
+  let aktiv = false;
+
+  function leggStykke(h, x, z, styrke) {
+    const dx = x - h.sist.x, dz = z - h.sist.z;
+    const l = Math.hypot(dx, dz) || 1;
+    const nx = (-dz / l) * BREDDE / 2, nz = (dx / l) * BREDDE / 2;
+    const y = 0.006;
+    const i = neste;
+    neste = (neste + 1) % ANTALL;
+    pos.set([h.sist.vx, y, h.sist.vz, h.sist.hx, y, h.sist.hz, x + nx, y, z + nz, x - nx, y, z - nz], i * 12);
+    for (const [k, a] of [[0, h.sist.styrke], [1, h.sist.styrke], [2, styrke], [3, styrke]]) farge.set([1, 1, 1, a], i * 16 + k * 4);
+    h.sist = { x, z, vx: x + nx, vz: z + nz, hx: x - nx, hz: z - nz, styrke };
+  }
+
   return {
-    nullstill() { for (let i = 0; i < ANTALL; i++) mesh.setMatrixAt(i, skjult); mesh.instanceMatrix.needsUpdate = true; },
-    // Legger spor langs strekningen bilen kjørte siden forrige bilde (fra fraX/fraZ), ett par hver 0,4 m
-    oppdater(b, fraX, fraZ) {
-      const dx = b.x - fraX, dz = b.z - fraZ;
-      const lengde = Math.hypot(dx, dz);
+    nullstill() {
+      farge.fill(0);
+      geo.attributes.color.needsUpdate = true;
+      for (const h of hjul) h.sist = null;
+      aktiv = false;
+    },
+    // Kalles hvert bilde. skrenser: om bilen skrenser på veien nå
+    oppdater(b, skrenser) {
+      // Litt treghet, så sporet ikke blinker av og på rundt grensen
+      aktiv = skrenser ? true : aktiv && b.skrens > 0.1 && Math.abs(b.s) > 0.2;
       const sin = Math.sin(b.retning), cos = Math.cos(b.retning);
-      while (sidenSist <= lengde) {
-        const t = lengde ? sidenSist / lengde : 1;
-        const x = fraX + dx * t, z = fraZ + dz * t;
-        for (const side of [-1, 1]) {
-          const lx = side * 0.82, lz = -1.22;      // bakhjulene
-          m.makeRotationY(b.retning).setPosition(x + lx * cos + lz * sin, 0.006, z - lx * sin + lz * cos);
-          mesh.setMatrixAt(neste, m);
-          neste = (neste + 1) % ANTALL;
+      const styrke = aktiv ? Math.min(0.55, 0.2 + (b.skrens - 0.1) * 1.2) : 0;
+      let endret = false;
+      for (const h of hjul) {
+        const lx = h.side * 0.82, lz = -1.22;   // bakhjulene
+        const x = b.x + lx * cos + lz * sin, z = b.z - lx * sin + lz * cos;
+        if (!aktiv) {
+          // Sporet tones ut på det siste stykket før det slutter
+          if (h.sist) { leggStykke(h, x, z, 0); endret = true; }
+          h.sist = null;
+          continue;
         }
-        sidenSist += 0.4;
+        if (!h.sist) {
+          h.sist = { x, z, vx: x, vz: z, hx: x, hz: z, styrke: 0 };
+          continue;
+        }
+        if (Math.hypot(x - h.sist.x, z - h.sist.z) >= STEG) { leggStykke(h, x, z, styrke); endret = true; }
       }
-      sidenSist -= lengde;
-      mesh.instanceMatrix.needsUpdate = true;
+      if (endret) {
+        geo.attributes.position.needsUpdate = true;
+        geo.attributes.color.needsUpdate = true;
+      }
     },
   };
 })();
@@ -226,7 +285,7 @@ function tegn() {
   }
 
   bane3d.oppdater(bil.x, bil.z, bil.vx, bil.vz, dt);
-  if (bil.skrens > 0.14 && Math.abs(naer.avvik) < VEI_BREDDE / 2 && Math.abs(bil.s) > 0.25) dekkspor.oppdater(bil, forX, forZ);
+  dekkspor.oppdater(bil, bil.skrens > 0.14 && Math.abs(naer.avvik) < VEI_BREDDE / 2 && Math.abs(bil.s) > 0.25);
 
   // Kameraet og sola følger bilen
   kamBilde = folgKamera(kamTilstand, kam, bil.x, bil.z, bil.retning, dt);

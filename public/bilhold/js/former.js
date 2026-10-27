@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Boks med avrundede kanter. Radiusen blir aldri større enn halve den minste siden.
 export function rundBoks(b, h, l, r, seg = 4) {
@@ -29,11 +30,13 @@ export function rundForm(pkt, r, form = new THREE.Shape()) {
 
 // Sideprofil (formens x = bilens z, y = høyde) trukket ut på tvers av bilen med runde kanter.
 // Geometrien ligger mellom x = midtX - bredde/2 og midtX + bredde/2.
-export function profil(form, bredde, avrunding, mat, { midtX = 0, kant = avrunding * 0.6, seg = 8 } = {}) {
+export function profil(form, bredde, avrunding, mat, { midtX = 0, kant = avrunding * 0.6, seg = 12 } = {}) {
   const dybde = Math.max(0.001, bredde - 2 * avrunding);
-  const geo = new THREE.ExtrudeGeometry(form, {
+  // ExtrudeGeometry gir hver trekant sin egen, flate normal, så de runde kantene ser trappete ut.
+  // Myke normaler (men skarpe der flatene møtes i en tydelig vinkel) gir jevne, blanke kanter.
+  const geo = toCreasedNormals(new THREE.ExtrudeGeometry(form, {
     depth: dybde, bevelEnabled: true, bevelThickness: avrunding, bevelSize: kant, bevelSegments: seg, curveSegments: 28,
-  });
+  }), Math.PI / 4);
   const m = new THREE.Mesh(geo, mat);
   m.rotation.y = -Math.PI / 2;             // formens x blir bilens z, uttrekket går mot -x
   m.position.x = midtX + dybde / 2;
