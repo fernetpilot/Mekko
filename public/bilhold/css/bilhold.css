@@ -1132,6 +1132,7 @@ html:not(.innlogget) .bil-knapper, html:not(.innlogget) .bil-skilt { display: no
   --serie-4: #c98500;
   --serie-5: #d55181;
   --serie-ovrige: #6e6f75;
+  --serie-prognose: #c98500; /* forventede kostnader: gul-brun, komplementerer blått */
   --serie-service: #3987e5;
   --serie-motor: #d95926;
   --serie-bremser: #199e70;
@@ -1447,3 +1448,18 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
   .bil-flis.hoved:has(.flis-finn) { padding-right: 14px; }
   .bil-flis .flis-finn { position: static; transform: none; display: inline-block; margin-top: 12px; }
 }
+
+/* Økonomi: prognose for de neste fem årene */
+.diagram-forklaring { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--tekst-dempet); }
+.diagram-forklaring li { display: flex; align-items: center; gap: 6px; }
+.diagram-forklaring .prikk { width: 10px; height: 10px; border-radius: 3px; }
+.diagram-forklaring .historikk { background: var(--serie-hoved); }
+.diagram-forklaring .prognose { background: var(--serie-prognose); }
+.bil-flis.prognose { border-left: 3px solid var(--serie-prognose); }
+.prognose-detaljer summary { cursor: pointer; font-weight: 600; }
+.prognose-ar { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
+.prognose-ar h4 { margin: 0 0 4px; font-size: 14px; }
+.prognose-jobber { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--serie-prognose); display: grid; gap: 4px; font-size: 13px; }
+.prognose-jobber li { display: grid; grid-template-columns: 74px 1fr; gap: 0 8px; }
+.prognose-jobber .post-belop { grid-column: 2; color: var(--tekst-dempet); font-size: 12px; }
+.prognose-jobber .tom { display: block; color: var(--tekst-dempet); }
