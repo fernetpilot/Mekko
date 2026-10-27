@@ -4,7 +4,9 @@
 import { supabase } from '/js/supabase.js';
 import { formaterDato } from '/js/bilstatus.js';
 import { estimerVerdi, maned, manederMellom, oppsummer, standardPeriode } from '/js/bilokonomi.js';
-import { ansvar, el, flis, fliser, liten } from './bil-visning.js';
+import { alleFrister } from '/js/dashboard.js';
+import { finnAlleDeler, finnLenke } from '/js/finn-sok.js';
+import { ansvar, el, finnKnapp, flis, fliser, liten } from './bil-visning.js';
 
 const kr = (n) => `${Math.round(n).toLocaleString('nb-NO')} kr`;
 const krKort = (n) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits: 1 })} mill.`
@@ -507,10 +509,28 @@ export function okonomiFane(bil, idag, ctx) {
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
   }
 
-  ut.push(kjopsskjema(bil, ctx), rapporter);
+  ut.push(kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
   ut.push(ansvar('Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer, ikke en takst. '
     + 'Faktisk pris avhenger av tilstand, utstyr og etterspørsel. Kostnadene bygger på det som er registrert i historikken.'));
   return ut;
+}
+
+/** «Kjøp deler på finn.no»: ferdig filtrerte søk etter delene som snart bør byttes, og alle deler til bilen. */
+function finnDeler(bil, idag) {
+  const s = el('section', 'bil-kort finn-deler');
+  s.append(el('h3', null, 'Kjøp deler på finn.no'));
+  const deler = alleFrister(bil, idag)
+    .filter((f) => f.status !== 'ok')
+    .map((f) => ({ navn: f.navn, href: finnLenke(bil, f.id) }))
+    .filter((d) => d.href);
+  s.append(liten(deler.length
+    ? 'Brukte og nye deler, filtrert på bilen din. Disse bør byttes eller sjekkes snart:'
+    : 'Brukte og nye deler, filtrert på bilen din.'));
+  const rad = el('div', 'bil-knapperad');
+  rad.append(...deler.map((d) => finnKnapp(d.href, `${d.navn} ↗`)),
+    finnKnapp(finnAlleDeler(bil), 'Alle deler til bilen ↗'));
+  s.append(rad);
+  return s;
 }
 
 /** Alt som følger periodefilteret: nøkkeltall, diagrammer og tabeller */

@@ -96,6 +96,15 @@ export function modellOrd(modell) {
 export function finnLenke(bil, id) {
   const ord = sokeord(id);
   if (!ord) return null;
+  return finnSok(bil, ord);
+}
+
+/** Alle deler til bilen på finn.no: samme filter, bare uten del i søket. */
+export function finnAlleDeler(bil) {
+  return finnSok(bil, "");
+}
+
+function finnSok(bil, ord) {
   const merke = String(bil?.merke ?? "").trim();
   const merkeId = FINN_MERKER[merke.toUpperCase()];
   const q = [!merkeId && merke.toLowerCase(), modellOrd(bil?.modell), ord].filter(Boolean).join(" ");

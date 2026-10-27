@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { finnLenke, modellOrd, sokeord } from "../public/js/finn-sok.js";
+import { finnAlleDeler, finnLenke, modellOrd, sokeord } from "../public/js/finn-sok.js";
 import { allePunkter } from "../public/js/servicekatalog.js";
 
 const disco = { merke: "LAND ROVER", modell: "DISCOVERY 3" };
@@ -49,4 +49,10 @@ test("alle deler i katalogen gir et søkeord uten parenteser eller skråstrek", 
     const ord = sokeord(p.id);
     if (ord) assert.match(ord, /^[a-zæøåé0-9 -]+$/, p.id);
   }
+});
+
+test("alle deler til bilen: bare modellen i søket", () => {
+  const url = new URL(finnAlleDeler(disco));
+  assert.equal(url.searchParams.get("brand"), "781");
+  assert.equal(url.searchParams.get("q"), "discovery 3");
 });
