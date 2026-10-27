@@ -632,17 +632,20 @@ export function okonomiFane(bil, idag, ctx) {
     steg.append(sumLi);
     const forklaring = el('details');
     forklaring.append(el('summary', null, 'Slik er det regnet'), steg);
-    v.append(forklaring);
-    // «Sjekk verdien på finn.no» står til høyre i ruten (under på smale skjermer)
-    const finn = finnKnapp(finnLignendeBiler(bil).href, 'Sjekk verdien på finn.no ↗');
-    finn.classList.add('flis-finn');
-    v.append(finn);
+    // «Sammenlign med biler til salgs» rett under «Slik er det regnet»
+    v.append(forklaring, lignendeBiler(bil, verdi));
     ut.push(fliser(v,
       flis('Totalkostnad siden kjøp', kr(totalt), oKjop.ar >= 0.5 ? `${kr(totalt / oKjop.ar)} per år, inkl. verditap` : `Verditap ${kr(verditap)}`),
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
   }
 
-  ut.push(lignendeBiler(bil, verdi), kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
+  // Uten verdianslag (ingen kjøpspris) står sammenligningen i en egen rute
+  if (!verdi) {
+    const egen = el('section', 'bil-kort finn-biler');
+    egen.append(lignendeBiler(bil, null));
+    ut.push(egen);
+  }
+  ut.push(kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
   ut.push(ansvar('Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer, ikke en takst. '
     + 'Faktisk pris avhenger av tilstand, utstyr og etterspørsel. Kostnadene bygger på det som er registrert i historikken.'));
   return ut;
@@ -692,23 +695,20 @@ function annonsepriser(bil, verdi) {
   return boks;
 }
 
-/** Søket står i markedsverdi-ruten når den finnes; ellers her. */
+/** «Sammenlign med biler til salgs»: nedtrekk i markedsverdi-ruten (eller egen rute uten verdianslag). */
 function lignendeBiler(bil, verdi) {
   const { href, km, ar } = finnLignendeBiler(bil);
-  const s = el('section', 'bil-kort finn-biler');
-  s.append(el('h3', null, 'Sammenlign med biler til salgs'));
-  const navn = [bil.merke, bil.modell].filter(Boolean).join(' ') || 'Bilen din';
+  const d = el('details', 'finn-sammenlign');
+  d.append(el('summary', null, 'Sammenlign med biler til salgs'));
+  const navn = [bil.merke, bil.modell].filter(Boolean).join(' ') || 'bilen din';
   const filter = [km && `${formaterKm(km.fra)} – ${formaterKm(km.til)}`, ar && `årsmodell ${ar.fra}–${ar.til}`].filter(Boolean);
-  s.append(liten(filter.length
-    ? `Søket på finn.no viser ${navn} med ${filter.join(' og ')}.`
-    : `Søket på finn.no viser ${navn}. Legg inn kilometerstanden, så filtrerer vi på den også.`));
-  if (!verdi) {
-    const rad = el('div', 'bil-knapperad');
-    rad.append(finnKnapp(href, 'Sjekk verdien på finn.no ↗'));
-    s.append(rad);
-  }
-  s.append(annonsepriser(bil, verdi));
-  return s;
+  d.append(liten(filter.length
+    ? `Se hva ${navn} med ${filter.join(' og ')} koster på finn.no.`
+    : `Se hva ${navn} koster på finn.no. Legg inn kilometerstanden, så filtrerer vi på den også.`));
+  const rad = el('div', 'bil-knapperad');
+  rad.append(finnKnapp(href, 'Finn lignende biler ↗'));
+  d.append(rad, annonsepriser(bil, verdi));
+  return d;
 }
 
 /** «Kjøp deler på finn.no»: ferdig filtrerte søk etter delene som snart bør byttes, og alle deler til bilen. */

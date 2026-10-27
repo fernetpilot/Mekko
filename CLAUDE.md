@@ -131,7 +131,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Nederst i Service og EU: «Fulgt etter boka?» – per del alle utførte jobber mot anbefalt intervall (stolper i % av
   intervallet). Første bytte regnes fra første registrering og 0 km («Fra ny»), og teller med i snittet.
   Trykk på en del i listene over åpner den. Ren logikk i `public/js/etter-boka.js` (testet).
-  Økonomi-fanen har «Sjekk verdien på finn.no» i markedsverdi-ruten og «Sammenlign med biler til salgs» (samme bil på finn.no, km ± 25 000; generasjonsfilter i `FINN_VARIANTER`,
+  Økonomi-fanen har «Sammenlign med biler til salgs» som nedtrekk i markedsverdi-ruten, rett under «Slik er det regnet» (egen rute bare uten verdianslag; samme bil på finn.no, km ± 25 000; generasjonsfilter i `FINN_VARIANTER`,
   ellers merke + modell + årsmodell ± 2; brukeren kan skrive inn prisene fra lignende annonser, som gir median og spenn mot
   verdianslaget – `tolkPriser`/`markedspris`, huskes i localStorage per bil. Vi henter ikke annonser automatisk – bestemt 27. okt 2026: vent på åpne API-er fra finn.no)
   og «Kjøp deler på finn.no» nederst: én knapp per del som bør byttes/sjekkes + «Alle deler til bilen», ferdig filtrert søk i Torget › Bildeler
