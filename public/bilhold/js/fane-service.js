@@ -5,9 +5,8 @@ import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { utsettelseFor } from '/js/slitasje.js';
 import { alleFrister, aarshjul, nesteService, slitasjeOppsummering } from '/js/dashboard.js';
 import { etterBoka } from '/js/etter-boka.js';
-import { finnLenke } from '/js/finn-sok.js';
 import {
-  STATUS_TEKST, ansvar, dagerTekst, el, finnKnapp, flis, fliser, fristListe, fristRad, kmIgjen, liten,
+  STATUS_TEKST, ansvar, dagerTekst, el, flis, fliser, fristListe, fristRad, kmIgjen, liten,
 } from './bil-visning.js';
 
 const stor = (t) => t && t[0].toUpperCase() + t.slice(1);
@@ -130,8 +129,6 @@ function etterBokaSeksjon(bil, idag) {
     const jobber = el('p', 'bil-liten', `Utført: ${h.jobber.map((j) =>
       [formaterDato(j.dato), j.km != null && formaterKm(j.km)].filter(Boolean).join(', ')).join(' · ')}`);
     d.append(jobber);
-    const finn = finnLenke(bil, h.id);
-    if (finn) d.append(finnKnapp(finn));
     s.append(d);
   }
   return s;
@@ -147,7 +144,7 @@ function lenkTilBoka(ut) {
       if (!d) return;
       li.classList.add('har-boka');
       li.addEventListener('click', (e) => {
-        if (e.target.closest('button, a')) return;
+        if (e.target.closest('button')) return;
         d.open = true;
         d.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -157,7 +154,7 @@ function lenkTilBoka(ut) {
 
 export function serviceFane(bil, idag, ctx) {
   const frister = alleFrister(bil, idag);
-  const valg = { utsett: utsetter(bil, ctx), finn: (id) => finnLenke(bil, id) };
+  const valg = { utsett: utsetter(bil, ctx) };
   const hjul = aarshjul(frister, idag);
   const eu = frister.find((f) => f.id === 'eu');
   const ut = [serviceFliser(frister)];
@@ -172,7 +169,6 @@ export function serviceFane(bil, idag, ctx) {
   // Deler vi ikke vet når sist ble gjort: bør gjennomføres eller sjekkes
   if (hjul.ukjent.length) ut.push(fristListe('Bør gjennomføres eller sjekkes', hjul.ukjent, 'sjekk-kort', {
     ingress: 'Vi vet ikke når disse sist ble gjort. Sjekk serviceheftet og registrer dem, så får de riktig frist.',
-    finn: valg.finn,
   }));
 
   // Årshjulet: måneder med noe i får eget kort, tomme måneder samles på én linje

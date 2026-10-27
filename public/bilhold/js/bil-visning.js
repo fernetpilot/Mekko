@@ -50,15 +50,15 @@ export function fristLinje(f) {
 }
 
 /** Lenke til et ferdig filtrert finn.no-søk etter delen (åpnes i ny fane). */
-export function finnKnapp(href) {
-  const a = el('a', 'bil-utsett bil-finn', 'Søk på finn.no ↗');
+export function finnKnapp(href, tekst = 'Søk på finn.no ↗') {
+  const a = el('a', 'bil-knapp bil-finn', tekst);
   a.href = href;
   a.target = '_blank';
   a.rel = 'noopener';
   return a;
 }
 
-export function fristRad(f, { utsett, finn } = {}) {
+export function fristRad(f, { utsett } = {}) {
   const li = el('li', `frist ${f.status}`);
   li.dataset.punkt = f.id;
   li.append(el('span', 'prikk'));
@@ -66,17 +66,14 @@ export function fristRad(f, { utsett, finn } = {}) {
   t.append(el('strong', null, f.navn), el('span', 'liste-under', fristLinje(f)));
   li.append(t, el('span', 'merke', f.status === 'ok' ? KILDE_TEKST[f.kilde] : STATUS_TEKST[f.status]));
   // Slitasjedeler som snart bør byttes kan utsettes («snooze»)
-  const rad = el('div', 'bil-utsett-rad');
   if (utsett && f.kanUtsette && f.utsettTekst) {
     const k = el('button', 'knapp sekundaer bil-utsett', f.utsettTekst);
     k.type = 'button';
     k.addEventListener('click', () => utsett(f, k));
+    const rad = el('div', 'bil-utsett-rad');
     rad.append(k);
+    li.append(rad);
   }
-  // Deler som snart bør byttes: søk etter delen på finn.no, filtrert på bilen
-  const finnHref = finn && f.status !== 'ok' && finn(f.id);
-  if (finnHref) rad.append(finnKnapp(finnHref));
-  if (rad.childElementCount) li.append(rad);
   return li;
 }
 

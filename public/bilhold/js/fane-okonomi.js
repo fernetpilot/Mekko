@@ -2,9 +2,11 @@
 // Beregningene ligger i bilokonomi.js (ren og testet). Her tegnes fanen og lagres kjøpsopplysningene.
 // Antakelsene for verdianslaget justeres i VERDI_ANTAKELSER i bilokonomi.js.
 import { supabase } from '/js/supabase.js';
-import { formaterDato } from '/js/bilstatus.js';
+import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { estimerVerdi, maned, manederMellom, oppsummer, standardPeriode } from '/js/bilokonomi.js';
-import { ansvar, el, flis, fliser, liten } from './bil-visning.js';
+import { alleFrister } from '/js/dashboard.js';
+import { finnAlleDeler, finnLenke, finnLignendeBiler } from '/js/finn-sok.js';
+import { ansvar, el, finnKnapp, flis, fliser, liten } from './bil-visning.js';
 
 const kr = (n) => `${Math.round(n).toLocaleString('nb-NO')} kr`;
 const krKort = (n) => (Math.abs(n) >= 1e6 ? `${(n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits: 1 })} mill.`
@@ -507,10 +509,44 @@ export function okonomiFane(bil, idag, ctx) {
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
   }
 
-  ut.push(kjopsskjema(bil, ctx), rapporter);
+  ut.push(lignendeBiler(bil), kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
   ut.push(ansvar('Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer, ikke en takst. '
     + 'Faktisk pris avhenger av tilstand, utstyr og etterspørsel. Kostnadene bygger på det som er registrert i historikken.'));
   return ut;
+}
+
+/** «Sammenlign med biler til salgs»: samme bil på finn.no, med omtrent samme kilometerstand. */
+function lignendeBiler(bil) {
+  const { href, km, ar } = finnLignendeBiler(bil);
+  const s = el('section', 'bil-kort finn-biler');
+  s.append(el('h3', null, 'Sammenlign med biler til salgs'));
+  const navn = [bil.merke, bil.modell].filter(Boolean).join(' ') || 'Bilen din';
+  const filter = [km && `${formaterKm(km.fra)} – ${formaterKm(km.til)}`, ar && `årsmodell ${ar.fra}–${ar.til}`].filter(Boolean);
+  s.append(liten(filter.length
+    ? `Se hva ${navn} med ${filter.join(' og ')} koster på finn.no.`
+    : `Se hva ${navn} koster på finn.no. Legg inn kilometerstanden, så filtrerer vi på den også.`));
+  const rad = el('div', 'bil-knapperad');
+  rad.append(finnKnapp(href, 'Finn lignende biler ↗'));
+  s.append(rad);
+  return s;
+}
+
+/** «Kjøp deler på finn.no»: ferdig filtrerte søk etter delene som snart bør byttes, og alle deler til bilen. */
+function finnDeler(bil, idag) {
+  const s = el('section', 'bil-kort finn-deler');
+  s.append(el('h3', null, 'Kjøp deler på finn.no'));
+  const deler = alleFrister(bil, idag)
+    .filter((f) => f.status !== 'ok')
+    .map((f) => ({ navn: f.navn, href: finnLenke(bil, f.id) }))
+    .filter((d) => d.href);
+  s.append(liten(deler.length
+    ? 'Brukte og nye deler, filtrert på bilen din. Disse bør byttes eller sjekkes snart:'
+    : 'Brukte og nye deler, filtrert på bilen din.'));
+  const rad = el('div', 'bil-knapperad');
+  rad.append(...deler.map((d) => finnKnapp(d.href, `${d.navn} ↗`)),
+    finnKnapp(finnAlleDeler(bil), 'Alle deler til bilen ↗'));
+  s.append(rad);
+  return s;
 }
 
 /** Alt som følger periodefilteret: nøkkeltall, diagrammer og tabeller */

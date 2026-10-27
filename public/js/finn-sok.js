@@ -1,4 +1,4 @@
-// Lenke til et ferdig filtrert søk etter en del på finn.no (Torget › Bildeler).
+// Lenker til ferdig filtrerte søk på finn.no: deler til bilen (Torget › Bildeler) og lignende biler til salgs.
 // Ren logikk, ingen DOM. Parameterne er de finn.no selv bruker i adressen (sjekket 27. okt 2026):
 //   sub_category=1.90.82  Utstyr til bil, båt og MC › Bildeler
 //   brand=<id>            merke (samme id som i bilsøket på finn.no)
@@ -96,6 +96,15 @@ export function modellOrd(modell) {
 export function finnLenke(bil, id) {
   const ord = sokeord(id);
   if (!ord) return null;
+  return finnSok(bil, ord);
+}
+
+/** Alle deler til bilen på finn.no: samme filter, bare uten del i søket. */
+export function finnAlleDeler(bil) {
+  return finnSok(bil, "");
+}
+
+function finnSok(bil, ord) {
   const merke = String(bil?.merke ?? "").trim();
   const merkeId = FINN_MERKER[merke.toUpperCase()];
   const q = [!merkeId && merke.toLowerCase(), modellOrd(bil?.modell), ord].filter(Boolean).join(" ");
@@ -104,4 +113,67 @@ export function finnLenke(bil, id) {
   url.searchParams.set("sub_category", BILDELER);
   url.searchParams.set("q", q);
   return url.toString();
+}
+
+// ---------------------------------------------------------------------------
+// Lignende biler til salgs (finn.no › Bil), sjekket 27. okt 2026:
+//   variant=0.<merke-id>               alle modeller fra merket
+//   variant=2.781.2680.<id>            én generasjon, f.eks. Discovery 3
+//   mileage_from / mileage_to          kilometerstand
+//   year_from / year_to                årsmodell
+// ---------------------------------------------------------------------------
+export const FINN_BILER = "https://www.finn.no/mobility/search/car";
+export const KM_SLINGRING = 25000;
+const AR_SLINGRING = 2;
+
+// Generasjoner finn.no har egne filtre for. Første treff på modellnavnet vinner.
+const FINN_VARIANTER = {
+  "LAND ROVER": [
+    [/DISCOVERY\s*SPORT/, "2.781.2680.2000319"],
+    [/DISCOVERY\s*3/, "2.781.2680.2002262"],
+    [/DISCOVERY\s*4/, "2.781.2680.2002263"],
+    [/DISCOVERY\s*5/, "2.781.2680.2002264"],
+  ],
+};
+
+/** finn.no sin variant-id for bilens generasjon, eller null. */
+export function finnVariant(bil) {
+  const merke = String(bil?.merke ?? "").trim().toUpperCase();
+  const modell = String(bil?.modell ?? "").toUpperCase();
+  return FINN_VARIANTER[merke]?.find(([re]) => re.test(modell))?.[1] ?? null;
+}
+
+/**
+ * Søk etter samme bil til salgs på finn.no, med kilometerstand ± 25 000 km.
+ * Kjenner vi ikke generasjonen, søkes det på merke + modell og årsmodell ± 2 år.
+ * @param {{ merke?, modell?, kilometerstand?, forstegangsregistrert? }} bil
+ * @returns {{ href: string, km: { fra, til } | null, ar: { fra, til } | null }}
+ */
+export function finnLignendeBiler(bil) {
+  const url = new URL(FINN_BILER);
+  const variant = finnVariant(bil);
+  const merke = String(bil?.merke ?? "").trim();
+  const merkeId = FINN_MERKER[merke.toUpperCase()];
+  let ar = null;
+  if (variant) {
+    url.searchParams.set("variant", variant);
+  } else {
+    if (merkeId) url.searchParams.set("variant", `0.${merkeId}`);
+    const q = [!merkeId && merke.toLowerCase(), modellOrd(bil?.modell)].filter(Boolean).join(" ");
+    if (q) url.searchParams.set("q", q);
+    const forste = Number(String(bil?.forstegangsregistrert ?? "").slice(0, 4));
+    if (forste > 1900) {
+      ar = { fra: forste - AR_SLINGRING, til: forste + AR_SLINGRING };
+      url.searchParams.set("year_from", String(ar.fra));
+      url.searchParams.set("year_to", String(ar.til));
+    }
+  }
+  const kmNaa = Number(bil?.kilometerstand);
+  let km = null;
+  if (bil?.kilometerstand != null && Number.isFinite(kmNaa)) {
+    km = { fra: Math.max(0, kmNaa - KM_SLINGRING), til: kmNaa + KM_SLINGRING };
+    url.searchParams.set("mileage_from", String(km.fra));
+    url.searchParams.set("mileage_to", String(km.til));
+  }
+  return { href: url.toString(), km, ar };
 }
