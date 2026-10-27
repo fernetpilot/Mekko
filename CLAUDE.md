@@ -55,7 +55,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   (hele bremsen farges; kritisk status blinker rolig rødt, også på kortet og punktet).
   Svake telefoner får en lett 3D-versjon (lav oppløsning, ingen skygger, 30 fps): slås på av lite minne/datasparing
   eller hvis de første sekundene går tregt. `?lett` i adressen tvinger den på.
-  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
+  Personikonet åpner «Min profil»-menyen (`public/bilhold/js/profilmeny.js`): Mine biler, Registrer vedlikehold, Tilstandsrapport, Dekk og dekkskift, Biløkonomi, Mine kvitteringer (kommer), Logg ut.
   Bjella ved siden av viser varsler. Reglene ligger i `public/js/varsler.js` (ren logikk, testet):
   EU-kontroll, service og dekkskift; servicepunkter som aldri er registrert gir ett samlet «bør sjekkes»-varsel per bil.
   Er ett girkassepunkt registrert, etterlyses ikke den andre girtypen (`aktuellePunkter` i `servicepunkter.js`).
@@ -88,6 +88,14 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/servicehefte.html` + `public/js/servicehefte.js` – historikk med vedlegg for én bil (`?bil=<id>`).
   Hendelser og enkeltvedlegg kan slettes der. PDF lages i nettleseren med pdf-lib fra CDN:
   `public/js/servicehefte-pdf.js` (ren funksjon). Formatet er foreløpig.
+- `public/tilstandsrapport.html` + `public/js/tilstandsrapport-side.js` – tilstandsrapport for salg (`?bil=<id>`), i profilmenyen.
+  Bygget som en boligtilstandsrapport (TG0–TG3, IU) med områdene fra NAF-test ved eierskifte. Selgeren gir hvert område
+  en tilstandsgrad med kommentar og svarer på en egenerklæring (kollisjon, kjente feil, varsellamper, nøkler …); det lagres
+  automatisk i tabellen `tilstandsrapporter` (se `supabase/08-tilstandsrapport.sql`, én rad per bil, `data` jsonb).
+  Resten hentes automatisk: bildata fra Vegvesenet, EU-kontroll, historikk, «etter boka», større arbeid siste 5 år,
+  forfalt vedlikehold og dekk. Ren logikk (testet): `public/js/tilstandsrapport.js` (`lagTilstandsrapport`, `OMRADER`,
+  `SPORSMAL`, `TILSTANDSGRADER`). PDF: `public/js/tilstandsrapport-pdf.js` (pdf-lib), kan få serviceheftet med kvitteringer
+  lagt ved bakerst. Kostnader kan skjules. Rapporten er selgers egenerklæring og sier det.
 - Økonomi-fanen (`fane-okonomi.js`): kjøpspris/-dato/-km (felt på `biler`, se `supabase/06-bilokonomi.sql`), nøkkeltall,
   kakediagram per utgiftspost, stolper per år, akkumulert kurve og grovt verdianslag. Beregningene ligger i
   `public/js/bilokonomi.js` (ren, testet); antakelsene for verdianslaget er samlet i `VERDI_ANTAKELSER` og kan justeres der.

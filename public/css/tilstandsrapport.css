@@ -1,0 +1,69 @@
+/* Tilstandsrapport – bygger på min-side.css */
+main.tilstand { padding-bottom: calc(env(safe-area-inset-bottom) + 130px); }
+.tilstand h2 { font-size: 19px; margin: 0 0 4px; }
+.seksjon-tittel { margin-top: 28px !important; }
+.tilstand code { font-size: 13px; }
+.avkryss { display: flex; align-items: center; gap: 10px; color: var(--tekst); font-size: 15px; }
+.avkryss input { width: 20px; height: 20px; flex: none; }
+
+/* Tilstandsgrader: samme farger som statusfargene ellers på siden */
+.tg0 { --tg: var(--ok); }
+.tg1 { --tg: #8fd36a; }
+.tg2 { --tg: var(--sjekk); }
+.tg3 { --tg: var(--kritisk); }
+.tgiu { --tg: rgba(242, 243, 245, 0.45); }
+
+.sammendrag { list-style: none; margin: 12px 0 4px; padding: 0; display: grid; gap: 8px; }
+.sammendrag li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; line-height: 1.4; }
+.merke-ikon {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #0a0b0d;
+}
+.sammendrag .pluss .merke-ikon { background: var(--ok); }
+.sammendrag .obs .merke-ikon { background: var(--sjekk); }
+.forhandsvisning h3 { font-size: 14px; margin: 10px 0 4px; color: var(--tekst-dempet); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.tg-forklaring { margin: 4px 0 12px; }
+.tg-forklaring dl { margin: 0; display: grid; gap: 4px 0; }
+.tg-forklaring dt { font-weight: 600; margin-top: 8px; }
+.tg-forklaring dd { margin: 2px 0 0; color: var(--tekst-dempet); font-size: 14px; }
+.tg-merke { display: inline-block; min-width: 38px; text-align: center; padding: 2px 6px; border-radius: 8px; background: var(--tg); color: #0a0b0d; font-size: 12px; font-weight: 700; }
+
+.omrader { list-style: none; margin: 0; padding: 0; }
+.omrade { display: grid; gap: 8px; border-left: 4px solid var(--glass-kant); }
+.omrade[data-tg="TG0"] { border-left-color: var(--ok); }
+.omrade[data-tg="TG1"] { border-left-color: #8fd36a; }
+.omrade[data-tg="TG2"] { border-left-color: var(--sjekk); }
+.omrade[data-tg="TG3"] { border-left-color: var(--kritisk); }
+.omrade h3 { margin: 0; font-size: 17px; }
+.omrade .liten { margin: 0; }
+.fra-historikk { font-style: italic; }
+
+.tg-velger { border: 0; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tg-valg {
+  position: relative; display: grid; justify-items: center; gap: 2px;
+  padding: 8px 2px; border-radius: 12px; border: 1px solid var(--glass-kant); background: var(--felt);
+  color: var(--tekst-dempet); cursor: pointer; text-align: center;
+}
+.tg-valg input { position: absolute; opacity: 0; pointer-events: none; }
+.tg-kode { font-weight: 700; font-size: 16px; color: var(--tekst); }
+.tg-navn { font-size: 10.5px; line-height: 1.15; }
+.tg-valg:has(input:checked) { background: var(--tg); border-color: var(--tg); color: #0a0b0d; }
+.tg-valg:has(input:checked) .tg-kode { color: #0a0b0d; }
+.tg-valg:has(input:focus-visible) { outline: 2px solid var(--tekst); outline-offset: 2px; }
+
+.sporsmal fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sporsmal legend { font-size: 14px; color: var(--tekst-dempet); margin-bottom: 6px; padding: 0; }
+.sporsmal + .sporsmal { border-top: 1px solid var(--glass-kant); padding-top: 12px; }
+.janei-rad { display: flex; gap: 6px; flex-wrap: wrap; }
+.valg-brikke { position: relative; display: block; }
+.valg-brikke input { position: absolute; opacity: 0; pointer-events: none; }
+.valg-brikke span {
+  display: block; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--glass-kant);
+  background: var(--felt); color: var(--tekst); font-size: 15px; cursor: pointer;
+}
+.valg-brikke input:checked + span { background: var(--tekst); color: #0a0b0d; border-color: var(--tekst); }
+.valg-brikke input:focus-visible + span { outline: 2px solid var(--tekst); outline-offset: 2px; }
+
+.skjult-tekst { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ansvar { margin-top: 24px; }
