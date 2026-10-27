@@ -1437,3 +1437,7 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 .okonomi-rapporter, .periode-boks { display: contents; }
 .periode-rader { display: grid; gap: 10px; }
 @media (min-width: 560px) { .periode-rader { grid-template-columns: 1fr 1fr; } }
+
+/* Økonomi: priser fra lignende annonser på finn.no */
+.finn-priser { margin-top: 12px; display: grid; gap: 10px; }
+.finn-priser-svar { display: grid; gap: 6px; }

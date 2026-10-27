@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { finnAlleDeler, finnLenke, finnLignendeBiler, finnVariant, modellOrd, sokeord } from "../public/js/finn-sok.js";
+import { finnAlleDeler, finnLenke, finnLignendeBiler, finnVariant, markedspris, modellOrd, sokeord, tolkPriser } from "../public/js/finn-sok.js";
 import { allePunkter } from "../public/js/servicekatalog.js";
 
 const disco = { merke: "LAND ROVER", modell: "DISCOVERY 3" };
@@ -85,4 +85,16 @@ test("lignende biler: ukjent generasjon gir merke, modell og årsmodell ± 2", (
   const volvo = new URL(finnLignendeBiler({ merke: "VOLVO", modell: "V70" }).href);
   assert.equal(volvo.searchParams.get("q"), "volvo v70");
   assert.equal(volvo.searchParams.get("mileage_from"), null);
+});
+
+test("priser fra annonser leses fra fritekst", () => {
+  assert.deepEqual(tolkPriser("89 900\nkr 95.000,-\n120000 kr"), [89900, 95000, 120000]);
+  assert.deepEqual(tolkPriser("89 900; 99 000, 105 500"), [89900, 99000, 105500]);
+  assert.deepEqual(tolkPriser("12\n\nabc"), []);
+});
+
+test("markedspris: median, snitt og spenn", () => {
+  assert.deepEqual(markedspris([120000, 90000, 100000]), { antall: 3, median: 100000, snitt: 103333.33333333333, lav: 90000, hoy: 120000 });
+  assert.equal(markedspris([90000, 100000]).median, 95000);
+  assert.equal(markedspris([]), null);
 });

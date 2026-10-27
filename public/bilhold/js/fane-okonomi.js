@@ -5,7 +5,7 @@ import { supabase } from '/js/supabase.js';
 import { formaterDato, formaterKm } from '/js/bilstatus.js';
 import { estimerVerdi, maned, manederMellom, oppsummer, standardPeriode } from '/js/bilokonomi.js';
 import { alleFrister } from '/js/dashboard.js';
-import { finnAlleDeler, finnLenke, finnLignendeBiler } from '/js/finn-sok.js';
+import { finnAlleDeler, finnLenke, finnLignendeBiler, markedspris, tolkPriser } from '/js/finn-sok.js';
 import { ansvar, el, finnKnapp, flis, fliser, liten } from './bil-visning.js';
 
 const kr = (n) => `${Math.round(n).toLocaleString('nb-NO')} kr`;
@@ -509,14 +509,57 @@ export function okonomiFane(bil, idag, ctx) {
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
   }
 
-  ut.push(lignendeBiler(bil), kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
+  ut.push(lignendeBiler(bil, verdi), kjopsskjema(bil, ctx), rapporter, finnDeler(bil, idag));
   ut.push(ansvar('Markedsverdien er et grovt anslag ut fra kjøpspris, alder, kilometer og utbedringer, ikke en takst. '
     + 'Faktisk pris avhenger av tilstand, utstyr og etterspørsel. Kostnadene bygger på det som er registrert i historikken.'));
   return ut;
 }
 
 /** «Sammenlign med biler til salgs»: samme bil på finn.no, med omtrent samme kilometerstand. */
-function lignendeBiler(bil) {
+// Prisene fra annonsene huskes i nettleseren per bil (bare en hjelp, ikke lagret i databasen)
+const PRIS_NOKKEL = 'mekko-finn-priser-';
+const hentPriser = (id) => { try { return localStorage.getItem(PRIS_NOKKEL + id) ?? ''; } catch { return ''; } };
+const lagrePriser = (id, tekst) => {
+  try { tekst ? localStorage.setItem(PRIS_NOKKEL + id, tekst) : localStorage.removeItem(PRIS_NOKKEL + id); } catch { /* ingen lagring */ }
+};
+
+/** Prisene brukeren har skrevet inn fra lignende annonser: median og spenn, mot Mekkos anslag. */
+function annonsepriser(bil, verdi) {
+  const boks = el('div', 'bil-skjema finn-priser');
+  const l = el('label', null, 'Priser fra lignende annonser (én per linje)');
+  const felt = document.createElement('textarea');
+  felt.rows = 4;
+  felt.inputMode = 'numeric';
+  felt.placeholder = '89 900\n95 000\n105 000';
+  felt.value = hentPriser(bil.id);
+  l.append(felt);
+  const svar = el('div', 'finn-priser-svar');
+  const tegn = () => {
+    const m = markedspris(tolkPriser(felt.value));
+    if (!m) {
+      svar.replaceChildren(liten('Åpne søket, finn 3–5 biler som ligner mest på din (utstyr, tilstand, år), og skriv inn prisene her.'));
+      return;
+    }
+    const f = flis('Annonsepris på finn.no', `ca. ${kr(m.median)}`,
+      m.antall > 1 ? `${kr(m.lav)} – ${kr(m.hoy)} · ${m.antall} annonser` : '1 annonse, legg inn flere for et sikrere tall');
+    f.classList.add('hoved');
+    const ut = [f];
+    if (verdi) {
+      const diff = m.median - verdi.verdi;
+      ut.push(liten(Math.abs(diff) < 5000
+        ? `Omtrent det samme som Mekkos anslag (${kr(verdi.verdi)}).`
+        : `${kr(Math.abs(diff))} ${diff > 0 ? 'over' : 'under'} Mekkos anslag (${kr(verdi.verdi)}).`));
+    }
+    ut.push(liten('Annonsepris er det selgerne ber om. Salgsprisen ender ofte litt lavere.'));
+    svar.replaceChildren(...ut);
+  };
+  felt.addEventListener('input', () => { lagrePriser(bil.id, felt.value.trim()); tegn(); });
+  tegn();
+  boks.append(l, svar);
+  return boks;
+}
+
+function lignendeBiler(bil, verdi) {
   const { href, km, ar } = finnLignendeBiler(bil);
   const s = el('section', 'bil-kort finn-biler');
   s.append(el('h3', null, 'Sammenlign med biler til salgs'));
@@ -527,7 +570,7 @@ function lignendeBiler(bil) {
     : `Se hva ${navn} koster på finn.no. Legg inn kilometerstanden, så filtrerer vi på den også.`));
   const rad = el('div', 'bil-knapperad');
   rad.append(finnKnapp(href, 'Finn lignende biler ↗'));
-  s.append(rad);
+  s.append(rad, annonsepriser(bil, verdi));
   return s;
 }
 
