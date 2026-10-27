@@ -24,6 +24,10 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 ## Struktur
 - `public/` – nettsiden (det brukeren ser)
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
+  3D-modellene: bilen er en Land Rover Discovery 2 (facelift 2003–04) i `public/bilhold/js/bil.js` (`lagBil`, brukes også
+  i spillet), bygget av myke profiler med runde kanter (felles byggeklosser i `former.js`), med detaljert Td5-motorrom under
+  panseret. Hengeren (`tilhenger.js`) har samme stil. Landskapet (gran, bjørk, furu, skigard, rød låve, åser, gul midtlinje)
+  ligger i `landskap.js`. Mobil: starter fingeren på bilen/hengeren, scroller ikke siden (trykk vs. sveip i `main.js`).
   Kortene (Motorrom, Bremseanlegg, Dekk og hjul) viser eksempeldata for utloggede. Innlogget fyller
   `public/bilhold/js/forside-kort.js` dem med status for valgt bil (ren logikk i `public/js/forside.js`, testet)
   og lenker til riktig fane i «Bilen din». Bilene hentes med `public/bilhold/js/bil-data.js`. Siden er åpen for alle; «Logg inn»-knapper (`data-logg-inn`) står
@@ -119,7 +123,7 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
   Visning: `public/js/kategori-visning.js` + `public/css/kategorier.css`. Ikke lag egne kategorilister andre steder.
 - `public/personvern.html` – personvernerklæring, lenket diskret nederst på forsiden og i profilmenyen.
 - `public/spill/` – spillet «Ta bilen en tur» (`/spill/`): kjør Mekko-bilen rundt en landevei (hengeren blir igjen på forsiden). Kameraet henger fast bak bilen og dreier med den (`kamera.js`).
-  Bygget på Starter Kit Racing (MIT, `public/spill/LISENS-starter-kit-racing.txt`), men bruker `lagBil` fra `scene.js` og
+  Bygget på Starter Kit Racing (MIT, `public/spill/LISENS-starter-kit-racing.txt`), men bruker `lagBil` fra `bil.js` og
   `veiHump` fra `tilhenger.js`, samme Three.js-versjon, lys og vei som forsiden. Ren logikk (testet i `tests/spill.test.js`):
   banen og rundetid i `js/banedata.js`, kjørefysikk i `js/kjoring.js`, kamera i `js/kamera.js`. 3D-banen: `js/bane-3d.js`.
   Overgang: «Ta bilen en tur» i heroen (`data-spill`) får forsiden (`scene.tilSpill()`) til å fly kameraet til spillets

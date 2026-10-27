@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { lagBil } from '/bilhold/js/scene.js';
+import { lagBil } from '/bilhold/js/bil.js';
 import { veiHump } from '/bilhold/js/tilhenger.js';
 import { lagBane, naermeste, punktVed, lagRundeteller, VEI_BREDDE, GRENSE, MIDTSTRIPE_X } from './banedata.js';
 import { lagBane3d } from './bane-3d.js';
@@ -305,9 +305,9 @@ function leggTilSkilt(bil, kjennemerke) {
   tekstur.colorSpace = THREE.SRGBColorSpace;
   tekstur.anisotropy = 4;
   const mat = new THREE.MeshStandardMaterial({ map: tekstur, roughness: 0.4 });
-  for (const [z, ry] of [[2.47, 0], [-2.41, Math.PI]]) {
+  for (const { y, z, ry } of bil.skiltFeste) {
     const skilt = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.112), mat);
-    skilt.position.set(0, 0.6, z);
+    skilt.position.set(0, y, z);
     skilt.rotation.y = ry;
     bil.karosseri.add(skilt);
   }

@@ -1,8 +1,9 @@
 // Tilhenger med høye vegger og en sjiraff oppi. Henger bak Land Roveren (som peker mot +z).
 
 import * as THREE from 'three';
+import { rundBoks, dekkGeo, felgGeo } from './former.js';
 
-const LAKK = 0xbdb9ac;          // samme som bilen (scene.js)
+const LAKK = 0xbdb9ac;          // samme som bilen (bil.js)
 
 const HJULRADIUS = 0.33;
 const FRONT = -2.95;            // hengerkassens forkant
@@ -27,15 +28,19 @@ export function lagTilhenger() {
   gruppe.add(kasse);
 
   // Egne materialer, så bare hengeren lyser opp når man peker på den
-  const solv = new THREE.MeshStandardMaterial({ color: LAKK, metalness: 0.75, roughness: 0.3 });   // samme lakk som bilen
-  const plast = new THREE.MeshStandardMaterial({ color: 0x17181a, metalness: 0.1, roughness: 0.75 });
+  const solv = new THREE.MeshPhysicalMaterial({ color: LAKK, metalness: 0.3, roughness: 0.38, clearcoat: 0.7, clearcoatRoughness: 0.08, envMapIntensity: 0.9 });   // samme lakk som bilen
+  const plast = new THREE.MeshStandardMaterial({ color: 0x1c1d20, metalness: 0.2, roughness: 0.65 });
+  const galv = new THREE.MeshStandardMaterial({ color: 0x9da1a6, metalness: 0.85, roughness: 0.4 });     // galvanisert ramme og drag
+  const oransje = new THREE.MeshPhysicalMaterial({ color: 0xff8c1a, roughness: 0.15, emissive: 0x4a2000, clearcoat: 1 });
+  const hvit = new THREE.MeshPhysicalMaterial({ color: 0xe8eaec, roughness: 0.1, clearcoat: 1 });
   const gulvMat = new THREE.MeshStandardMaterial({ color: 0x3b3d42, roughness: 0.9 });
-  const dekkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9 });
-  const felgMat = new THREE.MeshStandardMaterial({ color: 0xa9adb3, metalness: 0.9, roughness: 0.3 });
-  const baklykt = new THREE.MeshStandardMaterial({ color: 0x7a0b0b, emissive: 0x5a0000, roughness: 0.3 });
+  const dekkMat = new THREE.MeshStandardMaterial({ color: 0x151517, roughness: 0.85 });
+  const felgMat = new THREE.MeshPhysicalMaterial({ color: 0xc9ccd1, metalness: 0.95, roughness: 0.25, clearcoat: 0.5 });
+  const baklykt = new THREE.MeshPhysicalMaterial({ color: 0xa3111a, roughness: 0.12, emissive: 0x2a0000, clearcoat: 1 });
 
-  const boks = (b, h, l, mat, x, y, z, foreldre = kasse) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(b, h, l), mat);
+  // Avrundede kanter på alt, som på bilen
+  const boks = (b, h, l, mat, x, y, z, foreldre = kasse, r = 0.02) => {
+    const m = new THREE.Mesh(rundBoks(b, h, l, r), mat);
     m.position.set(x, y, z);
     m.castShadow = true;
     m.receiveShadow = true;
@@ -50,7 +55,8 @@ export function lagTilhenger() {
 
   // Gulv og ramme
   boks(BREDDE, 0.08, LENGDE, gulvMat, 0, GULV - 0.04, MIDT_Z);
-  for (const s of [-1, 1]) boks(0.08, 0.12, LENGDE, plast, s * 0.55, GULV - 0.14, MIDT_Z);
+  for (const s of [-1, 1]) boks(0.08, 0.12, LENGDE, galv, s * 0.55, GULV - 0.14, MIDT_Z);
+  boks(BREDDE - 0.1, 0.06, 0.08, galv, 0, GULV - 0.11, BAK + 0.05);
   // Vegger (uten tak)
   for (const s of [-1, 1]) boks(T, VEGG_H, LENGDE, solv, s * (BREDDE / 2 - T / 2), veggMidtY, MIDT_Z);
   boks(BREDDE, VEGG_H, T, solv, 0, veggMidtY, FRONT - T / 2);
@@ -63,60 +69,79 @@ export function lagTilhenger() {
   }
   for (const z of [FRONT, BAK]) boks(BREDDE + 0.04, 0.05, 0.03, solv, 0, GULV + VEGG_H, z);
   // Skjermer over hjulene
+  // Skjermer over hjulene: buet over hvert hjul og rett mellom dem
   for (const s of [-1, 1]) {
-    boks(0.26, 0.04, 1.7, plast, s * (BREDDE / 2 + 0.13), GULV + 0.02, BOGGI_Z);
-    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, BOGGI_Z + 0.83);
-    boks(0.26, 0.2, 0.04, plast, s * (BREDDE / 2 + 0.13), GULV - 0.08, BOGGI_Z - 0.83);
-    boks(0.05, 0.16, 0.08, baklykt, s * (BREDDE / 2 - 0.15), GULV + 0.12, BAK - 0.02);
+    for (const z of AKSLER) {
+      const bue = new THREE.Mesh(new THREE.CylinderGeometry(HJULRADIUS + 0.07, HJULRADIUS + 0.07, 0.27, 32, 1, true, Math.PI / 2 - 1.15, 2.3), plast);
+      bue.material.side = THREE.DoubleSide;
+      bue.rotation.z = Math.PI / 2;
+      bue.position.set(s * (BREDDE / 2 + 0.13), HJULRADIUS, z);
+      bue.castShadow = true;
+      kasse.add(bue);
+    }
+    boks(0.27, 0.03, 0.2, plast, s * (BREDDE / 2 + 0.13), HJULRADIUS * 2 + 0.06, BOGGI_Z, kasse, 0.012);
+    // Sidereflekser og markeringslys
+    boks(0.015, 0.05, 0.1, oransje, s * (BREDDE / 2 + 0.01), GULV + 0.1, FRONT - 0.4, kasse, 0.012);
+    boks(0.015, 0.05, 0.1, oransje, s * (BREDDE / 2 + 0.01), GULV + 0.1, BAK + 0.4, kasse, 0.012);
+    // Baklys: rødt, oransje og hvitt i én lykt, på en sort brakett
+    boks(0.32, 0.12, 0.04, plast, s * (BREDDE / 2 - 0.2), GULV - 0.12, BAK - 0.03, kasse, 0.02);
+    boks(0.1, 0.09, 0.03, baklykt, s * (BREDDE / 2 - 0.29), GULV - 0.12, BAK - 0.055, kasse, 0.02);
+    boks(0.08, 0.09, 0.03, oransje, s * (BREDDE / 2 - 0.19), GULV - 0.12, BAK - 0.055, kasse, 0.02);
+    boks(0.08, 0.09, 0.03, hvit, s * (BREDDE / 2 - 0.105), GULV - 0.12, BAK - 0.055, kasse, 0.02);
   }
   // Drag (A-ramme) fram til kulen på bilen
   const KULE = new THREE.Vector3(0, 0.52, -2.6);
   for (const s of [-1, 1]) {
     const fra = new THREE.Vector3(s * 0.6, GULV - 0.14, FRONT);
     const lengde = fra.distanceTo(KULE);
-    const bjelke = boks(0.07, 0.07, lengde, plast, (fra.x + KULE.x) / 2, (fra.y + KULE.y) / 2, (fra.z + KULE.z) / 2);
+    const bjelke = boks(0.07, 0.07, lengde, galv, (fra.x + KULE.x) / 2, (fra.y + KULE.y) / 2, (fra.z + KULE.z) / 2);
     bjelke.lookAt(kasse.localToWorld(KULE.clone()));
   }
-  boks(0.12, 0.1, 0.2, plast, 0, KULE.y, KULE.z + 0.05);                    // hengerhode
+  boks(0.12, 0.1, 0.2, plast, 0, KULE.y, KULE.z + 0.05, kasse, 0.04);       // hengerhode
+  boks(0.05, 0.03, 0.18, galv, 0, KULE.y + 0.06, KULE.z - 0.02, kasse, 0.012); // håndtak
   boks(0.05, 0.14, 0.05, plast, 0, KULE.y - 0.05, KULE.z + 0.17, gruppe);   // kulen på bilen
+  // Støttehjul ved draget, sveivet opp
+  {
+    const sz = KULE.z - 0.45;
+    boks(0.06, 0.4, 0.06, galv, 0.14, GULV - 0.05, sz, kasse, 0.015);
+    const sveiv = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 8, 20, Math.PI), galv);
+    sveiv.position.set(0.14, GULV + 0.17, sz);
+    kasse.add(sveiv);
+    const lite = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 24), dekkMat);
+    lite.rotation.z = Math.PI / 2;
+    lite.position.set(0.14, GULV - 0.3, sz);
+    kasse.add(lite);
+  }
 
-  // Hjul
+  // Hjul: samme runde dekk og alufelg-stil som bilen, bare mindre
   const hjul = [];
-  const klossGeo = new THREE.BoxGeometry(0.16, 0.025, 0.045);
-  const boltGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.03, 6);
+  const dekk = dekkGeo(HJULRADIUS, 0.2, 0.1, 0.045);
+  const felg = felgGeo(0.2, { eiker: 6, eikeBredde: 0.2, indre: 0.07 });
+  const tonneMat = new THREE.MeshStandardMaterial({ color: 0x8d9096, metalness: 0.9, roughness: 0.35, side: THREE.DoubleSide });
   const navMat = new THREE.MeshStandardMaterial({ color: 0x5c6066, metalness: 0.8, roughness: 0.35 });
+  const klossGeo = rundBoks(0.14, 0.014, 0.04, 0.005, 2);
   for (const s of [-1, 1]) for (const akselZ of AKSLER) {
     const spinn = new THREE.Group();
     spinn.position.set(s * (BREDDE / 2 + 0.13), HJULRADIUS, akselZ);
-    const dekk = new THREE.Mesh(new THREE.CylinderGeometry(HJULRADIUS, HJULRADIUS, 0.2, 28), dekkMat);
-    dekk.rotation.z = Math.PI / 2;
-    dekk.castShadow = true;
-    const felg = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.21, 20), felgMat);
-    felg.rotation.z = Math.PI / 2;
-    spinn.add(dekk, felg);
-    // Dekkmønster, felgkant, nav og hjulbolter, så dekkene ikke er helt blanke
-    for (let i = 0; i < 24; i++) {
-      const a = (i / 24) * Math.PI * 2;
+    const d = new THREE.Mesh(dekk, dekkMat);
+    d.castShadow = true;
+    spinn.add(d);
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2;
       const kloss = new THREE.Mesh(klossGeo, dekkMat);
-      kloss.position.set(0, Math.cos(a) * (HJULRADIUS + 0.008), Math.sin(a) * (HJULRADIUS + 0.008));
+      kloss.position.set(0, Math.cos(a) * (HJULRADIUS - 0.002), Math.sin(a) * (HJULRADIUS - 0.002));
       kloss.rotation.x = a;
       spinn.add(kloss);
     }
-    const ytre = s * 0.106;
-    const kant = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.018, 6, 28), felgMat);
-    kant.rotation.y = Math.PI / 2;
-    kant.position.x = ytre;
-    const nav = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 16), navMat);
+    const tonne = new THREE.Mesh(new THREE.CylinderGeometry(0.195, 0.195, 0.17, 32, 1, true), tonneMat);
+    tonne.rotation.z = Math.PI / 2;
+    const f = new THREE.Mesh(felg, felgMat);
+    if (s < 0) f.rotation.y = Math.PI;
+    f.position.x = s * 0.07;
+    const nav = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.03, 24), navMat);
     nav.rotation.z = Math.PI / 2;
-    nav.position.x = ytre + s * 0.01;
-    spinn.add(kant, nav);
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const bolt = new THREE.Mesh(boltGeo, navMat);
-      bolt.rotation.z = Math.PI / 2;
-      bolt.position.set(ytre + s * 0.012, Math.cos(a) * 0.1, Math.sin(a) * 0.1);
-      spinn.add(bolt);
-    }
+    nav.position.x = s * 0.09;
+    spinn.add(tonne, f, nav);
     gruppe.add(spinn);
     hjul.push(spinn);
   }
