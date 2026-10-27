@@ -26,8 +26,11 @@ Effektivitet før perfeksjon – vi vil lansere en fungerende første versjon ra
 - `public/index.html` – forsiden: bilhold-siden med 3D-bil (Three.js fra CDN). Kode og stil i `public/bilhold/`.
   3D-modellene: bilen er en Land Rover Discovery 2 (facelift 2003–04) i `public/bilhold/js/bil.js` (`lagBil`, brukes også
   i spillet), bygget av myke profiler med runde kanter (felles byggeklosser i `former.js`), med detaljert Td5-motorrom under
-  panseret. Hengeren (`tilhenger.js`) har samme stil. Landskapet (gran, bjørk, furu, skigard, rød låve, åser, gul midtlinje)
-  ligger i `landskap.js`. Mobil: starter fingeren på bilen/hengeren, scroller ikke siden (trykk vs. sveip i `main.js`).
+  panseret (og innerplate med hull og isolasjon under panseret), interiør, svake gule hodelys (spotlys) og detaljert bakparti
+  (skilt på døra, reservehjul i deksel). Hengeren (`tilhenger.js`) har samme stil og aksler festet i rammen. Landskapet
+  (`landskap.js`): skog, skigard med naturlige stopp, mosegrodde steiner og røyser, grusvei med bom, tursti med rød T,
+  sølepytter og asfaltlapper. Alt langs veien er slått sammen i biter på 14 m (få tegnekall); asfalt- og gresstekstur flytter
+  seg med veien. Lett versjon skjuler den ytterste skogen (`settLett`). Mobil: starter fingeren på bilen/hengeren, scroller ikke siden (trykk vs. sveip i `main.js`).
   Kortene (Motorrom, Bremseanlegg, Dekk og hjul) viser eksempeldata for utloggede. Innlogget fyller
   `public/bilhold/js/forside-kort.js` dem med status for valgt bil (ren logikk i `public/js/forside.js`, testet)
   og lenker til riktig fane i «Bilen din». Bilene hentes med `public/bilhold/js/bil-data.js`. Siden er åpen for alle; «Logg inn»-knapper (`data-logg-inn`) står

@@ -305,9 +305,9 @@ function leggTilSkilt(bil, kjennemerke) {
   tekstur.colorSpace = THREE.SRGBColorSpace;
   tekstur.anisotropy = 4;
   const mat = new THREE.MeshStandardMaterial({ map: tekstur, roughness: 0.4 });
-  for (const { y, z, ry } of bil.skiltFeste) {
+  for (const { x = 0, y, z, ry } of bil.skiltFeste) {
     const skilt = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.112), mat);
-    skilt.position.set(0, y, z);
+    skilt.position.set(x, y, z);
     skilt.rotation.y = ry;
     bil.karosseri.add(skilt);
   }

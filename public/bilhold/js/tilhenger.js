@@ -113,6 +113,32 @@ export function lagTilhenger() {
     kasse.add(lite);
   }
 
+  // Understell: gummifjæret aksel (firkantrør på tvers) per hjulpar, skrudd fast i rammen med
+  // braketter. Fra rørendene går en svingarm bakover og ned til navet, og en tapp inn i hjulet.
+  const HJUL_X = BREDDE / 2 + 0.13;
+  for (const z of AKSLER) {
+    boks(HJUL_X * 2 - 0.3, 0.08, 0.08, galv, 0, HJULRADIUS + 0.12, z + 0.12, gruppe, 0.012);
+    for (const s of [-1, 1]) {
+      boks(0.1, GULV - 0.2 - (HJULRADIUS + 0.12) + 0.04, 0.12, galv, s * 0.55, (GULV - 0.2 + HJULRADIUS + 0.12) / 2, z + 0.12, kasse, 0.01);
+      const arm = boks(0.06, 0.06, 0.2, galv, s * (HJUL_X - 0.17), HJULRADIUS + 0.06, z + 0.06, gruppe, 0.012);
+      arm.rotation.x = -0.55;
+      const tapp = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.12, 16), galv);
+      tapp.rotation.z = Math.PI / 2;
+      tapp.position.set(s * (HJUL_X - 0.12), HJULRADIUS, z);
+      gruppe.add(tapp);
+      // Bremsetrommel og bakplate bak felgen
+      const trommel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 24), new THREE.MeshStandardMaterial({ color: 0x3a3c40, metalness: 0.5, roughness: 0.6 }));
+      trommel.rotation.z = Math.PI / 2;
+      trommel.position.set(s * (HJUL_X - 0.06), HJULRADIUS, z);
+      gruppe.add(trommel);
+    }
+  }
+  // Tverrbjelker i rammen og stag som holder skjermene
+  for (const z of [FRONT - 0.1, BOGGI_Z, BAK + 0.4]) boks(1.18, 0.07, 0.07, galv, 0, GULV - 0.15, z);
+  for (const s of [-1, 1]) for (const z of [BOGGI_Z - 0.55, BOGGI_Z + 0.55]) {
+    boks(0.2, 0.025, 0.04, galv, s * (BREDDE / 2 + 0.06), HJULRADIUS * 2 + 0.03, z, kasse, 0.008);
+  }
+
   // Hjul: samme runde dekk og alufelg-stil som bilen, bare mindre
   const hjul = [];
   const dekk = dekkGeo(HJULRADIUS, 0.2, 0.1, 0.045);

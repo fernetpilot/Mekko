@@ -153,6 +153,8 @@ main { position: relative; z-index: 5; }
 .seksjon a { pointer-events: auto; }
 
 .hero-tekst { max-width: 30rem; }
+/* Skogen bak kan være travel: en myk skygge gjør teksten lett å lese */
+.hero-tekst h1, .hero-tekst .ingress { text-shadow: 0 1px 14px var(--bg), 0 0 3px var(--bg); }
 .overline, .seksjon-tittel {
   margin: 0 0 10px;
   font-size: 11px;
