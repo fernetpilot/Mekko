@@ -177,3 +177,31 @@ export function finnLignendeBiler(bil) {
   }
   return { href: url.toString(), km, ar };
 }
+
+// ---------------------------------------------------------------------------
+// Verdi ut fra annonser: brukeren skriver inn prisene fra lignende annonser på finn.no.
+// (Mekko henter ikke annonsene selv: finn.no tillater ikke automatisk innhenting.)
+// ---------------------------------------------------------------------------
+
+/**
+ * Leser priser fra fritekst, én per linje eller skilt med «;» eller «, ».
+ * «89 900», «kr 89.900,-» og «89900 kr» gir alle 89900. Tall under 1000 hoppes over.
+ */
+export function tolkPriser(tekst) {
+  return String(tekst ?? "")
+    .split(/\n|;|,\s+/)
+    .map((del) => del.replace(/,-|,00\b/g, "").replace(/\D/g, ""))
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => n >= 1000);
+}
+
+/** Median, snitt og spenn for prisene, eller null uten priser. */
+export function markedspris(priser) {
+  const p = [...(priser ?? [])].filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  if (!p.length) return null;
+  const midt = Math.floor(p.length / 2);
+  const median = p.length % 2 ? p[midt] : (p[midt - 1] + p[midt]) / 2;
+  const snitt = p.reduce((s, n) => s + n, 0) / p.length;
+  return { antall: p.length, median, snitt, lav: p[0], hoy: p.at(-1) };
+}
