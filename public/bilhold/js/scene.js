@@ -361,6 +361,7 @@ export function lagScene(canvas) {
     lett = true;
     renderer.setPixelRatio(1);
     renderer.shadowMap.enabled = false;
+    omgivelser.settLett();
     scene.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
     tilpassStorrelse();
     document.documentElement.classList.add('lett-3d');

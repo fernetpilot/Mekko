@@ -53,7 +53,7 @@ export function lagBil() {
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x1b2326, metalness: 0.3, roughness: 0.05, clearcoat: 1, envMapIntensity: 1.4, transparent: true, opacity: 1 });
   const frontGlass = new THREE.MeshPhysicalMaterial({ color: 0x1c2427, metalness: 0.1, roughness: 0.12, envMapIntensity: 0.22, transparent: true, opacity: 1 });
   const glassListe = [glass, frontGlass];
-  const lyktGlass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.02, clearcoat: 1, transparent: true, opacity: 0.3 });
+  const lyktGlass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.02, clearcoat: 1, transparent: true, opacity: 0.14, depthWrite: false });
   const reflektor = new THREE.MeshStandardMaterial({ color: 0xe6e9ec, metalness: 1, roughness: 0.18, emissive: 0xfff6e0, emissiveIntensity: 0.35 });
   const oransje = new THREE.MeshPhysicalMaterial({ color: 0xff8c1a, roughness: 0.15, emissive: 0x4a2000, clearcoat: 1 });
   const rod = new THREE.MeshPhysicalMaterial({ color: 0xa3111a, roughness: 0.12, emissive: 0x2a0000, clearcoat: 1 });
@@ -158,16 +158,28 @@ export function lagBil() {
   const sideOmriss = [[RUTE_FOT.z, RUTE_FOT.y], [RUTE_TOPP.z + 0.02, TAK - 0.03], [TRINN_Z + 0.04, TAK - 0.03],
     [TRINN_Z - 0.04, TAK_BAK - 0.03], [BAK + 0.01, TAK_BAK - 0.03], [BAK + 0.01, BELTE - 0.04]];
   const hull = (pkt, r) => rundForm(pkt, r, new THREE.Path());
+  // Flytter hjørnene i et vindu d meter inn mot midten (negativ d gjør vinduet større)
+  const inn = (pkt, d) => {
+    const cz = pkt.reduce((a, p) => a + p[0], 0) / pkt.length, cy = pkt.reduce((a, p) => a + p[1], 0) / pkt.length;
+    return pkt.map(([z, y]) => [z + Math.sign(cz - z) * d, y + Math.sign(cy - y) * d]);
+  };
   for (const s of [-1, 1]) {
     const plate = rundForm(sideOmriss, 0.03);
     for (const v of vinduer) plate.holes.push(hull(v, 0.035));
     sideplate(plate, 0.025, solv, s * (KUPE_X - 0.02), 0.012);
-    // Sort ramme rundt vinduene, som gjør B- og C-stolpene svarte slik de er på bilen
-    const ramme = rundForm([[-2.11, 1.18], [aStolpeZ(1.18) - 0.055, 1.18], [aStolpeZ(1.77) - 0.055, 1.77], [-2.11, 1.77]], 0.05);
-    for (const v of vinduer.slice(0, 3)) ramme.holes.push(hull(v, 0.035));
+    // Sort ramme rundt dørvinduene, som gjør B-stolpen og dørkarmene svarte slik de er på bilen.
+    // Hullene er litt mindre enn i platen, så rammen dekker den avrundede lakkanten helt inn til glasset.
+    const ramme = rundForm([[-1.07, 1.18], [aStolpeZ(1.18) - 0.055, 1.18], [aStolpeZ(1.77) - 0.055, 1.77], [-1.07, 1.77]], 0.05);
+    for (const v of vinduer.slice(0, 2)) ramme.holes.push(hull(inn(v, 0.02), 0.03));
     sideplate(ramme, 0.004, svart, s * (KUPE_X + 0.006));
+    // Bakerste sidevindu og alpine-vinduet sitter i lakken, med en smal, sort gummilist rundt glasset
+    for (const v of vinduer.slice(2)) {
+      const list = rundForm(inn(v, 0.006), 0.03);
+      list.holes.push(hull(inn(v, 0.026), 0.025));
+      sideplate(list, 0.004, svart, s * (KUPE_X + 0.004));
+    }
     // Glass litt inne i åpningene
-    for (const v of vinduer) sideplate(rundForm(v.map(([z, y]) => [z, y]), 0.035), 0.006, glass, s * (KUPE_X - 0.026));
+    for (const v of vinduer) sideplate(rundForm(inn(v, -0.01), 0.035), 0.006, glass, s * (KUPE_X - 0.026));
   }
   // Taket: avrundet over sidene, med trinn opp til det hevede taket bak
   const tak = new THREE.Shape();
@@ -186,11 +198,16 @@ export function lagBil() {
   karosseri.add(profil(tak, KUPE_X * 2, 0.1, solv, { kant: 0.025 }));
   // Bakdøra over beltelinjen, med bakrute
   const bakdor = rundForm([[-KUPE_X, BELTE - 0.04], [KUPE_X, BELTE - 0.04], [KUPE_X, TAK_BAK - 0.06], [-KUPE_X, TAK_BAK - 0.06]], 0.04);
-  bakdor.holes.push(hull([[-0.68, 1.22], [0.68, 1.22], [0.68, 1.76], [-0.68, 1.76]], 0.05));
+  bakdor.holes.push(hull([[-0.62, 1.24], [0.62, 1.24], [0.62, 1.76], [-0.62, 1.76]], 0.06));
   {
     const geo = new THREE.ExtrudeGeometry(bakdor, { depth: 0.025, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3, curveSegments: 12 });
     legg(new THREE.Mesh(geo, solv), 0, 0, BAK - 0.03);
-    legg(new THREE.Mesh(new THREE.ExtrudeGeometry(rundForm([[-0.7, 1.2], [0.7, 1.2], [0.7, 1.78], [-0.7, 1.78]], 0.06), { depth: 0.006, bevelEnabled: false }), glass), 0, 0, BAK - 0.012);
+    legg(new THREE.Mesh(new THREE.ExtrudeGeometry(rundForm([[-0.64, 1.22], [0.64, 1.22], [0.64, 1.78], [-0.64, 1.78]], 0.07), { depth: 0.006, bevelEnabled: false }), glass), 0, 0, BAK - 0.012);
+    // Bred, sort gummilist rundt bakruta, som på bilen
+    const list = rundForm([[-0.66, 1.2], [0.66, 1.2], [0.66, 1.8], [-0.66, 1.8]], 0.08);
+    list.holes.push(hull([[-0.6, 1.26], [0.6, 1.26], [0.6, 1.74], [-0.6, 1.74]], 0.05));
+    const m = legg(new THREE.Mesh(new THREE.ExtrudeGeometry(list, { depth: 0.006, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 2, curveSegments: 12 }), svart), 0, 0, BAK - 0.052);
+    m.castShadow = false;
   }
   // Frontrute med sort ramme, og A-stolper i lakk
   const dz = RUTE_FOT.z - RUTE_TOPP.z, dy = RUTE_TOPP.y - RUTE_FOT.y;
@@ -246,7 +263,58 @@ export function lagBil() {
     const m = profil(p, SKJERM_X * 2 + 0.06, 0.05, solv, { kant: 0.015 });
     panser.add(m);
   }
-  boks(SKJERM_X * 2 - 0.12, 0.012, PANSER_L - 0.2, 0.006, svart, 0, -0.04, PANSER_L / 2, panser);   // isolasjonsmatte under
+  // Undersiden av panseret: en innerplate i lakk med store, pregede hull og ribber (gir dybde),
+  // lydisolasjon i mørk filt bak hullene, panserlås, gummistopp, spylerdyser og hengsler.
+  {
+    const PB = SKJERM_X - 0.03;                       // halv bredde på innerplaten
+    const Z0 = 0.06, Z1 = PANSER_L - 0.07;            // fra bakkant til forkant
+    const ytre = rundForm([[-PB, Z0], [PB, Z0], [PB, Z1], [-PB, Z1]], 0.06);
+    // To rader med tre hull hver, og en ribbe på langs i midten
+    const hullB = (PB * 2 - 0.2) / 3 - 0.04;
+    for (const [za, zb] of [[Z0 + 0.1, (Z0 + Z1) / 2 - 0.05], [(Z0 + Z1) / 2 + 0.05, Z1 - 0.12]]) {
+      for (let i = 0; i < 3; i++) {
+        const xa = -PB + 0.1 + i * (hullB + 0.06), xb = xa + hullB;
+        ytre.holes.push(hull([[xa, za], [xb, za], [xb, zb], [xa, zb]], 0.07));
+      }
+    }
+    const innerGeo = new THREE.ExtrudeGeometry(ytre, { depth: 0.018, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3, curveSegments: 12 });
+    innerGeo.rotateX(Math.PI / 2);                    // formen ligger i (x, z), tykkelsen går nedover
+    legg(new THREE.Mesh(innerGeo, solv), 0, -0.07, 0, panser);
+    // Kantflens rundt platen opp mot panserhuden, så platen ser ut til å henge under panseret
+    for (const s of [-1, 1]) boks(0.025, 0.04, Z1 - Z0, 0.01, solv, s * (PB - 0.01), -0.06, (Z0 + Z1) / 2, panser);
+    boks(PB * 2, 0.04, 0.025, 0.01, solv, 0, -0.06, Z1 - 0.01, panser);
+    // Ribber på tvers mellom hullradene og på langs i midten
+    boks(PB * 2 - 0.1, 0.03, 0.05, 0.012, solv, 0, -0.1, (Z0 + Z1) / 2, panser);
+    boks(0.05, 0.025, Z1 - Z0 - 0.15, 0.012, solv, 0, -0.098, (Z0 + Z1) / 2, panser);
+    // Lydisolasjon: mørk, quiltet filt rett under huden
+    const filtTekstur = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const g = c.getContext('2d');
+      g.fillStyle = '#26272a'; g.fillRect(0, 0, 128, 128);
+      const tf = lagFrø(23);
+      for (let i = 0; i < 2500; i++) { const v = 28 + Math.floor(tf() * 22); g.fillStyle = `rgb(${v},${v},${v + 2})`; g.fillRect(tf() * 128, tf() * 128, 1, 1); }
+      g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 2;
+      for (let x = 0; x <= 128; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); g.beginPath(); g.moveTo(0, x); g.lineTo(128, x); g.stroke(); }
+      const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(5, 6);
+      return tx;
+    })();
+    const filt = new THREE.MeshStandardMaterial({ map: filtTekstur, roughness: 1 });
+    boks(PB * 2 - 0.06, 0.012, Z1 - Z0 - 0.04, 0.006, filt, 0, -0.043, (Z0 + Z1) / 2, panser);
+    // Panserlås foran på midten (bøyle) og gummistopp i hjørnene
+    const bøyle = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 8, 16, Math.PI), aluminium);
+    bøyle.rotation.set(0, Math.PI / 2, Math.PI);
+    legg(bøyle, 0, -0.1, Z1 - 0.04, panser);
+    boks(0.1, 0.02, 0.05, 0.008, svart, 0, -0.095, Z1 - 0.04, panser);
+    for (const s of [-1, 1]) {
+      sylinder(0.016, 0.02, 0.03, gummi, s * (PB - 0.06), -0.105, Z1 - 0.05, 'y', panser, 12);
+      // Hengsler bak og spylerdyser med slange
+      boks(0.04, 0.05, 0.1, 0.01, svart, s * (PB - 0.04), -0.07, 0.04, panser);
+      sylinder(0.01, 0.012, 0.03, svart, s * 0.25, 0.07, 0.12, 'y', panser, 10);
+      panser.add(slange([[s * 0.25, -0.05, 0.12], [s * 0.18, -0.08, 0.2], [0, -0.08, 0.24], [0, -0.07, 0.05]], 0.005, gummi));
+    }
+    // Klips for panserstaget
+    boks(0.03, 0.02, 0.06, 0.008, svart, PB - 0.08, -0.095, Z1 - 0.35, panser);
+  }
   {
     const navn = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.06), new THREE.MeshStandardMaterial({
       map: tekstTekstur('LAND ROVER', { font: '700 46px "Helvetica Neue", Arial, sans-serif', sperring: 14, farge: '#5f6267' }), transparent: true, metalness: 0.7, roughness: 0.3,
@@ -339,22 +407,39 @@ export function lagBil() {
     kant.scale.set(1.6, 0.75, 1);
     legg(kant, 0.3, 0.95, FRONT_Z + 0.034);
   }
-  // Lyktene: én klar lyktenhet per side med en stor og en liten rund lampe, blinklys ytterst nede
+  // Lyktene: én klar lyktenhet per side med en stor og en liten rund lampe, blinklys ytterst nede.
+  // Huset er mørkegrått med myke kanter, og glasset ligger flatt foran, så kantene blir rolige.
+  // Lysene står på (kjørelys er påbudt i Norge): varmt, gult halogenlys som ikke blender.
+  const lampeGlod = new THREE.MeshStandardMaterial({ color: 0xfff1d0, emissive: 0xffc977, emissiveIntensity: 1.1, roughness: 0.4 });
+  const glorie = glorieTekstur();
   for (const s of [-1, 1]) {
-    const lx = s * 0.66;
-    boks(0.4, 0.24, 0.05, 0.05, svart, lx, 0.96, FRONT_Z - 0.01);
-    boks(0.38, 0.22, 0.01, 0.045, new THREE.MeshStandardMaterial({ color: 0x9a9da3, metalness: 0.9, roughness: 0.25 }), lx, 0.96, FRONT_Z + 0.012);
+    const lykt = new THREE.Group();
+    lykt.position.set(s * 0.66, 0.96, FRONT_Z);
+    karosseri.add(lykt);
+    boks(0.41, 0.25, 0.06, 0.04, plast, 0, 0, -0.012, lykt);
+    boks(0.37, 0.21, 0.01, 0.03, new THREE.MeshStandardMaterial({ color: 0x9a9da3, metalness: 0.9, roughness: 0.25 }), 0, 0, 0.014, lykt);
     for (const [dx, r] of [[0.085, 0.078], [-0.1, 0.058]]) {
-      const x = lx + s * dx;
-      sylinder(r, r * 0.8, 0.035, reflektor, x, 0.975, FRONT_Z + 0.03, 'z', karosseri, 40);
-      legg(new THREE.Mesh(new THREE.SphereGeometry(r * 0.25, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfffbea })), x, 0.975, FRONT_Z + 0.045);
-      legg(new THREE.Mesh(new THREE.TorusGeometry(r, 0.007, 8, 40), krom), x, 0.975, FRONT_Z + 0.048);
+      const x = s * dx;
+      sylinder(r, r * 0.8, 0.03, reflektor, x, 0.012, 0.03, 'z', lykt, 40);
+      legg(new THREE.Mesh(new THREE.SphereGeometry(r * 0.28, 16, 12), lampeGlod), x, 0.012, 0.043, lykt);
+      legg(new THREE.Mesh(new THREE.TorusGeometry(r, 0.006, 8, 40), krom), x, 0.012, 0.046, lykt);
+      // Svak glød rundt lampen
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(r * 4.2, r * 4.2), new THREE.MeshBasicMaterial({
+        map: glorie, color: 0xffc46b, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending,
+      }));
+      g.position.set(x, 0.012, 0.075);
+      g.renderOrder = 5;
+      lykt.add(g);
     }
-    boks(0.09, 0.035, 0.02, 0.012, oransje, lx + s * 0.13, 0.875, FRONT_Z + 0.03);
-    // Klart glass over hele lykta
-    const lgl = boks(0.39, 0.23, 0.03, 0.045, lyktGlass, lx, 0.96, FRONT_Z + 0.055);
+    boks(0.09, 0.035, 0.02, 0.012, oransje, s * 0.13, -0.085, 0.03, lykt);
+    const lgl = boks(0.39, 0.23, 0.012, 0.006, lyktGlass, 0, 0, 0.056, lykt);
     lgl.castShadow = false;
     boks(0.02, 0.035, 0.08, 0.012, oransje, s * (SIDE_X + 0.004), 0.98, 1.98);   // blinklys på skjermen
+    // Lyskjegle framover: svakt og varmt, uten skygger
+    const kjegle = new THREE.SpotLight(0xffc982, 32, 24, 0.5, 0.8, 1.4);
+    kjegle.position.set(s * 0.66, 0.97, FRONT_Z + 0.1);
+    kjegle.target.position.set(s * 0.9, 0, FRONT_Z + 7);
+    karosseri.add(kjegle, kjegle.target);
   }
   // Støtfanger i lakk som går rundt hjørnene, med runde tåkelys, skilt og sort list nederst
   boks(1.98, 0.22, 0.3, 0.1, solv, 0, 0.62, 2.24);
@@ -390,29 +475,73 @@ export function lagBil() {
     sylinder(0.012, 0.012, 0.01, krom, s * (SIDE_X + 0.01), 1.05, 0.33, 'x');
     // Terskel
     boks(0.14, 0.07, 1.5, 0.03, plast, s * (SIDE_X - 0.04), 0.47, -0.02);
-    // Speil i lakk på sort fot
+    // Speil i lakk på sort fot. Huset og glasset er én gruppe, så glasset sitter flatt i huset.
     boks(0.1, 0.06, 0.12, 0.025, svart, s * 0.92, 1.22, 0.54);
-    const speil = boks(0.2, 0.18, 0.12, 0.055, solv, s * 1.04, 1.31, 0.52);
+    const speil = new THREE.Group();
+    speil.position.set(s * 1.04, 1.31, 0.52);
     speil.rotation.y = s * -0.12;
-    boks(0.17, 0.15, 0.01, 0.01, glass, s * 1.04, 1.31, 0.455).rotation.y = s * -0.12;
+    karosseri.add(speil);
+    boks(0.24, 0.18, 0.11, 0.035, solv, 0, 0, 0, speil);
+    boks(0.19, 0.13, 0.012, 0.006, svart, 0, 0, -0.052, speil);                     // sort kant rundt glasset
+    const speilglass = new THREE.Mesh(new THREE.ExtrudeGeometry(rundForm([[-0.085, -0.055], [0.085, -0.055], [0.085, 0.055], [-0.085, 0.055]], 0.02), { depth: 0.004, bevelEnabled: false }),
+      new THREE.MeshStandardMaterial({ color: 0x9aa3ab, metalness: 1, roughness: 0.04 }));
+    speilglass.rotation.y = Math.PI;
+    legg(speilglass, 0, 0, -0.058, speil);
   }
   // Tanklokk (høyre bakskjerm)
   sylinder(0.08, 0.08, 0.008, solv, -(SIDE_X + 0.004), 0.98, -1.78, 'x');
 
   // ---------- Bak ----------
+  const BAK_Z = BAK - 0.045;                         // utsiden av bakdøra
   for (const s of [-1, 1]) {
-    // Høye baklys på bakhjørnene: rødt, oransje og hvitt (ryggelys)
-    boks(0.12, 0.3, 0.05, 0.035, rod, s * 0.8, 1.62, BAK - 0.02);
-    boks(0.12, 0.12, 0.05, 0.03, oransje, s * 0.8, 1.38, BAK - 0.02);
-    boks(0.12, 0.1, 0.05, 0.03, hvitLykt, s * 0.8, 1.26, BAK - 0.02);
-    boks(0.16, 0.06, 0.03, 0.02, rod, s * 0.72, 0.62, BAK - 0.15);
+    // Høye baklys i sort ramme på bakstolpene: rødt øverst, så blinklys og ryggelys
+    boks(0.15, 0.6, 0.05, 0.04, svart, s * 0.8, 1.47, BAK - 0.02);
+    boks(0.12, 0.3, 0.05, 0.035, rod, s * 0.8, 1.6, BAK - 0.03);
+    for (let i = 0; i < 4; i++) boks(0.115, 0.008, 0.01, 0.003, new THREE.MeshStandardMaterial({ color: 0x5a0a0e, roughness: 0.3 }), s * 0.8, 1.49 + i * 0.07, BAK - 0.058);
+    boks(0.12, 0.11, 0.05, 0.03, oransje, s * 0.8, 1.38, BAK - 0.03);
+    boks(0.12, 0.09, 0.05, 0.03, hvitLykt, s * 0.8, 1.26, BAK - 0.03);
+    // Lys i støtfangeren: blinklys ytterst og rødt innenfor
+    boks(0.12, 0.06, 0.03, 0.02, oransje, s * 0.86, 0.6, BAK - 0.12);
+    boks(0.18, 0.06, 0.03, 0.02, rod, s * 0.68, 0.6, BAK - 0.12);
+    // Dørfuger rundt bakdøra
+    boks(0.006, 1.12, 0.004, 0.001, fuge, s * 0.725, 1.29, BAK_Z);
+    // Skvettlapper bak bakhjulene
+    boks(0.26, 0.24, 0.012, 0.01, gummi, s * SPORVIDDE, 0.24, BAKAKSEL_Z - 0.48);
   }
+  boks(1.45, 0.006, 0.004, 0.001, fuge, 0, 0.73, BAK_Z);
+  // Støtfanger i sort plast med trinnplate i midten og rødt tåkebaklys
   boks(2.0, 0.26, 0.28, 0.11, plast, 0, 0.58, BAK + 0.03);
-  // Reservehjul på bakdøra med deksel i lakk
-  const reserve = sylinder(0.36, 0.36, 0.22, gummi, 0, 1.06, BAK - 0.15, 'z', karosseri, 48);
-  const deksel = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.35, 0.03, 48), solv);
+  boks(0.62, 0.025, 0.16, 0.01, aluminium, 0, 0.715, BAK - 0.06);
+  for (let i = 0; i < 6; i++) boks(0.58, 0.006, 0.012, 0.003, svart, 0, 0.73, BAK - 0.12 + i * 0.024);
+  boks(0.08, 0.05, 0.02, 0.015, rod, -0.42, 0.52, BAK - 0.12);
+  // Skiltet sitter på døra til venstre sett bakfra (bilens venstre side, +x), med håndtak og skiltlys over
+  boks(0.56, 0.15, 0.02, 0.012, svart, 0.48, 0.9, BAK_Z - 0.005);
+  boks(0.32, 0.075, 0.04, 0.02, svart, 0.48, 1.06, BAK_Z - 0.01);
+  boks(0.2, 0.025, 0.02, 0.008, krom, 0.48, 1.05, BAK_Z - 0.03);
+  sylinder(0.028, 0.028, 0.012, krom, 0.16, 1.06, BAK_Z - 0.006, 'z');               // lås
+  // «DISCOVERY» og «Td5» på døra
+  const bakMerke = (tekst, b, x, y, opts) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(b, b * 0.14), new THREE.MeshStandardMaterial({
+      map: tekstTekstur(tekst, opts), transparent: true, metalness: 0.7, roughness: 0.3,
+    }));
+    m.rotation.y = Math.PI;
+    legg(m, x, y, BAK_Z - 0.002);
+  };
+  bakMerke('DISCOVERY', 0.46, 0.42, 0.77, { font: '700 46px "Helvetica Neue", Arial, sans-serif', sperring: 10, farge: '#3a3c40' });
+  bakMerke('Td5', 0.16, -0.6, 0.77, { bredde: 256, hoyde: 80, font: 'italic 800 64px Arial, sans-serif', farge: '#c9ccd1' });
+  // Reservehjul litt til høyre på døra sett bakfra, i sort deksel med Land Rover-merket
+  const RX = -0.2, RY = 1.04;
+  boks(0.16, 0.5, 0.06, 0.02, svart, RX, RY, BAK_Z - 0.03);                            // feste
+  const reserve = sylinder(0.36, 0.36, 0.22, gummi, RX, RY, BAK - 0.17, 'z', karosseri, 48);
+  const deksel = new THREE.Mesh(new THREE.CylinderGeometry(0.355, 0.37, 0.04, 48), new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.75 }));
   deksel.rotation.x = Math.PI / 2;
-  legg(deksel, 0, 1.06, BAK - 0.27);
+  legg(deksel, RX, RY, BAK - 0.29);
+  {
+    const logo = new THREE.Mesh(new THREE.CircleGeometry(0.15, 40), new THREE.MeshStandardMaterial({ map: landRoverLogo(), roughness: 0.5 }));
+    logo.scale.set(1.5, 0.75, 1);
+    logo.rotation.y = Math.PI;
+    legg(logo, RX, RY, BAK - 0.312);
+  }
   // Hengerfeste med kule og eksosrør
   boks(0.12, 0.08, 0.3, 0.02, svart, 0, 0.47, BAK - 0.24);
   sylinder(0.035, 0.035, 0.12, aluminium, 0.55, 0.46, BAK - 0.08, 'z', karosseri, 16);
@@ -469,39 +598,146 @@ export function lagBil() {
   interior.visible = false;
   karosseri.add(interior);
   const skinn = new THREE.MeshStandardMaterial({ color: 0x3b3430, roughness: 0.8 });
+  const som = new THREE.MeshStandardMaterial({ color: 0x2a2421, roughness: 0.9 });          // sømmer og kantbånd
   const dashMat = new THREE.MeshStandardMaterial({ color: 0x1d1e21, roughness: 0.7 });
-  const iboks = (b, h, l, mat, x, y, z, rx = 0) => {
-    const m = boks(b, h, l, 0.04, mat, x, y, z, interior);
+  const kledning = new THREE.MeshStandardMaterial({ color: 0x2b2c2f, roughness: 0.85 });   // dørsider og konsoll
+  const teppe = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 1 });
+  const himling = new THREE.MeshStandardMaterial({ color: 0x8e8b84, roughness: 0.95 });
+  const iboks = (b, h, l, mat, x, y, z, rx = 0, r = 0.04) => {
+    const m = boks(b, h, l, r, mat, x, y, z, interior);
     m.rotation.x = rx;
     m.castShadow = false;
     return m;
   };
-  iboks(KUPE_X * 2 - 0.16, 0.2, 0.28, dashMat, 0, BELTE + 0.04, 0.4);           // dashbord bak frontruta
-  for (const sx of [-1, 1]) {
-    iboks(0.5, 0.14, 0.5, skinn, sx * 0.42, 0.78, -0.14);                      // forsete
-    iboks(0.48, 0.66, 0.12, skinn, sx * 0.42, 1.12, -0.42, -0.12);              // ryggstø
-    iboks(0.26, 0.14, 0.1, skinn, sx * 0.42, 1.52, -0.47, -0.12);              // nakkestøtte
+  const isyl = (r1, r2, h, mat, x, y, z, akse) => {
+    const m = sylinder(r1, r2, h, mat, x, y, z, akse, interior, 16);
+    m.castShadow = false;
+    return m;
+  };
+  // Gulv med teppe, himling og bagasjerom
+  iboks(KUPE_X * 2 - 0.1, 0.03, 2.75, teppe, 0, 0.6, -0.68, 0, 0.01);
+  iboks(KUPE_X * 2 - 0.12, 0.02, 1.5, himling, 0, TAK - 0.06, -0.5, 0, 0.01);
+  iboks(KUPE_X * 2 - 0.12, 0.02, 0.85, himling, 0, TAK_BAK - 0.06, -1.72, 0, 0.01);
+  iboks(KUPE_X * 2 - 0.12, 0.04, 0.5, teppe, 0, 0.82, -1.92, 0, 0.01);
+
+  // Dashbord: buet profil fra frontruta og ned mot fotbrønnen
+  {
+    const d = new THREE.Shape();
+    d.moveTo(RUTE_FOT.z - 0.02, BELTE + 0.0);
+    d.lineTo(0.4, BELTE + 0.06);
+    d.quadraticCurveTo(0.3, BELTE + 0.08, 0.29, BELTE - 0.02);
+    d.lineTo(0.31, 0.92);
+    d.quadraticCurveTo(0.33, 0.84, 0.42, 0.82);
+    d.lineTo(0.62, 0.8);
+    d.closePath();
+    const m = profil(d, KUPE_X * 2 - 0.1, 0.03, dashMat, { kant: 0.02 });
+    m.castShadow = false;
+    interior.add(m);
   }
-  iboks(1.4, 0.14, 0.5, skinn, 0, 0.8, -1.3);                                  // baksete
-  iboks(1.4, 0.6, 0.12, skinn, 0, 1.13, -1.58, -0.1);
-  // Ratt på venstre side (førersiden i Norge; bilens venstre er +x)
+  // Instrumenthus foran rattet med to store og to små målere
+  iboks(0.46, 0.1, 0.18, dashMat, 0.42, BELTE + 0.1, 0.38, -0.15, 0.04);
+  {
+    const maaler = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.11), new THREE.MeshBasicMaterial({ map: instrumentTekstur() }));
+    maaler.rotation.set(-0.35, Math.PI, 0);
+    maaler.position.set(0.42, BELTE + 0.08, 0.288);
+    interior.add(maaler);
+  }
+  // Midtkonsoll med radio, varmekontroller og luftdyser
+  iboks(0.34, 0.34, 0.12, dashMat, 0, 1.0, 0.36);
+  {
+    const radio = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.28), new THREE.MeshBasicMaterial({ map: radioTekstur() }));
+    radio.rotation.y = Math.PI;
+    radio.position.set(0, 1.0, 0.298);
+    interior.add(radio);
+  }
+  for (const x of [-0.1, 0.1]) iboks(0.11, 0.05, 0.02, kledning, x, 1.13, 0.3, 0, 0.01);       // dyser i midten
+  for (const s of [-1, 1]) isyl(0.04, 0.04, 0.02, kledning, s * 0.72, 1.1, 0.33, 'z');           // runde dyser ytterst
+  iboks(0.38, 0.006, 0.01, som, -0.42, 0.98, 0.315, 0, 0.002);                                 // hanskerom-fuge
+  // Konsoll mellom forsetene: girspak, giret for lavt/høyt og håndbrekk, koppholdere
+  iboks(0.24, 0.2, 0.75, kledning, 0, 0.72, -0.02);
+  iboks(0.22, 0.03, 0.3, kledning, 0, 0.84, -0.32, 0, 0.012);                                  // armlene
+  for (const [x, z, h, r] of [[0.03, 0.18, 0.18, 0.028], [-0.06, 0.12, 0.12, 0.022]]) {
+    isyl(0.008, 0.008, h, krom, x, 0.82 + h / 2, z, 'y');
+    const knott = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), dashMat);
+    knott.position.set(x, 0.82 + h, z);
+    interior.add(knott);
+    iboks(0.08, 0.01, 0.08, som, x, 0.825, z, 0, 0.004);                                       // mansjett
+  }
+  iboks(0.04, 0.03, 0.22, dashMat, 0.06, 0.86, -0.08, 0.25, 0.012);                            // håndbrekk
+  for (const z of [0.0, 0.07]) isyl(0.03, 0.03, 0.006, som, -0.06, 0.825, z - 0.12, 'y');
+
+  // Forsetene: sete og rygg med sidestøtter, sømmer og nakkestøtte på krompinner
+  for (const sx of [-1, 1]) {
+    const x = sx * 0.42;
+    iboks(0.5, 0.12, 0.5, skinn, x, 0.76, -0.14, 0, 0.05);
+    for (const k of [-1, 1]) iboks(0.08, 0.08, 0.48, skinn, x + k * 0.22, 0.84, -0.14, 0, 0.035);
+    iboks(0.48, 0.004, 0.006, som, x, 0.821, -0.06, 0, 0.002);
+    iboks(0.48, 0.6, 0.12, skinn, x, 1.12, -0.42, -0.12, 0.05);
+    for (const k of [-1, 1]) iboks(0.08, 0.56, 0.1, skinn, x + k * 0.22, 1.1, -0.39, -0.12, 0.035);
+    iboks(0.004, 0.5, 0.006, som, x - 0.14, 1.12, -0.355, -0.12, 0.002);
+    iboks(0.004, 0.5, 0.006, som, x + 0.14, 1.12, -0.355, -0.12, 0.002);
+    for (const k of [-1, 1]) isyl(0.006, 0.006, 0.08, krom, x + k * 0.07, 1.47, -0.49, 'y');
+    iboks(0.27, 0.15, 0.1, skinn, x, 1.55, -0.5, -0.12, 0.045);
+    // Sikkerhetsbelte fra B-stolpen
+    const belte = iboks(0.05, 0.6, 0.008, svart, sx * (KUPE_X - 0.08), 1.25, -0.42, 0, 0.003);
+    belte.rotation.z = sx * 0.15;
+  }
+  // Baksetet: delt rygg med tre nakkestøtter
+  iboks(1.42, 0.13, 0.5, skinn, 0, 0.8, -1.3, 0, 0.05);
+  iboks(1.42, 0.004, 0.006, som, 0, 0.866, -1.22, 0, 0.002);
+  for (const [x, b] of [[-0.24, 0.92], [0.47, 0.46]]) iboks(b, 0.58, 0.12, skinn, x, 1.14, -1.58, -0.1, 0.05);
+  for (const x of [-0.48, 0, 0.48]) {
+    for (const k of [-1, 1]) isyl(0.006, 0.006, 0.08, krom, x + k * 0.06, 1.47, -1.64, 'y');
+    iboks(0.24, 0.13, 0.09, skinn, x, 1.54, -1.65, -0.1, 0.04);
+  }
+  // Dørsider: kledning med armlene, dørhåndtak og høyttaler
+  const hoyttaler = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.6 });
+  for (const s of [-1, 1]) {
+    const x = s * (KUPE_X - 0.055);
+    for (const [z1, z2] of [[0.66, -0.06], [-0.1, -1.03]]) {
+      const zm = (z1 + z2) / 2, l = z1 - z2;
+      iboks(0.03, 0.52, l, kledning, x, 0.9, zm, 0, 0.012);
+      iboks(0.07, 0.04, l * 0.55, som, x - s * 0.03, 0.95, zm - l * 0.1, 0, 0.015);              // armlene
+      iboks(0.02, 0.03, 0.08, krom, x - s * 0.02, 1.06, zm + l * 0.3, 0, 0.008);                  // håndtak
+      isyl(0.06, 0.06, 0.012, hoyttaler, x - s * 0.018, 0.74, zm + l * 0.25, 'x');
+    }
+    iboks(0.03, 0.5, 1.05, kledning, x, 0.95, -1.62, 0, 0.012);                                     // bagasjerommet
+    iboks(0.02, 0.03, 0.18, kledning, x - s * 0.01, TAK - 0.12, -0.3, 0, 0.01);                     // takhåndtak
+  }
+  // Innvendig speil og solskjermer
+  iboks(0.22, 0.06, 0.02, dashMat, 0, TAK - 0.16, RUTE_TOPP.z - 0.02, 0, 0.012);
+  for (const s of [-1, 1]) iboks(0.36, 0.012, 0.16, himling, s * 0.4, TAK - 0.1, RUTE_TOPP.z - 0.1, 0.15, 0.006);
+
+  // Ratt på venstre side (førersiden i Norge; bilens venstre er +x), med kollisjonspute og hendler
   const ratt = new THREE.Group();
   ratt.position.set(0.42, 1.3, 0.22);
   ratt.rotation.x = -1.05;
   interior.add(ratt);
-  const rattring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.022, 8, 28), dashMat);
+  const rattring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.024, 10, 36), dashMat);
   rattring.rotation.x = Math.PI / 2;
   ratt.add(rattring);
   for (let i = 0; i < 3; i++) {
-    const eike = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.03), dashMat);
-    eike.rotation.y = (i / 3) * Math.PI * 2;
+    const eike = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.04), dashMat);
+    eike.rotation.y = (i / 3) * Math.PI * 2 - Math.PI / 2;
     eike.position.x = Math.cos(eike.rotation.y) * 0.08;
     eike.position.z = -Math.sin(eike.rotation.y) * 0.08;
     ratt.add(eike);
   }
-  const ror = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3, 8), dashMat);
+  const pute = new THREE.Mesh(rundBoks(0.15, 0.05, 0.12, 0.02), dashMat);
+  pute.position.y = 0.02;
+  ratt.add(pute);
+  const merkeLiten = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.004, 20), new THREE.MeshStandardMaterial({ color: 0x0e4a28, roughness: 0.3 }));
+  merkeLiten.scale.set(1.5, 1, 0.75);
+  merkeLiten.position.y = 0.047;
+  ratt.add(merkeLiten);
+  const ror = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.3, 12), dashMat);
   ror.position.set(0, -0.15, 0);
   ratt.add(ror);
+  for (const s of [-1, 1]) {
+    const hendel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.012, 0.016), dashMat);
+    hendel.position.set(s * 0.09, -0.06, 0.0);
+    ratt.add(hendel);
+  }
   // Sjåføren: en mindre sjiraff i førersetet
   const sjafor = lagSjiraff();
   sjafor.gruppe.scale.setScalar(0.48);
@@ -537,7 +773,7 @@ export function lagBil() {
   }
 
   // Der spillet fester skiltet: foran og bak på støtfangerne
-  const skiltFeste = [{ y: 0.62, z: 2.401, ry: 0 }, { y: 0.66, z: BAK - 0.13, ry: Math.PI }];
+  const skiltFeste = [{ x: 0, y: 0.62, z: 2.401, ry: 0 }, { x: 0.48, y: 0.9, z: BAK - 0.064, ry: Math.PI }];
 
   // styrke 0..1: hvor gjennomsiktig glasset er og hvor synlig skanningen er
   const glod = new THREE.Color(0x9cc8ff);
@@ -685,4 +921,95 @@ function lagHjul(mat, side, felles) {
   stille.add(mønsterpunkt);
 
   return { spinn, stille, mønsterpunkt };
+}
+
+// Myk, rund glød (hvit i midten, gjennomsiktig ytterst) til lampene
+function glorieTekstur() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.25, 'rgba(255,255,255,0.45)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function lagFrø(frø) {
+  let s = frø;
+  return () => ((s = (s * 16807) % 2147483647) / 2147483647);
+}
+
+// Grønt, ovalt Land Rover-merke med hvit kant og tekst (på reservehjuldekselet)
+function landRoverLogo() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#141416';
+  g.fillRect(0, 0, 256, 256);
+  g.fillStyle = '#e8e4d8';
+  g.beginPath(); g.arc(128, 128, 126, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#2c5a3a';
+  g.beginPath(); g.arc(128, 128, 114, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#e8e4d8';
+  g.font = '800 46px Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.save(); g.scale(0.62, 1.25); g.fillText('LAND ROVER', 128 / 0.62, 128 / 1.25); g.restore();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Instrumenter: turteller og fartsmåler med hvite tall, og to små målere (drivstoff, temperatur)
+function instrumentTekstur() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 140;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0b0c0e';
+  g.fillRect(0, 0, 512, 140);
+  const maaler = (cx, r, streker) => {
+    g.strokeStyle = '#d8dbe0'; g.lineWidth = 3;
+    g.beginPath(); g.arc(cx, 72, r, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 2;
+    for (let i = 0; i <= streker; i++) {
+      const a = Math.PI * 0.75 + (i / streker) * Math.PI * 1.5;
+      g.beginPath(); g.moveTo(cx + Math.cos(a) * r * 0.78, 72 + Math.sin(a) * r * 0.78); g.lineTo(cx + Math.cos(a) * r * 0.92, 72 + Math.sin(a) * r * 0.92); g.stroke();
+    }
+    g.strokeStyle = '#ff7a2a'; g.lineWidth = 3;
+    const a = Math.PI * 0.95;
+    g.beginPath(); g.moveTo(cx, 72); g.lineTo(cx + Math.cos(a) * r * 0.8, 72 + Math.sin(a) * r * 0.8); g.stroke();
+  };
+  maaler(80, 52, 4);
+  maaler(206, 58, 10);
+  maaler(330, 58, 8);
+  maaler(445, 44, 4);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Radio med display og knapper, og varmeregulering under
+function radioTekstur() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#16171a';
+  g.fillRect(0, 0, 128, 128);
+  g.fillStyle = '#3d7f9c';
+  g.fillRect(30, 14, 68, 16);
+  g.fillStyle = '#2a2c30';
+  for (let i = 0; i < 6; i++) g.fillRect(14 + i * 17, 38, 13, 8);
+  for (const x of [20, 108]) { g.beginPath(); g.arc(x, 22, 8, 0, Math.PI * 2); g.fill(); }
+  for (const x of [28, 64, 100]) {
+    g.fillStyle = '#2f3135'; g.beginPath(); g.arc(x, 92, 15, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#c9ccd1'; g.fillRect(x - 1, 79, 2, 8);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
