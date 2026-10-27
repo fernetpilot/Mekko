@@ -332,12 +332,39 @@ window.addEventListener('pointerdown', (e) => {
   trykkStart = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('pointerup', (e) => {
+  if (e.pointerType === 'touch' && beroring) return;   // tatt av berøringen under
   if (!trykkStart || !kanPeke() || e.target.closest('a, button, .kalk-panel')) return;
   const flyttet = Math.hypot(e.clientX - trykkStart.x, e.clientY - trykkStart.y) > 10;
   trykkStart = null;
   if (flyttet) return;                       // det var et sveip, ikke et trykk
-  const hva = scene.treff(e.clientX, e.clientY);
-  const mus = e.pointerType === 'mouse';
+  trykkPaa(e.clientX, e.clientY, e.pointerType === 'mouse');
+});
+
+// Mobil: starter fingeren på bilen eller hengeren, scroller ikke siden. Ellers ble et trykk
+// lett til et lite sveip, og siden gled videre til motorrommet (og panseret åpnet seg).
+// Et lite fingerflytt teller fortsatt som trykk; et tydelig sveip blar til neste seksjon.
+let beroring = null;
+window.addEventListener('touchstart', (e) => {
+  beroring = null;
+  if (e.touches.length !== 1 || !kanPeke() || e.target.closest('a, button, input, .kalk-panel')) return;
+  const t = e.touches[0];
+  const hva = scene.treff(t.clientX, t.clientY);
+  if (hva !== 'tilhenger' && !(hva === 'bil' && innlogget())) return;
+  e.preventDefault();
+  beroring = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+window.addEventListener('touchend', (e) => {
+  if (!beroring) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - beroring.x, dy = t.clientY - beroring.y;
+  beroring = null;
+  if (Math.hypot(dx, dy) < 24) trykkPaa(t.clientX, t.clientY, false);
+  else if (Math.abs(dy) > Math.abs(dx)) window.scrollTo({ top: dy < 0 ? window.innerHeight : 0, behavior: 'smooth' });
+});
+window.addEventListener('touchcancel', () => { beroring = null; });
+
+function trykkPaa(x, y, mus) {
+  const hva = scene.treff(x, y);
   if (hva === 'tilhenger') {
     visBil(false);
     // På mobil viser første trykk skiltet, andre trykk åpner. Med mus åpner klikket direkte.
@@ -351,7 +378,7 @@ window.addEventListener('pointerup', (e) => {
     visSkilt(false);
     visBil(false);
   }
-});
+}
 window.addEventListener('scroll', () => {
   if (window.scrollY > 40) {
     if (skiltVises) visSkilt(false);
@@ -454,7 +481,9 @@ function plasserPanel(p) {
     return;
   }
   const { bunn, kantlinje, midtlinje } = scene.sideLinjer();
-  const linjeMal = Math.round(header.getBoundingClientRect().bottom) - 8;  // rett under knappene
+  // Målt uten transform: headeren kan være gjemt (blar man ned på forsiden, glir den opp av skjermen)
+  // og være på vei inn igjen når panelet åpnes, f.eks. fra motor-, bremse- eller dekkortet.
+  const linjeMal = Math.round(header.offsetTop + header.offsetHeight) - 8;  // rett under knappene
   const panelTopp = linjeMal + 2;
   const maks = Math.max(0, kantlinje - linjeMal);
   sideMaal = { linjeMal, maks, midtlinje };
