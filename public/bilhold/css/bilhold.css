@@ -1441,3 +1441,9 @@ html.kalkulator-modus body { background: rgb(62, 79, 65); }
 /* Økonomi: priser fra lignende annonser på finn.no */
 .finn-priser { margin-top: 12px; display: grid; gap: 10px; }
 .finn-priser-svar { display: grid; gap: 6px; }
+.bil-flis.hoved:has(.flis-finn) { position: relative; padding-right: 230px; }
+.bil-flis .flis-finn { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); }
+@media (max-width: 520px) {
+  .bil-flis.hoved:has(.flis-finn) { padding-right: 14px; }
+  .bil-flis .flis-finn { position: static; transform: none; display: inline-block; margin-top: 12px; }
+}

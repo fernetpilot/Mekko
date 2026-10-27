@@ -504,6 +504,10 @@ export function okonomiFane(bil, idag, ctx) {
     const forklaring = el('details');
     forklaring.append(el('summary', null, 'Slik er det regnet'), steg);
     v.append(forklaring);
+    // «Sjekk verdien på finn.no» står til høyre i ruten (under på smale skjermer)
+    const finn = finnKnapp(finnLignendeBiler(bil).href, 'Sjekk verdien på finn.no ↗');
+    finn.classList.add('flis-finn');
+    v.append(finn);
     ut.push(fliser(v,
       flis('Totalkostnad siden kjøp', kr(totalt), oKjop.ar >= 0.5 ? `${kr(totalt / oKjop.ar)} per år, inkl. verditap` : `Verditap ${kr(verditap)}`),
       flis('Investert totalt', kr(Number(bil.kjopspris) + oKjop.total), 'Kjøpspris + vedlikehold siden kjøp')));
@@ -559,6 +563,7 @@ function annonsepriser(bil, verdi) {
   return boks;
 }
 
+/** Søket står i markedsverdi-ruten når den finnes; ellers her. */
 function lignendeBiler(bil, verdi) {
   const { href, km, ar } = finnLignendeBiler(bil);
   const s = el('section', 'bil-kort finn-biler');
@@ -566,11 +571,14 @@ function lignendeBiler(bil, verdi) {
   const navn = [bil.merke, bil.modell].filter(Boolean).join(' ') || 'Bilen din';
   const filter = [km && `${formaterKm(km.fra)} – ${formaterKm(km.til)}`, ar && `årsmodell ${ar.fra}–${ar.til}`].filter(Boolean);
   s.append(liten(filter.length
-    ? `Se hva ${navn} med ${filter.join(' og ')} koster på finn.no.`
-    : `Se hva ${navn} koster på finn.no. Legg inn kilometerstanden, så filtrerer vi på den også.`));
-  const rad = el('div', 'bil-knapperad');
-  rad.append(finnKnapp(href, 'Finn lignende biler ↗'));
-  s.append(rad, annonsepriser(bil, verdi));
+    ? `Søket på finn.no viser ${navn} med ${filter.join(' og ')}.`
+    : `Søket på finn.no viser ${navn}. Legg inn kilometerstanden, så filtrerer vi på den også.`));
+  if (!verdi) {
+    const rad = el('div', 'bil-knapperad');
+    rad.append(finnKnapp(href, 'Sjekk verdien på finn.no ↗'));
+    s.append(rad);
+  }
+  s.append(annonsepriser(bil, verdi));
   return s;
 }
 
